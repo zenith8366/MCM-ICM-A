@@ -1,0 +1,1018 @@
+\documentclass[11pt,a4paper]{ctexart}
+\usepackage{geometry}
+\geometry{left=2.4cm,right=2.4cm,top=2.4cm,bottom=2.4cm}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{fancyhdr}
+\usepackage{enumitem}
+\usepackage{listings}
+\usepackage{xcolor}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small Team 2511565}
+\fancyhead[R]{\small 第 \thepage{} 页}
+\renewcommand{\headrulewidth}{0.4pt}
+
+\lstset{
+  basicstyle=\ttfamily\scriptsize,
+  breaklines=true,
+  breakatwhitespace=false,
+  columns=fullflexible,
+  keepspaces=true,
+  frame=single,
+  framesep=4pt,
+  xleftmargin=0pt,
+  linewidth=\linewidth,
+  showstringspaces=false,
+  aboveskip=6pt,
+  belowskip=6pt
+}
+
+\newcommand{\runin}[1]{\par\noindent\textbf{#1}\par\nobreak}
+\setlength{\parskip}{0pt}
+\setlength{\emergencystretch}{3em}
+\hyphenpenalty=200
+
+\begin{document}
+
+\thispagestyle{empty}
+
+\begin{center}
+{\small 选题 \textbf{A}\hfill 2025 MCM/ICM 摘要页\hfill 队伍控制号 \textbf{2511565}}\\[6pt]
+\rule{\textwidth}{0.8pt}
+\end{center}
+
+\vspace{6pt}
+\begin{center}
+{\LARGE\bfseries 楼梯磨损分析——走过历史}
+\end{center}
+
+\vspace{4pt}
+\begin{center}
+{\large\bfseries 摘\quad 要}
+\end{center}
+
+历史建筑中的楼梯磨损模式能够为建筑的年代、使用情况以及历史上的人流模式提供有价值的考古证据。本文建立了一个完整的数学框架来分析磨损模式，并为考古学家提供用于历史解读的定量工具。
+
+首先，我们建立了一套无损测量方法，涵盖\textbf{物理、化学与生物}测量。物理测量包括楼梯的\textbf{三维扫描}与单目深度估计；化学测量包括\textbf{同位素分析}与矿物成分检测；生物测量涉及微生物菌落研究。随后，我们实地采集了古建筑楼梯的俯视照片，利用\textbf{深度图估计}方法绘制热力图并获取磨损数据。
+
+在完成数据采集后，我们着手解决由离散点云数据量化磨损体积这一难题。我们采用 \textbf{Delaunay 三角剖分}将理论上的体积积分转化为局部三角体积的加权求和，从而准确计算空间磨损体积。
+
+其次，我们基于 Archard 方程建立\textbf{日人流量模型}（Daily Foot Traffic Model）。我们同时考虑 \textbf{Archard 粘着磨损模型}（Archard Adhesive Wear Model）与 \textbf{磨粒磨损模型}（Abrasive Wear Model）。此外，我们使用\textbf{贝叶斯反演框架}（Bayesian Inversion Framework）推算建造时间，以提供必要的参数。
+
+第三，我们建立\textbf{磨损分布模型}（Wear Distribution Model）以确定移动模式与同时占用水平。该模型分析磨损模式，推断人们是单列行走还是并排行走，以及是否存在主导性的方向偏好。
+
+在年代估计方面，我们采用多种途径：针对木楼梯的 \textbf{C14 测年法}、针对石楼梯的\textbf{风化程度分析}，以及\textbf{贝叶斯反演}。我们构建了三种代表性\textbf{化学风化指数}（Chemical Weathering Index）的\textbf{加权评价模型}，用以评估石材的风化状况，从而获得其年代信息。
+
+为检测修缮或翻新，我们使用 \textbf{Z 分数}（Z-score）等异常检测方法分析年代分布的不连续点。我们还核验磨损模式与现有历史信息的一致性。在材料来源验证方面，我们使用 \textbf{Archard 磨损模型}计算磨损系数，并进行化学成分分析以追溯材料产地。我们通过考察磨损深度的分布来分析使用模式，并计算该分布的峰度以判定楼梯的使用模式。
+
+最后，我们对模型的关键参数进行敏感性分析，以评估其响应程度。结果表明模型具有较强的稳健性。
+
+\vspace{4pt}
+\noindent\textbf{关键词：}楼梯磨损；Archard 方程；深度估计；风化程度模型；贝叶斯反演
+
+\newpage
+
+\section{引言}
+
+\subsection{问题背景}
+
+楼梯尤其是历史建筑中的楼梯所承受的持续磨损，是一个引人深思的现象。例如，许多古建筑（如寺庙与教堂）由于长期使用，楼梯中部的磨损明显重于两侧。磨损不仅反映了楼梯的使用情况，还能为考古学家提供关于建筑历史及楼梯使用方式的重要线索。研究楼梯磨损有助于考古学家推测建筑的年代、使用频率、修复情况以及过去的人流模式。
+
+不同的楼梯使用与磨损模式反映了人的行为，例如人们是独自上下楼梯，还是多人并排同行。我们的研究旨在为考古学家建立一个数学模型，以更好地理解建筑的使用历史，并推断楼梯的使用频率、方向偏好以及同时使用楼梯的人数等信息。这一过程对历史建筑的调查与保护具有重要意义，为考古工作提供科学基础，并为修复与保护工作提供有价值的参考。
+
+本文所处理的主要问题（任务）将在第 1.3 节中具体说明。
+
+\subsection{文献综述}
+
+我们的研究聚焦于长期踩踏造成的楼梯磨损。然而，该主题的直接研究很少。以往研究主要关注材料磨损，如钢轨磨损、齿轮磨损或精密仪器中的其他磨损。已有研究指出，磨损可分为五种类型：粘着磨损、磨粒磨损、腐蚀磨损、冲蚀磨损与微动磨损\ [1]。我们主要关注粘着磨损与磨粒磨损，并认为楼梯磨损主要属于磨粒磨损，粘着磨损次之\ [2]。因此，Archard 磨损方程\ [3]能够有效地将磨损体积与踏步的使用条件联系起来。此外，一些研究者提出碳-14 同位素测年有助于确定石材等材料的使用时期\ [4]。另外，一些利用机器学习（特别是 CNN 模型\ [5]）训练数据以获得钢轨磨损量的研究，也为我们提供了有价值的启示。
+
+\subsection{问题重述与分析}
+
+我们的目标是为考古学家提供关于建筑历史与楼梯使用方式的重要线索。在求解后续问题之前，我们需要完成一项前期工作：
+
+制定一套无损、低成本、适合小型团队且所需工具最少的测量方案。
+
+然后，在获得所需的全部数据后，我们可以建立数学模型来求解以下问题：
+
+\textbf{问题 1.} 楼梯的使用频率。
+
+\textbf{问题 2.} 上下楼梯的移动倾向。我们应弄清人们是否同时上下楼梯，或者是否存在主导方向。
+
+\textbf{问题 3.} 同时使用楼梯的人数。确定人们是并排上楼还是单列行进。
+
+假设我们已经获得楼梯磨损的基本估计并建立了必要的数学模型，我们需要：
+
+\textbf{问题 4.} 判断磨损是否与现有信息一致。
+
+\textbf{问题 5.} 估计楼梯的使用时间并评估该估计的可靠性。
+
+\textbf{问题 6.} 弄清楼梯是否经过修缮或翻新。
+
+\textbf{问题 7.} 验证信息来源是否准确。（它是否来自考古学家所称的采石场；是否与木材的年代和种类相符）
+
+\textbf{问题 8.} 获取楼梯使用状况的信息。（短期高强度使用还是长期轻度使用）
+
+\subsection{我们的工作}
+
+我们的论文将按以下结构组织。
+
+\section{准备工作}
+
+\subsection{符号说明}
+
+本文使用的主要符号列于表 2 中。
+
+\begin{description}[leftmargin=4.5em,labelwidth=4em,itemsep=1pt,topsep=2pt]
+\item[$V$] 磨损体积（mm$^3$）
+\item[$P$] 载荷力（N）
+\item[$H$] 材料硬度（MPa）
+\item[$L$] 摩擦距离（m）
+\item[$K$] 磨损系数（/）
+\item[$t$] 使用时间（day）
+\item[$n$] 日人流量（day$^{-1}$）
+\item[$d$] 单步摩擦距离（m）
+\item[$K_{abr}$] 磨粒磨损系数（/）
+\item[$\theta$] 磨粒圆锥角（rad）
+\item[$N_0$] 碳-14 原子的初始数量（atom）
+\item[$N$] 碳-14 原子的当前数量（atom）
+\item[$T_0$] 碳-14 的半衰期（year）
+\item[$t_w$] 木楼梯的使用时间（year）
+\item[$W_0$] 初始风化速率（year$^{-1}$）
+\item[$\lambda$] 风化速率常数（/）
+\item[$\beta$] 微生物群落的持续效应（/）
+\item[$d_w$] 踏步的磨损深度（mm）
+\item[$\mu$] 平均磨损深度（mm）
+\end{description}
+
+\subsection{模型假设}
+
+通过对问题的完整分析，为简化我们的模型，我们作出以下合理假设。
+
+\textbf{假设 1：单人行走时，楼梯上的踩踏位置服从正态分布。}
+
+行走中的偏差通常是对称的，并受各种随机因素影响。随着步数增加，踩踏位置的分布趋近于正态分布。
+
+\textbf{假设 2：个体在每一级踏步上停留的时间相同。}
+
+人们通常保持稳定的步速，尤其是在没有明显外界干扰时行走。此外，由于运动的协调节律，每一步所花的时间往往相近，在连续爬楼时尤为如此。
+
+\textbf{假设 3：多人并排行走时，他们的位置呈对称分布。}
+
+人们常常调整行走位置以避免拥挤或碰撞，自然形成沿行走路径对称分布的模式。
+
+\textbf{假设 4：楼梯上所有踏步具有相同的初始材料属性，包括硬度与密度。}
+
+楼梯通常自始至终由同一种材料或性能非常相近的材料制成。
+
+\textbf{假设 5：踏步将使用与原先相同的材料进行翻新，且翻新不是完全拆除重建。}
+
+常规施工中的翻新材料通常与原材料一致，且翻新往往是对磨损区域的填补，而非彻底拆除重建。
+
+\subsection{详细测量方案}
+
+为分析楼梯的磨损模式并对其使用情况、历史背景与人流模式作出推测，我们提出一套详细的测量方案。下述方法综合物理、化学与生物测量，以无损、低成本、适合小型团队且工具最少的方式采集相关数据。
+
+\subsubsection{物理测量}
+
+通过物理测量，我们需要获得楼梯的三维图像以建立坐标系，并获取材料硬度、磨损程度与材料属性。
+
+\runin{（1）使用激光扫描仪对楼梯进行三维扫描}
+
+我们应使用激光扫描仪扫描踏步，获取楼梯的精确几何数据\ [6]。
+
+采集数据：
+
+1. 楼梯的三维空间坐标。
+
+2. 高分辨率表面细节，包括表面粗糙度与微观形变。
+
+所需工具：激光扫描仪（可为手持式或三脚架安装式）。
+
+\runin{（2）使用单目深度估计测量楼梯深度}
+
+从垂直视角对楼梯拍摄俯视照片，然后使用单目深度估计模型（Monocular Depth Estimation Model）计算楼梯各处的磨损深度，且不对材料造成任何破坏\ [7]。该测量方案完全满足无损、成本相对较低、可由小型团队使用最少工具完成测量的要求。
+
+采集数据：各点的精确磨损深度。
+
+所需工具：高分辨率相机。
+
+注意事项：
+
+1. 针对 MDE 模型只返回相对深度的问题，拍摄时应放置一把标准直尺，以将相对深度转换为绝对测量值。
+
+2. 由于随机误差，拍摄角度可能并非完全水平。可采集拍摄时所用设备的陀螺仪数据，以校正深度信息。
+
+\subsubsection{化学测量——同位素分析与矿物成分检测}
+
+利用无创同位素技术（如碳-14 或稳定同位素分析）识别石材或楼梯建造所用材料中的化学特征\ [8]。此外，测量与材料风化相关的矿物成分。所需的矿物成分列于表 4 中。
+
+采集数据：楼梯所用石材或材料的同位素比值，以及与风化相关的矿物成分。
+
+所需工具：便携式同位素分析与校准工具（如国际放射性碳数据库），以及用于分析风化相关矿物含量的工具。
+
+\subsubsection{生物测量——获取微生物菌落}
+
+从楼梯表面取样以分析微生物菌落。擦拭楼梯表面并进行微生物学分析，以研究存在的微生物种类及其分布\ [9]。
+
+采集数据：
+
+1. 楼梯不同区域微生物的多样性与丰度。
+
+2. 识别微生物群落对楼梯风化程度的影响。
+
+所需工具：
+
+微生物采样试剂盒、便携式培养箱与分析工具。
+
+\subsection{数据采集与处理}
+
+为解决公开楼梯磨损数据缺乏的问题，我们实地采集了中国若干古寺庙楼梯的俯视照片。利用深度图估计方法，我们获得了磨损数据以作进一步分析。这些楼梯的采样点、楼梯材料与估计磨损状况汇总于下表。为观察每段楼梯的磨损模式，我们为每个样本绘制了热力图。
+
+\section{分析与建模}
+
+\subsection{磨损体积计算}
+
+\runin{1. 踏步表面磨损体积的数学建模}
+
+表面磨损体积计算的目标是估计三维表面之下凹部分的空间体积。设有一连续曲面 $z=f(x,y)$，则凹体积在理论上可表示为：
+\begin{equation}
+V=\iint_{S}|f(x,y)|\,\mathrm{d}A \tag{1}
+\end{equation}
+其中：$f(x,y)$ 为表面的高度（或深度）函数；$\mathrm{d}A$ 为面积微元。
+
+然而，实际数据由离散点云构成，没有 $f(x,y)$ 的解析形式，因此该积分无法直接求解。我们使用\textbf{三角剖分方法}对问题离散化，将积分替换为对三角形面积与深度的加权求和。
+
+\runin{2. 离散方法的原理}
+
+\runin{三角剖分}
+
+数据点分布在平面上，通过三角剖分（Delaunay 三角剖分），点云被划分为许多小三角形；每个小三角形近似原曲面的一部分\ [10]。
+
+\runin{局部体积计算}
+
+对每个三角形，我们计算其面积 $A$：
+\begin{equation}
+A=\frac{1}{2}\|\vec{v}_1\times\vec{v}_2\| \tag{2}
+\end{equation}
+其中 $\vec{v}_1$ 与 $\vec{v}_2$ 为三角形的两条边向量。
+
+计算三角形区域的平均深度 $h$：$h=\frac{1}{3}(z_1+z_2+z_3)$
+
+计算局部体积：$V=A\cdot|h|$
+
+\runin{全局体积求和}
+
+总体积由所有三角形的局部体积求和得到：
+\begin{equation}
+V_{\mathrm{total}}=\sum_{i}A_i\cdot|h_i| \tag{3}
+\end{equation}
+
+\subsection{模型一：基于 Archard 方程的日人流量模型}
+
+为求解问题 1——楼梯的使用频率，我们只需考虑总磨损量。根据我们的文献综述与分析，磨损可分为五种类型\ [1]，我们认为楼梯磨损主要属于磨粒磨损，粘着磨损次之。因此，Archard 磨损方程\ [3]能有效地将磨损体积与踏步的使用条件联系起来。
+
+\subsubsection{Archard 粘着磨损模型}
+
+基于 Archard 粘着模型的磨损体积 $V$ 由下式给出：
+\begin{equation}
+V=\frac{KPL}{3H} \tag{4}
+\end{equation}
+其中：$V$ 为磨损体积，$K$ 为磨损系数，$P$ 为载荷力，$L$ 为摩擦距离，$H$ 为材料硬度。
+
+\subsubsection{Archard 磨粒磨损模型：}
+
+在粘着磨损中，$K$ 表示接触微凸体处产生磨屑的概率；而在磨粒磨损中，$K_{abr}$ 表示磨粒几何因子 $\frac{2\mathrm{ctg}\theta}{\pi}$ 与一个比例常数的乘积。实际的比例常数是全部磨粒中产生磨屑的磨粒所占的比例\ [11]。
+
+根据 Archard 方程，磨粒磨损系数由下式给出：
+\begin{equation}
+K_{abr}=\frac{3\tan\theta}{\pi}=0.96\tan\theta\approx\tan\theta \tag{5}
+\end{equation}
+因此，简化的磨粒磨损方程可为：
+\begin{equation}
+V=K_{abr}\cdot\frac{L}{3H} \tag{6}
+\end{equation}
+根据理论计算，$\tan\theta$ 与 $KP$ 的取值在楼梯磨损模型的理论结果中差别很小。因此，我们可以简化模型，使用公式 (1) 求解问题。
+
+由 Archard 模型，我们可以通过计算总摩擦距离来估计磨损体积。总摩擦距离 $L$ 由下式给出：
+\begin{equation}
+L=n\cdot d\cdot t \tag{7}
+\end{equation}
+其中：$n$ 为日人流量，$d$ 为普通人的摩擦距离，$t$ 为总时间。
+
+根据分析，$d$ 的理论值为 0.01 m，$P$ 为 650 N。
+
+综合上述方程，我们得到：
+\begin{equation}
+n=\frac{3\cdot V\cdot H}{K\cdot P\cdot d\cdot t} \tag{8}
+\end{equation}
+
+将该公式应用于我们的 11 个楼梯样本，我们计算了估计的平均日人流量，如下表所示。估计中使用的 $H$ 与 $K$ 取值参考了楼梯材料的相关文献，而 $t$ 则依据建筑的公开信息估计：
+
+\subsubsection{贝叶斯反演框架}
+
+为估计日人流量 $n$ 与使用时间 $t$，我们采用贝叶斯反演框架。该方法将先验知识与观测数据相结合，以推断参数的后验分布。
+
+\textbf{先验分布}表示我们对参数的初始认识。对于使用时间 $t$，假定服从均匀分布：
+\begin{equation}
+t\sim\mathcal{U}(t_{\min},t_{\max}), \tag{9}
+\end{equation}
+其中 $t_{\min}=50$ 年，$t_{\max}=200$ 年。
+
+\textbf{似然函数}量化观测磨损体积 $V_{obs}$ 与模型预测 $V_{model}$ 之间的一致程度。其定义为：
+\begin{equation}
+\mathcal{L}(t|V_{obs})=\exp\left(-\frac{(V_{model}(t)-V_{obs})^2}{2\sigma^2}\right), \tag{10}
+\end{equation}
+其中：
+
+$V_{model}(t)$ 为 Archard 模型在给定 $t$ 下预测的磨损体积，$\sigma$ 为观测误差的标准差。
+
+\textbf{后验分布}利用贝叶斯定理将先验分布与似然函数结合：
+\begin{equation}
+P(t|V_{obs})\propto\mathcal{L}(t|V_{obs})\cdot P(t). \tag{11}
+\end{equation}
+后验分布在 $t\in[t_{\min},t_{\max}]$ 范围内通过网格搜索估计。
+
+$t$ 的最大后验（MAP）估计通过最大化\textbf{后验分布}得到：
+\begin{equation}
+t_{MAP}=\arg\max_{t}P(t|V_{obs}). \tag{12}
+\end{equation}
+一旦确定 $t_{MAP}$，日人流量 $n$ 由下式计算：
+\begin{equation}
+n=\frac{3\cdot V_{obs}\cdot H}{K\cdot P\cdot d\cdot t_{MAP}}. \tag{13}
+\end{equation}
+
+\subsection{模型二：磨损分布模型——求解问题 2 与问题 3}
+
+\runin{问题 2 的求解}
+
+\runin{1. 初步分析}
+
+我们建立二维坐标系，以踏步边缘的中点为原点。以踏步的水平长度为 $x$ 轴，竖向宽度为 $y$ 轴。
+
+上行与下行的差异主要在于踏步上受力点的不同，并体现在 $y$ 坐标上。本问题不考虑横向的磨损差异。
+
+\runin{2. 楼梯磨损位置分析}
+
+上楼时，力主要施加在踏步的前缘与两侧。随着脚向上蹬踏，压力集中在楼梯前部，导致踏步前缘磨损更严重。
+
+相反，下楼时身体重心下移，使压力更多地施加在踏步的中部与后部。这导致楼梯中部与后缘的磨损更大。这两种过程的受力分析图如下所示。
+
+根据对运动差异的分析与受力分析图，可以看出：
+
+向上运动会主要在前缘与楼梯边缘造成磨损。
+
+向下运动主要在踏步中部与后缘造成磨损\ [12]。
+
+基于实际数据与模型，可以建立：
+
+向上运动：假定磨损服从“截断”正态分布，即前缘与楼梯边缘的磨损沿楼梯逐渐减小，前部磨损最高。
+
+向下运动：磨损服从正态分布，即磨损在楼梯中部某一区域最为显著，且分布通常更为对称。
+
+若同时存在向上与向下运动：磨损深度将呈现双峰分布，即两个正态分布的组合——一个代表向上运动造成的磨损，另一个代表向下运动造成的磨损。
+
+\runin{3. 数学建模}
+
+为求解本问题，我们可以通过以下步骤建立数学模型：
+
+\runin{3.1 建立二维坐标系}
+
+- 建立二维坐标系，以楼梯边缘的中点为原点。
+
+- $y$ 坐标表示沿楼梯从前缘到后缘的位置。
+
+\runin{3.2 磨损深度函数 $h(y)$}
+
+基于磨损分布类型，我们定义位置 $y$ 处的平均磨损深度函数 $h(y)$。根据给定假设，若只考虑向上或向下运动，磨损深度可用正态分布建模。
+
+向上运动：
+
+假定向上运动的磨损深度服从“截断”正态分布，可建模为：
+\begin{equation}
+h_{up}(y)=\frac{1}{\sigma\sqrt{2\pi}}\exp\left(-\frac{(y-\mu_{up})^2}{2\sigma^2}\right),\quad y\ge 0 \tag{14}
+\end{equation}
+其中 $\mu_{up}$ 为向上运动磨损的均值位置，$\sigma$ 为标准差。
+
+向下运动：向下运动的磨损通常服从正态分布，因此可表示为：
+\begin{equation}
+h_{down}(y)=\frac{1}{\sigma_{down}\sqrt{2\pi}}\exp\left(-\frac{(y-\mu_{down})^2}{2\sigma_{down}^2}\right) \tag{15}
+\end{equation}
+其中 $\mu_{down}$ 为向下运动磨损的均值位置，$\sigma_{down}$ 为标准差。
+
+同时存在向上与向下运动：若向上与向下运动同时发生，磨损深度将呈现双峰分布，可用两个正态分布之和表示：
+\begin{equation}
+h_{total}(y)=\alpha\cdot h_{up}(y)+(1-\alpha)\cdot h_{down}(y) \tag{16}
+\end{equation}
+其中 $\alpha$ 为权重系数，表示向上运动的比例，$1-\alpha$ 表示向下运动的比例。
+
+\runin{3.3 若干典型磨损模式的计算机模拟.}
+
+在考虑上述所有因素后，我们使用蒙特卡洛方法编写了一个 Python 程序，基于一些假设数据模拟楼梯磨损。该程序生成与三种典型磨损模式相对应的踏步表面图与磨损深度热力图，如下所示：
+
+\runin{3.4 假设检验}
+
+基于所获得的磨损深度数据，我们可以进行假设检验。
+
+原假设（H0）：磨损深度服从正态分布或截断正态分布。
+
+备择假设（H1）：磨损深度不服从正态分布或截断正态分布。
+
+我们已获得一组楼梯磨损深度数据，代表各位置 $y$ 处的磨损。
+
+Shapiro-Wilk 检验包括以下步骤：
+
+1. 计算样本均值 $\bar{h}$：
+\begin{equation}
+\bar{h}=\frac{1}{n}\sum_{i=1}^{n}h_i \tag{17}
+\end{equation}
+其中 $n$ 为样本量，$h_i$ 为单个磨损深度值。
+
+2. 对数据排序 $h_{(1)},h_{(2)},\dots,h_{(n)}$，即按磨损深度递增排列。
+
+3. 计算 Shapiro-Wilk 统计量 $W$：统计量 $W$ 由下式计算：
+\begin{equation}
+W=\frac{\left(\sum_{i=1}^{n}a_ih_{(i)}\right)^2}{\sum_{i=1}^{n}(h_i-\bar{h})^2} \tag{18}
+\end{equation}
+其中 $a_i$ 为根据样本量 $n$ 计算的一组常数，$h_{(i)}$ 为排序后的数据点，$\bar{h}$ 为样本均值。
+
+4. 将统计量与临界值比较
+
+对于样本量 $n=10$ 与显著性水平 $\alpha=0.05$，可查阅 Shapiro-Wilk 临界值表得到临界值 $W_{crit}$。若计算得到的 $W$ 大于临界值 $W_{crit}$，则不能拒绝原假设，表明数据服从正态分布。若 $W$ 小于临界值，则拒绝原假设，表明数据不服从正态分布。
+
+\runin{3.5 区间估计}
+
+若假设检验结果支持正态分布假设，我们可以对均值 $\mu$ 进行区间估计。利用样本均值 $\bar{y}$ 与标准差 $s$，可用下式估计 $\mu$ 的置信区间：
+\begin{equation}
+\mu\in\left[\bar{y}-t_{\alpha/2}\cdot\frac{s}{\sqrt{n}},\ \bar{y}+t_{\alpha/2}\cdot\frac{s}{\sqrt{n}}\right] \tag{19}
+\end{equation}
+其中 $t_{\alpha/2}$ 为 $t$ 分布的临界值，$n$ 为样本量。
+
+\runin{4. 考虑磨损中的“边缘效应”}
+
+预计楼梯边缘的磨损比中心更显著。因此，我们需要在模型中考虑这一因素。为此，可对边缘区域引入一个调整因子 $k_{edge}$，使边缘附近的磨损更高。具体而言，我们可以将磨损深度函数修改为：
+\begin{equation}
+h_{total}(y)=\left(1+k_{edge}\cdot|y|\right)\cdot\left(\alpha\cdot h_{up}(y)+(1-\alpha)\cdot h_{down}(y)\right) \tag{20}
+\end{equation}
+其中 $k_{edge}$ 为常数，表示边缘效应的强度，$|y|$ 为到中心的绝对距离。
+
+\runin{5. 楼梯样本分析}
+
+为展示磨损程度沿 $y$ 轴的变化，我们编写了一个 Python 程序，将 $y$ 轴划分为适当数量的等间距区间。然后提取每个区间内的最大磨损深度，并绘制磨损深度分布沿 $y$ 轴的投影曲线。可以观察到，它们与我们先前分析的模式相符，若干典型案例如下所示：
+
+\runin{问题 3 的求解：}
+
+\runin{1. 初步分析}
+
+关于同时使用楼梯的人数以及他们是并排上楼还是单列行进，我们可以推广问题 2 中讨论的概念。
+
+当涉及多人时，磨损分布会发生变化：
+
+并排运动会造成多峰磨损分布，其覆盖楼梯前缘（向上运动时）或楼梯中部（向下运动时）。峰值代表每个人踩踏的位置，峰的数量表明同时移动的人数。
+
+单列运动在一个人踩踏的位置产生单峰，磨损强度沿楼梯长度变化。
+
+\runin{2. 多人移动的数学建模}
+
+若人们以并排队形移动，磨损分布可表示为若干正态分布之和，每个峰对应一个人的位置。
+
+对于向上运动，磨损可建模为：
+\begin{equation}
+h_{\text{side-by-side up}}(y)=\sum_{i=1}^{N}\frac{1}{\sigma_{up}\sqrt{2\pi}}\exp\left(-\frac{(y-\mu_{up,i})^2}{2\sigma_{up}^2}\right) \tag{21}
+\end{equation}
+其中：$N$ 为并排移动的人数，$\mu_{up,i}$ 为第 $i$ 个人踩踏的均值位置，$\sigma_{up}$ 为表示磨损散布的标准差。
+
+向下运动同理。
+
+若多人同时向上与向下移动，总磨损深度分布将是多峰分布，表示向上与向下运动的叠加。
+
+与问题 2 一样，我们对一些楼梯样本绘制了磨损深度沿 $x$ 轴的投影。下面给出三个典型案例。
+
+\runin{3. 处理双向人流}
+
+若楼梯允许同时向上与向下移动（双向人流），则会出现两种不同情形：
+
+\runin{3.1 自动双向人流：}
+
+若楼梯一侧用于上行、另一侧用于下行（例如左侧上行、右侧下行），磨损分布将呈现两组明显分离的峰——一组代表向上运动，另一组代表向下运动。
+
+向上与向下运动的峰值位置在 $y$ 轴上彼此分离，我们可以据此分析移动方向。
+
+\runin{3.2 混合双向人流：}
+
+若向上与向下运动发生在楼梯的同一区域，磨损分布将是多峰分布（类似于单列或并排情形），但峰相互重叠。该分布将同时反映向上与向下运动，通过分析峰的相对位置，我们可以估计两个方向上移动的人数。
+
+\runin{4. 假设检验与估计}
+
+利用假设检验，我们可以评估观测到的磨损分布是否符合预期模式（正态分布或截断正态分布）。对于所采集的磨损数据，我们按问题 2 中所述进行 Shapiro-Wilk 检验以确认分布类型。
+
+\section{楼梯年代的估计}
+
+本部分将讨论楼梯年代的估计。之所以为此单独设立一节，是因为这里使用的 C14 测年法、风化程度模型与贝叶斯反演方法对求解后续问题具有启发性的作用。
+
+对于木楼梯，可利用放射性碳测年法（碳-14 测年）推断建造年份。
+
+对于石楼梯，可通过分析风化程度推断建造年份。通过选取楼梯中较不可能直接受踩踏影响的部分，如踢面、楼梯侧梁（stringer）或踏步踏面磨损较轻的区域，并考察其风化程度，可以较准确地估计石楼梯的建造年份。
+
+然后，我们使用贝叶斯反演方法比较观测值与理论值，并使用最大后验（MAP）估计方法寻找给定数据下最可能的年代 $t$。
+
+综合上述全部方法，我们最终通过计算置信区间来评估年代估计的可靠性。
+
+\subsection{用 C14 测年法估计木楼梯年代}
+
+碳-14 测年是依据碳-14 半衰期估计物体年代的方法。通过测量木材样本中当前的碳-14 含量，我们可以估计木材的年代，即木楼梯的使用时间\ [13]。
+
+碳-14 的衰变过程遵循指数衰变规律，由下式表示：
+\begin{equation}
+\frac{N}{N_0}=e^{-\frac{t_w}{T_0}\ln 2} \tag{22}
+\end{equation}
+其中：$N_0$：木材被砍伐时碳-14 原子的初始数量。$N$：样本中碳-14 原子的当前数量。$T_0=5730$ 年：碳-14 的半衰期。
+
+$t_w$：木材的年代，即木楼梯的使用时间。
+
+整理方程，得到：
+\begin{equation}
+t_w=\frac{-T_0\ln\frac{N}{N_0}}{\ln 2} \tag{23}
+\end{equation}
+
+\subsection{用风化程度估计石楼梯年代}
+
+在估计石楼梯年代时，一种有效方法是分析风化程度，它受湿度、温度与微生物活动等环境因素暴露的影响。因此，我们将选取楼梯中很少被脚触及的部分，如踢面、侧梁或踏面磨损最轻的区域，考察其风化水平，以消除磨损对风化程度的影响。
+
+假定风化过程是逐渐发生的，并且逐年以规律的方式影响石材表面。常用的风化速率模型是指数衰减模型。
+\begin{equation}
+W(t)=W_0e^{-\lambda t}+\beta \tag{24}
+\end{equation}
+其中：$W(t)$ 为时刻 $t$ 的风化程度，$W_0$ 为初始风化速率，$\lambda$ 为风化速率常数，$\beta$ 为微生物群落的持续效应。
+
+由于岩石化学成分的固有变异性，很难通过单一化学成分的变化来表征风化状况。学术界通常使用\textbf{化学风化指数}来表示风化状况。研究表明，以下三种化学风化指数——WI、PI 与 LOI——对风化程度与时间的变化表现出明显的单调性与敏感性\ [14]。这些指数可作为评价岩石风化程度与确定风化深度的主要依据。其计算方法如下，其中所有化学式均表示物质的量：
+
+因此，我们使用这三种指数构建加权评价模型，以综合评估石材的风化程度 $W(t)$，即：
+\begin{equation}
+W(t)=w_1(WT)+w_2(PI)+w_3(LOI) \tag{25}
+\end{equation}
+$w_1$，$w_2$，$w_3$ 分别表示三种化学风化指数的权重，满足 $w_1+w_2+w_3=1$。不同化学风化指数对不同类型岩石的敏感性不同，因此可根据岩石类型动态调整权重。
+
+通过获得特定时刻 $t=t_0$ 的风化程度 $W(t_0)$ 与当前风化程度 $W_{current}$，我们可以估计建造年代：
+\begin{equation}
+t_0=\frac{1}{\lambda}\ln\left(\frac{W_0}{W_{current}-\beta}\right) \tag{26}
+\end{equation}
+
+\subsection{用贝叶斯反演估计楼梯年代}
+
+$t$ 的后验分布使用均匀先验 $t\sim\mathcal{U}(50,200)$ 与高斯似然进行估计：
+\begin{equation}
+\mathcal{L}(t|V_{obs})=\exp\left(-\frac{(V_{obs}-V_{theory})^2}{2\sigma^2}\right). \tag{27}
+\end{equation}
+$t$ 的最大后验（MAP）估计通过最大化后验分布得到。
+
+\subsection{通过置信区间估计验证年代估计}
+
+为评估估计的可靠性，我们可以利用 $W_{current}$、$\lambda$ 与 $\beta$ 测量中的不确定性，计算所估计年代的置信区间。
+
+利用不确定度传播，我们可以估计 $t_0$ 的不确定度。对于函数 $f(x_1,x_2,\dots,x_n)$，其自变量 $x_1,x_2,\dots,x_n$ 相互独立，一般传播公式为：
+\begin{equation}
+\sigma_f=\sqrt{\left(\frac{\partial f}{\partial x_1}\sigma_{x_1}\right)^2+\left(\frac{\partial f}{\partial x_2}\sigma_{x_2}\right)^2+\dots+\left(\frac{\partial f}{\partial x_n}\sigma_{x_n}\right)^2} \tag{28}
+\end{equation}
+对于年代估计公式 $t_0=\frac{1}{\lambda}\ln\left(\frac{W_0}{W_{current}-\beta}\right)$，我们计算对各参数（如 $W_{current}$、$\lambda$ 与 $\beta$）的偏导数，然后计算不确定度 $\sigma_{t_0}$。
+
+一旦确定 $t_0$ 的不确定度，我们用它构造置信区间。在正态分布假设下，$t_0$ 的 95\% 置信区间为：
+\begin{equation}
+(t_0-1.96\cdot\sigma_{t_0},t_0+1.96\cdot\sigma_{t_0}) \tag{29}
+\end{equation}
+
+\section{进一步探索}
+
+\subsection{修缮或翻新的检测}
+
+为检测楼梯是否经历过修缮或翻新，我们主要使用前述的楼梯年代估计，并对年代数据应用异常检测方法。
+
+设 $S$ 表示楼梯，$P_1,P_2,\dots,P_n$ 为楼梯上一组互不相同的采样点。这些点选自受踩踏影响较小的位置。这些点的集合可表示为：
+\begin{equation}
+P=\{P_1,P_2,\dots,P_n\} \tag{30}
+\end{equation}
+对每个采样点 $P_i$，测量值记为 $V_i$。全部测量值的集合则为：
+\begin{equation}
+V=\{V_1,V_2,\dots,V_n\} \tag{31}
+\end{equation}
+
+\runin{楼梯年代估计中的异常检测}
+
+为判断楼梯是否经过翻新或维护，我们可以将各估计年代相互比较，以识别是否发生过翻新或修缮，并近似确定翻新年份。
+
+使用碳-14 测年，木材的年代（$t_w$）计算为：
+\begin{equation}
+t_w=\frac{-T_0\ln\left(\frac{N}{N_0}\right)}{\ln 2} \tag{32}
+\end{equation}
+使用风化程度模型，建造年代 $t_0$ 可由下式估计：
+\begin{equation}
+t_0=\frac{1}{\lambda}\ln\left(\frac{W_0}{W_{current}-\beta}\right) \tag{33}
+\end{equation}
+我们使用 Z 分数方法识别与局部平均值显著不同的采样点：
+\begin{equation}
+z=\frac{d_w-\mu}{\sigma}, \tag{34}
+\end{equation}
+其中：$d_w$ 为踏步的磨损深度，$\mu$ 为平均磨损深度，$\sigma$ 为磨损深度的标准差。
+
+$|z|>2.0$ 的踏步被标记为异常，表明可能存在修缮或翻新。
+
+若不同方法得到的估计年代中有一个或多个与其他显著不同，则可能表明楼梯在某个时期被翻新或更换过。
+
+估计年代及相应的年代不确定性有助于确定翻新或修缮可能发生的大致时间范围。
+
+\subsection{探究磨损与现有信息之间的一致性}
+
+问题 4 与问题 7 都在探究楼梯磨损是否与现有背景信息一致。问题 7 更为具体，它关注能否用磨损来验证所用材料的来源。
+
+\subsubsection{日人流量}
+
+使用模型一，可以计算古建筑的日人流量 $n$：
+\begin{equation}
+n=\frac{3\cdot V\cdot H}{K\cdot P\cdot d\cdot t} \tag{35}
+\end{equation}
+然后将 $n$ 与该建筑已知的日人流量比较。若计算得到的人流量落在一定的置信区间内，则认为结果合理。置信区间可估计为：
+\begin{equation}
+(n_{obs}-1.96\cdot\sigma_n,n_{obs}+1.96\cdot\sigma_n) \tag{36}
+\end{equation}
+
+\subsubsection{建造年份}
+
+对于木楼梯与石楼梯，建造年份可分别用 C14 测年与风化程度模型估计。
+
+木楼梯的年代 $t_w$ 为：
+\begin{equation}
+t_w=\frac{-T_0\ln\frac{N}{N_0}}{\ln 2} \tag{37}
+\end{equation}
+石楼梯的年代 $t_w$ 为：
+\begin{equation}
+t_0=\frac{1}{\lambda}\ln\left(\frac{W_0}{W_{current}-\beta}\right) \tag{38}
+\end{equation}
+建造年份的可靠性可通过该置信估计进行验证：
+\begin{equation}
+(t_0-z\cdot\sigma_{t_0},t_0+z\cdot\sigma_{t_0}) \tag{39}
+\end{equation}
+
+\subsubsection{材料来源的验证}
+
+验证材料来源有两种方法：
+
+\textbf{磨损系数验证}
+
+使用 Archard 磨损模型，磨损系数 $K$ 的表达式为：
+\begin{equation}
+K=\frac{3VH}{PL} \tag{40}
+\end{equation}
+该公式可用于计算磨损系数 $K$，因为磨损体积 $V$、材料硬度 $H$、载荷力 $P$ 与摩擦距离 $L$ 的取值均已知。
+
+我们可以将其与材料来源的已知磨损系数比较。若测得的磨损系数与期望值相符，则可将材料追溯到其原始来源。
+
+\textbf{化学成分分析验证}
+
+可以分析材料的化学成分以确定其来源。对于木材，可鉴定树种；对于石材，可分析矿物组成。通过将这些结果与所称来源的已知材料属性比较，可以验证材料的产地。
+
+\subsection{使用模式分析}
+
+若在很长时期内只有少量人行走，通常可以认为人们会遵循单列行走、偶尔并排行走的分布，这导致楼梯上出现局部较深的磨损。
+
+然而，若在短期内大量人群使用楼梯，他们将不得不并排行走，遵循多人同行的分布模式，从而形成更平坦的分布。
+
+因此，我们可以根据分布判断行走模式的类型，并评估短期内的人流密度。
+
+计算磨损深度分布的峰度，以判断楼梯经历的是短期高强度使用还是长期低强度使用：
+\begin{equation}
+\text{Kurtosis}=\frac{\mu_4}{\sigma^4}-3, \tag{41}
+\end{equation}
+其中：$\mu_4$ 为四阶中心矩，$\sigma$ 为标准差。
+
+高峰度（$>3$）表示长期低强度使用，而低峰度（$\le 3$）表示短期高强度使用。
+
+\section{模型评价}
+
+\subsection{模型一的敏感性}
+
+在楼梯磨损模型中，敏感性由下式计算：
+\begin{equation}
+\text{Sensitivity}=\frac{\Delta n/n}{\Delta\theta/\theta}, \tag{42}
+\end{equation}
+其中：$\Delta n$ 为输出的变化量，$\Delta\theta$ 为输入参数的变化量。
+
+洛德力（Lord Force，$P$）表现出高敏感性。材料硬度 $H$ 与磨损系数 $K$ 具有中等敏感性，而单步摩擦距离（$d$）表现出低敏感性。
+
+如分析所示，变量的变化对结果影响很小，表明模型具有良好的泛化能力。
+
+\subsection{模型二的敏感性}
+
+模型二关注基于移动模式的磨损深度。磨损深度函数的敏感性在很大程度上取决于 $\sigma$、$\mu$ 与 $p_{up}$ 等参数。
+
+如分析所示，我们的结果表明模型在典型参数范围内是稳健的。
+
+\subsection{优缺点}
+
+\subsubsection{优点}
+
+\begin{itemize}[itemsep=1pt,topsep=2pt]
+\item \textbf{创新性：}我们的模型充分融入了楼梯的物理、化学与生物数据，并采用多数据源的交叉验证以提高可靠性。
+\item \textbf{较高的实际应用价值：}我们采集了大量真实、新鲜的数据。通过实际测量与三维建模，我们将模型应用于真实数据并检验了其有效性。
+\end{itemize}
+
+\subsubsection{缺点}
+
+\begin{itemize}[itemsep=1pt,topsep=2pt]
+\item 首先，一些常见的破坏性因素，如刀痕、酸雨腐蚀等，可能对模型结果产生一定影响。
+\item 其次，所采集数据的精度有限，且人们的实际行走轨迹可能是随机的。
+\end{itemize}
+
+\newpage
+\section*{参考文献}
+\addcontentsline{toc}{section}{参考文献}
+
+\begin{enumerate}[label={[\arabic*]},leftmargin=2.6em,itemsep=2pt,topsep=2pt]
+\item Jianghai He and Yuwei Wang. Wear and Wear-Resistant Materials. Wear and Wear-Resistant Materials, 2001.
+\item Z. Karaca, N. Guenes Yilmaz, and R. M. Goktan. Abrasion wear characterization of some selected stone flooring materials with respect to contact load. Construction Building Materials, 36:520--526, 2012.
+\item Changlin Gui. Archard's wear design calculation model and its application method. Lubrication and Sealing, (1):10, 1990.
+\item Jeerapong Laonamsai, Kiattipong Kamdee, Monthon Youngprawat, Chalermpong Polee, Chakrit Saengkorakot, Patchareeya Chanruang, Nichtima Uapoonphol, Peerapat Charoonchat, and Phongthorn Julphunthong. Assessment of groundwater age in the upper chao phraya river basin using tritium and carbon-14 isotope analysis. Geosciences, 14(9):231--231, 2024.
+\item Yunfei Jia, Haohao Ding, Qian Xiao, Wenjian Wang, and Qiyue Liu. Research on rail wear prediction method based on machine learning. Lubrication and Sealing.
+\item J. I. Shuting, Yueming Zhang, and Y. U. Yang. Testing device for material wear of cycloidal gear and needle bearing of rv reducer, 2022.
+\item Zhaowei Huang, Yushun Lei, Huian Zhu, and Hong Yan. Effects of hot extrusion, load, sliding and velocity on the wear properties of zro2@cnts/2a70 composites. Transactions of the Indian Institute of Metals, 78(2):28--28, 2025.
+\item Jenny L. Adams. Ground stone use-wear analysis: A review of terminology and experimental methods. Journal of Archaeological Science, 48(1):129--138, 2014.
+\item Francesco Clementi, Gabriele Milani, Valentina Gazzani, Marina Poiani, Giammichele Cocchi, and Stefano Lenci. The non-smooth contact dynamics method for the analysis of an ancient masonry tower. 2018.
+\item Sebastian Gapp, Georg Schnalzger, J\"urgen Maierhofer, Werner Daves, Kazim Yildirimli, Roger Lewis, Uwe O\ss berger, Christian Bucher, and Thomas Titze. Wear mechanisms and transitions in advanced railway materials - a twin disc benchmark of mn13, crb1400 and r400ht. Wear, 564-565:205713--205713, 2025.
+\item Xiao Tian, Kejun Jia, Yan Zhu, and Cuibiao Wang. Review of wear mechanisms and wear degree evaluation methods for ceramic materials. Lubrication and Sealing, 37(1):5, 2012.
+\item L. I. Jun-Mei, Liu Xuan, Dong Qi-Wei, L. I. Yan-Feng, and Wang Ze-Hang. Experimental study on the behavior of walking upstairs. Fire Science and Technology, 2018.
+\item J. LABEYRIE and G. DELIBRIAS. Dating of old mortars by the carbon-14 method. Nature, 201(4920):742, 1964.
+\item Liu Chengyu and He Manchao. Study on the chemical weathering index sensitive to the degree of rock weathering. Earth and Environment, 39(3):6, 2011.
+\end{enumerate}
+
+\newpage
+\section*{AI 使用报告}
+\addcontentsline{toc}{section}{AI 使用报告}
+
+\noindent\textbf{DeepSeek-R1}
+
+\noindent\textbf{Query1：}
+
+＜嗨，我需要帮助编写一个 Python 程序，用于处理 GLTF 文件并由其顶点数据生成二维深度图。该 GLTF 文件包含一个三维模型（具体为一段楼梯），我正在使用深度图估计方法来分析楼梯的磨损深度。
+
+要求：使用 Python 库（如 pygltflib 或其他）加载 GLTF 文件，并提取顶点数据（特别是顶点的位置）。从顶点中提取 Z 坐标（深度）值，因为这些值代表模型中每个点的高度/深度信息。将这些 Z 值组织为二维数组（深度图），假定顶点分布在规则网格上或可映射到规则网格。最终输出应为一个二维 NumPy 数组表示的深度图，其中每个元素对应网格中特定点处的深度值。
+
+具体细节：该 GLTF 文件可能包含多个网格，因此我需要遍历这些网格并相应地提取数据。深度图应具有指定的分辨率（例如 100x100），若三维模型不能自然适配该分辨率，我需要适当地对顶点数据重采样或降采样。我希望专注于从 Z 轴（高度）提取深度信息，以分析楼梯的磨损深度。你能帮我编写完成此任务的 Python 程序吗？关于库或函数的任何建议都将非常有帮助！＞
+
+\noindent\textbf{Output1：}
+
+＜下面是一个使用 trimesh 与 scipy 从 GLTF 文件生成深度图的 Python 方案：
+
+\begin{lstlisting}
+import numpy as np
+import trimesh
+from scipy.stats import binned_statistic_2d
+
+def load_gltf_vertices(file_path):
+    """Load GLTF file and extract all vertices."""
+    scene = trimesh.load(file_path)
+    mesh = scene.concatenate()  # Combine all meshes and apply transforms
+    return mesh.vertices
+
+def create_depth_map(vertices, resolution=(100, 100), statistic='mean'):
+    """
+    Create depth map from vertex data.
+
+    Args:
+        vertices: Nx3 array of vertex positions
+        resolution: Tuple of (width, height) for output depth map
+        statistic: Statistic to compute for each bin ('mean', 'max', 'min', etc.)
+
+    Returns:
+        2D numpy array of depth values
+    """
+    # Extract coordinates (assuming Z is vertical axis)
+    x = vertices[:, 0]
+    y = vertices[:, 1]
+    z = vertices[:, 2]
+
+    # Calculate bin edges based on data range
+    x_range = (x.min(), x.max())
+    y_range = (y.min(), y.max())
+
+    # Create 2D histogram of depth values
+    depth_map, x_edges, y_edges, _ = binned_statistic_2d(
+        x, y, z,
+        bins=resolution,
+        statistic=statistic,
+        range=[x_range, y_range]
+    )
+
+    # Replace NaN values with minimum depth
+    depth_map = np.nan_to_num(depth_map, nan=np.nanmin(z))
+
+    return depth_map
+
+def process_gltf_to_depth_map(gltf_path, output_resolution=(100, 100)):
+    """Main processing pipeline"""
+    # Load and combine vertices from all meshes
+    vertices = load_gltf_vertices(gltf_path)
+
+    # Generate depth map
+    depth_map = create_depth_map(
+        vertices,
+        resolution=output_resolution,
+        statistic='mean'  # Change to 'max' for worst-case wear analysis
+    )
+
+    return depth_map
+
+# Example usage
+if __name__ == "__main__":
+    depth_map = process_gltf_to_depth_map("stairs.gltf", (100, 100))
+
+    # Save or process the depth map
+    np.save("depth_map.npy", depth_map)
+
+    # Optional visualization
+    import matplotlib.pyplot as plt
+    plt.imshow(depth_map, cmap='viridis')
+    plt.colorbar(label='Depth')
+    plt.title('Staircase Depth Map')
+    plt.show()
+\end{lstlisting}
+
+使用 trimesh 处理 GLTF/GLB 文件。
+
+合并所有网格并应用场景变换。
+
+提取顶点位置（包括处理多个网格）。
+
+使用 \texttt{scipy.stats.binned\_statistic\_2d} 进行高效分箱。
+
+自动处理坐标范围。
+
+支持不同的统计量（mean、max、min）。
+
+将 NaN 值替换为最小深度。
+
+假定 Z 轴为竖直方向（在许多 CAD 模型中很常见）。
+
+若你的模型使用 Y 轴表示高度，请修改坐标索引。
+
+安装所需的软件包：
+
+\begin{lstlisting}
+pip install trimesh scipy numpy matplotlib
+\end{lstlisting}
+
+如有需要，调整坐标索引（若你的竖直轴不同，请交换第 23--25 行中的 \texttt{[0,1,2]} 索引）。
+
+选择合适的统计量：
+
+mean：每个单元格内的平均深度。
+
+max：最大磨损深度。
+
+min：最小深度。
+
+median：深度中位数。
+
+对于磨损分析，你可能希望：
+
+使用 min 统计量找出最大磨损（最深点）。
+
+与参考模型的 mean 或 max 进行比较。
+
+计算磨损模型与参考模型之间的深度差。
+
+输出是一个二维 numpy 数组，可以：
+
+保存为 numpy 文件（.npy）。
+
+导出为图像。
+
+用于进一步分析（例如磨损深度量化）。
+
+\noindent\textbf{Query2：}
+
+＜竖直拍摄了一张单级踏步的照片，并通过深度图估计模型得到了 GLTF 文件。请编写一个 Python 程序，从该 GLTF 文件中读取该单级踏步各位置的磨损深度，存入合适的数据结构，并返回一幅合适的图像。＞
+
+\noindent\textbf{Output2：}
+
+＜该 Python 脚本演示了如何：1. 从 glTF 文件读取网格数据（假定该网格包含踏步深度信息）2. 计算“磨损深度”3. 将结果存入合适的数据结构（例如二维数组）4. 使用伪彩色图像可视化结果
+
+所需库：
+
+\begin{itemize}[itemsep=2pt,topsep=2pt]
+\item trimesh：用于加载与操作三维网格
+\item numpy：用于数值运算
+\item matplotlib：用于可视化
+\item scipy（可选）：用于散点到网格的插值
+\end{itemize}
+
+\noindent 代码清单 1：Python 实现
+
+\begin{lstlisting}
+import trimesh
+import numpy as np
+import matplotlib.pyplot as plt
+
+# Optional scipy import for interpolation
+try:
+    from scipy.interpolate import griddata
+    HAS_SCIPY = True
+except ImportError:
+    HAS_SCIPY = False
+
+def read_wear_depth_from_gltf(gltf_path):
+    """
+    Read glTF file and extract wear depth at step positions.
+    Assumes Z-axis as vertical direction:
+    wear_depth = z_max - current_z
+
+    Parameters:
+        gltf_path (str): Path to glTF file
+
+    Returns:
+        points (np.ndarray): (N,2) array of (x,y) coordinates
+        depth_values (np.ndarray): (N,) array of wear depths
+    """
+    mesh = trimesh.load(gltf_path)
+    vertices = mesh.vertices
+    z_vals = vertices[:, 2]
+    depth_values = np.max(z_vals) - z_vals
+    return vertices[:, :2], depth_values
+
+def visualize_depth_scatter(points, depths, save_path='scatter.png'):
+    """Method A: Direct scatter plot visualization"""
+    plt.figure(figsize=(6, 5))
+    sc = plt.scatter(points[:, 0], points[:, 1], c=depths,
+                     cmap='jet', s=5)
+    plt.colorbar(sc, label='Wear Depth')
+    plt.title('Wear Depth Scatter Plot')
+    plt.xlabel('X'), plt.ylabel('Y')
+    plt.tight_layout()
+    plt.savefig(save_path, dpi=300)
+    plt.show()
+
+def visualize_depth_image(points, depths,
+                          save_path='grid.png',
+                          resolution=256):
+    """Method B: Grid interpolation visualization"""
+    if not HAS_SCIPY:
+        print("Scipy required for interpolation")
+        return
+
+    x_min, y_min = np.min(points, axis=0)
+    x_max, y_max = np.max(points, axis=0)
+    grid_x, grid_y = np.mgrid[x_min:x_max:complex(resolution),
+                              y_min:y_max:complex(resolution)]
+    grid_z = griddata(points, depths, (grid_x, grid_y),
+                      method='linear', fill_value=0)
+
+    plt.figure(figsize=(6, 5))
+    plt.imshow(grid_z.T, origin='lower',
+               extent=(x_min, x_max, y_min, y_max),
+               cmap='jet', aspect='auto')
+    plt.colorbar(label='Wear Depth')
+    plt.title('Interpolated Wear Depth Map')
+    plt.xlabel('X'), plt.ylabel('Y')
+    plt.tight_layout()
+    plt.savefig(save_path, dpi=300)
+    plt.show()
+
+if __name__ == '__main__':
+    points, depths = read_wear_depth_from_gltf('step.gltf')
+    visualize_depth_scatter(points, depths)
+    visualize_depth_image(points, depths)
+\end{lstlisting}
+
+\noindent\textbf{实现说明：}
+
+\begin{itemize}[itemsep=2pt,topsep=2pt]
+\item read\_wear\_depth\_from\_gltf 函数：
+  \begin{itemize}
+  \item 使用 trimesh 加载网格数据
+  \item 将磨损深度计算为 $z_{\max}-z$
+  \item 返回二维坐标及相应的深度值
+  \end{itemize}
+\item 可视化方法：
+  \begin{itemize}
+  \item 散点图：直接可视化原始数据点
+  \item 网格插值：使用 scipy 生成平滑的深度图
+  \end{itemize}
+\item 数据存储选项：
+  \begin{itemize}
+  \item 原始数据：\texttt{np.save('points.npy', points)}
+  \item 深度值：\texttt{np.save('depths.npy', depths)}
+  \item 网格数据：\texttt{np.save('grid.npy', grid\_z)}
+  \end{itemize}
+\item 坐标注意事项：
+  \begin{itemize}
+  \item 默认的 Z 轴假定可被修改
+  \item 对于不同的坐标轴方向，修改坐标索引
+  \end{itemize}
+\end{itemize}
+
+\noindent\textbf{执行要求：}
+
+\begin{lstlisting}
+pip install trimesh numpy matplotlib scipy
+\end{lstlisting}
+
+\end{document}

@@ -1,0 +1,629 @@
+\documentclass[11pt,a4paper]{ctexart}
+\usepackage[margin=2.4cm]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage{fancyhdr}
+\usepackage{enumitem}
+\linespread{1.18}
+\setlength{\headheight}{15pt}
+\setlength{\parskip}{0pt}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small Team 2500836}
+\fancyhead[R]{\small \thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+\fancypagestyle{plain}{\fancyhf{}\renewcommand{\headrulewidth}{0pt}}
+
+\ctexset{
+  section/format = \Large\bfseries\raggedright,
+  subsection/format = \large\bfseries\raggedright,
+  subsubsection/format = \normalsize\bfseries\raggedright
+}
+\setcounter{secnumdepth}{3}
+
+\begin{document}
+
+%====================== 摘要页 ======================
+\thispagestyle{empty}
+\begin{center}
+{\small 2025 MCM/ICM\quad 选题 A\quad 队伍控制号 2500836\quad 摘要页（Summary Sheet）}\\[18pt]
+{\LARGE\bfseries 楼梯：平凡者的荣耀}\\[8pt]
+{\large （Stairs: The Glory of the Ordinary）}\\[10pt]
+\end{center}
+
+\begin{center}
+{\large\bfseries 摘\quad 要}
+\end{center}
+
+楼梯长期以来一直是建筑设计中广泛采用的基本建筑要素，用以实现交通联系。它兼具“平台”与“阶梯”的双重特征，既是人们上下通行的路径，又提升了建筑美感，并丰富了建筑的空间层次。本文通过分析台阶的磨损程度，考察其建造时长、使用情况以及与之相关的人类行为模式。
+
+在模型准备阶段，研究对象被确定为比萨斜塔（Leaning Tower of Pisa）内部的楼梯，由此也确定了楼梯的材质与环境条件。随后，采用计算机视觉（computer vision）技术获取所需的台阶磨损深度数据，并将关注范围进一步缩小到比萨斜塔的底层台阶。最后，基于实践经验与文献，我们得出台阶表面的磨损深度分布服从二维正态分布（two-dimensional normal distribution）的结论，进而使用粒子群优化算法（Particle Swarm Optimization, PSO）拟合其中的参数。
+
+为回答前三个问题，我们建立了台阶磨损分析模型（Step Wear Analysis Model）。首先，我们用每日使用楼梯的人数所定义的人流量来表示并计算楼梯的使用频率。在磨损深度分布已知的前提下，基于阿查德定律（Archard's Law）进行积分，求得每日人流量为 1,175 人。其次，通过考虑人们上下楼梯时典型的施力习惯，我们定义了方向偏好指数（direction preference index），并基于磨损深度分布判定人们更偏好下楼。最后，基于纳维-斯托克斯方程（Navier--Stokes Equations）建立了模拟行人流的连续性方程，随后用有限差分法（finite difference method）计算使用楼梯时的行人密度，得到 $\rho=0.6535<1.5$，表明人们偏好单列通行。
+
+为分析台阶的使用状况与特征，我们建立了台阶特征分析模型（Step Characteristic Analysis Model）。我们首先将使用者数量与楼梯年龄之间的关系建立为指数函数。基于磨损深度与人流量之间的关系，我们计算出理论磨损深度为 4.871 cm，并将其与 4.5 cm 的实测数据进行比较。在对均方误差进行分析后，我们发现结果符合预期。接着，利用已知的磨损深度、人流量与楼梯年龄之间的关系，我们采用蒙特卡洛方法（Monte Carlo method）估计楼梯年龄，得到约为 (282.1984, 342.8016) 的区间。为判断楼梯是否经过修缮或翻新，我们使用化学方法并比较理论楼梯年龄与实际楼梯年龄，确认比萨斜塔的楼梯曾经过翻新，且我们找到了支持这一结论的证据。为研究楼梯的材料属性，我们首先选取了石材与木材的若干代表性参数。通过扫描图像并获取数据，我们将这些参数与楼梯的参数进行比较，然后使用皮尔逊相关系数（Pearson correlation coefficient）分析二者之间的关系。最后，为分析特定某日楼梯使用者的人数，我们建立了一个偏微分方程以瞬时分析人流量的变化，结果表明在较长时间内有少量人群使用楼梯。
+
+此外，我们对磨损深度的二维正态分布模型以及模拟行人流的连续性方程进行了敏感性分析，进一步证明了本文模型的稳健性与准确性。
+
+\vspace{6pt}
+\noindent\textbf{关键词：}磨损深度；Archard；PSO；Navier--Stokes；蒙特卡洛方法
+
+\newpage
+\pagestyle{fancy}
+
+%====================== 正文 ======================
+\section{引言}
+
+\subsection{问题背景}
+
+台阶（steps）是通常出现在房屋入口处或坡道沿线的结构，由一系列逐级升高的层面构成，使人们得以上下通行。它们通常由砖、石、混凝土或木材建造\cite{ref1}。在强调等级制度的封建社会中，楼梯的设计与用材往往象征权力与地位。平民的阶梯级数较少，主要用简单的木材与泥土制成；地位稍高者的阶梯级数更多，并以砖石砌筑；而最奢华的楼梯则采用大理石\cite{ref2}。因此，对台阶的研究对于理解古代文明具有重要意义。在当代建筑中，楼梯的设计与数量不再受任何特定框架的限制，舒适性与安全性成为首要考虑。
+
+当一座古建筑在建成后拟被修缮或扩建时，确定其建成时间往往需要相关文献之外的额外参照方法。台阶上的磨损是其使用频率与使用时长的直接指示。随着时间推移，日常使用使台阶表面磨损，形成光滑、凹陷或平坦的区域。通过分析台阶表面的磨损程度，考古学家可以推断其使用年限，并深入了解古人的使用方式与日常习惯。此外，台阶的建筑设计、所用材料及其年代特征，也能为确定建成时间线提供有价值的信息。
+
+\subsection{问题的重述}
+
+结合问题陈述中给出的背景信息与限制条件，我们需要解决以下问题：
+
+\begin{itemize}[leftmargin=2em,itemsep=2pt,topsep=2pt]
+\item 建立一个模型来描述楼梯的使用频率。
+\item 建立一个模型以判断是否存在偏好的行走方向。
+\item 建立一个模型以判断人们是单列行走还是并排行走。
+\item 建立一个模型以评估楼梯上观察到的磨损是否与影响楼梯井年龄及使用的历史与环境因素相一致。
+\item 建立一个模型以估计楼梯井的年龄，并确定该年龄估计的可靠性。
+\item 设计一个模型以识别修缮或翻新的迹象。
+\item 建立一个模型以判断楼梯井的磨损是否与被认为来自特定来源（如采石场或森林）的材料相符。
+\item 建立一个模型以估计使用楼梯的典型人数，并判断短期高强度使用还是长期较轻使用更符合观察到的磨损模式。
+\end{itemize}
+
+\subsection{我们的工作}
+
+本文开展了以下工作，以研究楼梯的使用频率、使用寿命、现状以及使用楼梯时行人的行为模式。
+
+\noindent\textbf{$\blacktriangleright$ 任务 1：模型准备}
+
+首先，我们确定了所研究楼梯的材质与环境条件。然后，采用计算机视觉技术获取并处理数据，随后对台阶表面的磨损深度分布进行拟合。
+
+\noindent\textbf{$\blacktriangleright$ 任务 2：楼梯磨损分析模型}
+
+我们选择以每日使用楼梯的人数所表示的人流量来刻画楼梯的使用频率。由于磨损深度分布已知，可依据磨损深度与人流之间的关系计算每日人流量。然后，通过考虑人们上下楼梯时典型的施力习惯，可利用台阶表面磨损深度分布的变化推断其偏好的行走方向。最后，由人流量计算使用楼梯时的行人密度，从而使我们能够判断人们是单独行走还是并排行走。
+
+\noindent\textbf{$\blacktriangleright$ 任务 3：}
+
+\begin{itemize}[leftmargin=2em,itemsep=2pt,topsep=2pt]
+\item 为分析楼梯的使用状况与材料特征，我们在研究磨损深度分布的基础上建立了楼梯年龄与人流量之间的关系。
+\item 基于任务 1 得到的磨损深度与人流量之间的关系，我们计算了理论磨损深度并将其与实际数据进行比较，随后进行误差分析以评估其准确性。
+\item 利用已知的磨损深度、人流量与楼梯年龄之间的关系，我们输入实际磨损深度与人流量数据以计算楼梯年龄，再确定理论值与实际值之间的误差以评估准确性。
+\item 为判断楼梯是否经过修缮或翻新，我们可以将理论楼梯年龄与实际差异进行比较，观察磨损系数的变化，并使用化学方法进行验证。
+\item 为解决最后一个问题，我们首先选取了楼梯材料的若干代表性特征参数，将其与楼梯的特征进行比较，并分析其相关性。在分析特定某日的人流量时，我们建立了一个偏微分方程以分析流量的瞬时变化，从而判断行人是在短期高峰使用楼梯，还是在较长时间内均匀分布地使用。
+\end{itemize}
+
+我们的工作旨在更深入地理解楼梯使用的动态过程以及不同行人流型的影响。总之，整个建模过程可概括如下：
+
+\section{假设与合理性说明}
+
+为简化问题，我们作出如下基本假设，每条假设均给出恰当的理由。
+
+\begin{itemize}[leftmargin=2em,itemsep=4pt,topsep=2pt]
+\item \textbf{假设 1：}假设考古学家能够接触到所讨论的结构，并能获得你的团队认为重要的一切测量数据。
+\item \textbf{假设 2：}假设鞋底与台阶之间的摩擦系数相等。
+
+\textbf{理由：}该假设设定每个人都穿着类型、材质相同且磨损程度相近的鞋子，从而鞋底与台阶之间保持一致的摩擦系数。现实中，摩擦系数可能受鞋底材质（如橡胶、皮革、塑料等）、表面纹理（如鞋底花纹）以及磨损程度等因素的影响。然而，为简化模型的推导过程，假设摩擦系数相同，可以避免计算中过多的变量干扰。
+
+\item \textbf{假设 3：}假设所有人对台阶的压力相等。
+
+\textbf{理由：}该假设基于个体体重相近、行走方式一致的前提，因而步态、落足等方面的差异较小，导致每个人对台阶的压力大致相等。现实中，压力大小不仅与个体体重有关，还受行走姿态、步长、落足位置以及上下楼梯时重心变化等因素的影响。然而，为简化模型分析并便于求解，我们作出该假设。
+
+\item \textbf{假设 4：}假设每个人鞋底与台阶之间的相对摩擦距离相等。
+
+\textbf{理由：}假设个体之间的步长、行走速度与步频保持一致，则鞋底与台阶之间的相对摩擦距离是均匀的。然而，现实中这些因素会因个体差异而存在显著变化。例如，步长较长的人与台阶的接触时间可能更短，从而可能导致摩擦距离减小。此外，相对摩擦距离的大小还受步伐节奏与重心变化的影响。该假设忽略了由个体差异引起的细微变化，使模型计算更为简洁、更易分析。
+\end{itemize}
+
+\section{符号说明}
+
+本文所用的主要数学符号列于表 1。
+
+\begingroup
+\setlength{\itemsep}{2pt}
+\begin{description}[leftmargin=3em,style=nextline]
+\item[$d(x,y)$] 各位置 $(x,y)$ 处的磨损深度；单位：m。
+\item[$N$] 人流量；单位：people/s。
+\item[$k$] 磨损系数（亦称阿查德常数）；单位：/。
+\item[$T$] 台阶建成至今的时间；单位：day。
+\item[$W$] 台阶的宽度；单位：m。
+\item[$L$] 台阶的长度；单位：m。
+\item[$A_i$] 第 $i$ 级台阶的面积；单位：m$^2$。
+\item[$n$] 台阶总数；单位：/。
+\item[$\rho$] 行人密度；单位：people/m$^2$。
+\item[$v$] 行人的速度向量；单位：m/s。
+\item[$\nabla\cdot(\rho v)$] 通量散度；单位：/。
+\item[$b$] 经验因子；单位：/。
+\end{description}
+\endgroup
+
+\noindent*此处未列出的一些变量将在下文详细讨论。
+
+\section{模型准备}
+
+\subsection{数据处理}
+
+我们选取了典型的古建筑台阶之一——意大利比萨斜塔内部的台阶。
+
+为提取更精确的图像，我们使用计算机视觉技术对图像进行处理。
+
+\begin{itemize}[leftmargin=2em,itemsep=2pt,topsep=2pt]
+\item \textbf{步骤 1：图像处理}
+
+首先将原始图像转换为灰度图像，然后使用高斯滤波对图像进行去噪。
+\end{itemize}
+
+\begin{itemize}[leftmargin=2em,itemsep=2pt,topsep=2pt]
+\item \textbf{步骤 2：特征提取}
+
+随后进行边缘检测，以提取图像特征信息。
+
+\item \textbf{步骤 3：数据处理}
+
+接着对数据进行处理，并选出处理效果最佳的台阶。我们发现示例图中的底层台阶效果最好，并对其作进一步研究。
+
+\item \textbf{步骤 4：数据可视化}
+
+最后，我们通过绘制三维图像将处理后的数据可视化。
+\end{itemize}
+
+从图中可以明显看出，台阶边缘磨损严重，凹陷明显，而台阶内侧的磨损较小。
+
+\subsection{磨损深度分布的求解}
+
+观察发现，台阶并非均匀磨损，而是呈凹陷状态，且中心区域的凹陷比两侧更严重。考虑到人们在台阶上行走时倾向于在一定范围内落步，并考虑人们上下楼梯时脚步的习惯与受力分布，理论上，长期使用的台阶会形成两处凹陷，因为左右脚分别落在不同位置，从而在两侧各形成一处凹陷。实际上，这两处凹陷几乎相同。因此，我们简化模型，仅研究一处凹陷。为简化分析，我们只考虑单人行走的情形，此时只有一个磨损中心，从而使台阶的磨损分布呈现二维正态分布的形式。
+\begin{equation}
+d(x,y)=\left(2\pi\sigma_1\sigma_2\sqrt{1-\rho^2}\right)^{-1}\exp\left[-\frac{1}{2(1-\rho^2)}\left(\frac{(x-\mu_1)^2}{\sigma_1^2}-\frac{2\rho(x-\mu_1)(y-\mu_2)}{\sigma_1\sigma_2}+\frac{(y-\mu_2)^2}{\sigma_2^2}\right)\right]\tag{1}
+\end{equation}
+
+我们以台阶底面外缘线的中点作为原点，建立如下图所示的三维直角坐标系。
+
+然后，我们使用粒子群优化（PSO）算法拟合参数。PSO 算法用于最小化上述目标函数。PSO 是一种全局优化算法，适用于求解复杂、多维优化问题的最优解。在此背景下，PSO 的作用是搜索参数空间，以找到使最小二乘法所定义的目标函数值最小的参数组合。
+
+\textbf{步骤 1：初始化}——随机生成一组粒子，指定粒子数、惯性权重（通常取 0.8）、学习因子 1（通常取 2）、学习因子 2（通常取 2）、$\rho,\mu_1,\mu_2,\sigma_1,\sigma_2$ 的搜索范围、迭代次数以及变量个数。
+
+\textbf{步骤 2：评价}——计算每个粒子的适应度，其对应于目标函数值。优化目标为：
+\[
+\min \sum_i \left(\hat d_i-d_i\right)^2
+\]
+
+\textbf{步骤 3：更新最优位置}——将每个粒子的当前位置与其历史最优位置进行比较，并同时更新个体最优位置与全局最优位置。
+
+\textbf{步骤 4：更新速度与位置}——基于个体最优位置、全局最优位置以及一定的权重与随机因子，更新粒子的速度与位置。
+
+\textbf{步骤 5：终止条件检查}——检查是否满足停止准则，例如达到最大迭代次数或目标函数值满足要求。若未满足停止准则，则重复步骤 3 至步骤 5，直至满足终止条件。
+
+基于从扫描图片获得的数据，我们对参数进行了拟合，计算结果如下：
+
+计算所得误差为 35.562，数值较小，表明拟合效果良好。
+
+我们将最优拟合参数代入 $d(x,y)$，绘制了二维正态分布模型的三维斜视图与二维俯视图。通过这些图像，我们可以直观地看到楼梯不同位置的磨损状况，其与实际磨损状况非常接近，说明模型具有合理性与准确性。
+
+\section{模型 I：台阶磨损分析模型}
+
+“石坚且厚，可历千年而不朽。”此句出自古老的《诗经》，意谓坚实致密的石头能历经千年而不腐坏。在古代，人们常将岩石视为不可摧毁的象征，它能抵御自然的侵蚀与磨损，随时间推移保持原有形态。然而，即使最耐久的材料也无法完全抵抗时间的流逝与外力作用；其逐渐劣化反映了人流、使用时长以及材料固有特性等因素。因此，考察石阶的磨损程度可以提供关于其建造年代、使用方式以及行人行为的信息。正如在图 1 中所观察到的，磨损的台阶呈现轻微凹陷，这归因于行人上下时倾向于在中间行走，从而使台阶中段的磨损大于边缘。
+
+\subsection{基于阿查德定律的人流量计算}
+
+阿查德定律（Archard's Law）是描述材料磨损的重要经验公式\cite{ref3}。它常用于描述两种材料表面接触并相对滑动时发生的磨损。
+
+\subsubsection{假设}
+
+（1）假设磨损与法向力、滑动距离的乘积呈线性关系，本研究适用于平坦、简单的接触表面。
+
+（2）忽略台阶表面形状变化、温度效应以及材料弹性等因素。
+
+（3）假设每个台阶的凹陷程度相同。
+
+\subsubsection{模型建立}
+
+\noindent\textbf{1. 磨损深度与人流量之间的关系}
+
+根据阿查德定律，楼梯的磨损深度与从其上经过的人数成正比，其关系式为：
+\begin{equation}
+d=kN^b\tag{2}
+\end{equation}
+
+式中，$d$ 为磨损深度，用于描述人流对楼梯造成的磨损程度。$k$ 为经验常数，通常取决于材料属性与环境条件。$b$ 为经验指数，通常在 0.3 至 0.5 之间。
+
+通过设定不同的磨损系数 $k$ 与经验常数 $b$，该模型可以模拟不同环境与材料条件下的楼梯磨损过程，并推断楼梯的使用水平。
+
+\noindent\textbf{2. 每日人流量的计算}
+
+该公式将人流量与楼梯上的磨损深度联系起来。通过对台阶表面各区域的磨损深度进行积分，可以估计每日经过楼梯的人数：
+\begin{equation}
+N_{daily}=\frac{1}{T}\iint_A\left(\frac{d(x,y)}{k}\right)^{\frac{1}{b}}dx\,dy\tag{3}
+\end{equation}
+
+其中 $n$ 为台阶总数，$A_i$ 为第 $i$ 级台阶的面积，$T$ 为台阶建成至今的时间，$d(x,y)$ 为各位置 $(x,y)$ 处的磨损深度，由扫描图像获得。
+
+\noindent\textbf{3. 参数的确定}
+
+a) 根据资料，比萨斜塔建成于 1370 年\cite{ref4}，于是
+\[
+T=(2024-1370)\times 365=238710\ \textit{days}.
+\]
+
+b) 经验系数 b 的取值范围为 0.3 至 0.5，此处取 0.3。
+
+c) 单级台阶的面积 $A$ 为 $200\,\mathrm{cm}\times 40\,\mathrm{cm}=0.8\,\mathrm{m}^2$。
+
+d) 根据资料，比萨斜塔的台阶由大理石制成，摩擦系数为 0.06。
+
+将上述参数代入\textbf{式（3）}，我们计算出每日经过楼梯的人数为 \textbf{1175} 人。由研究数据可知，每年有 500,000 名游客登塔，而参观广场的游客达 600 万人次。$500,000/365\approx 1370$，与实际每日使用台阶的人数接近，表明模型具有可靠性与准确性。
+
+图 8 表明：
+
+（1）对同一台阶，仅改变摩擦系数而保持其他条件不变时，随着摩擦系数增大，台阶的使用频率（即每天被踩踏的次数）逐渐减小。换言之，台阶材料的摩擦系数越小，台阶越耐磨，其使用寿命越长。
+
+（2）当台阶磨损系数在 0.02$\sim$0.04 之间时，图像非常陡峭，随着磨损系数增大，每日使用频率迅速下降；当磨损系数在 0.04$\sim$0.1 之间时，图像相对平缓，表明磨损系数的增加对每日使用频率的影响较小。
+
+\subsection{基于磨损深度分布的偏好方向模型}
+
+当人们下楼梯或上楼梯时，由于人们自然的落脚方式，台阶前缘承受更大的磨损。这导致台阶前部与边缘的磨损更为显著。因此，人们在上下楼梯时表现出不同的方向偏好。行走方向偏好指数定义如下：
+\begin{equation}
+D=\frac{d_{mid}-d_{edge}}{d_{mid}+d_{edge}}\tag{4}
+\end{equation}
+
+计算结果为
+\[
+D=\frac{1-4.5}{1+4.5}=-0.636<0
+\]
+表明更多人走下行台阶，也就是说，\textbf{楼梯使用者偏向下行方向}。
+
+通过观察不同 $x$ 值下的剖面图，我们可以看到，$x$ 等于 5、10、20 的情形以及 $x$ 等于 0 的情形均表明 $d_{edge}$ 大于 $d_{mid}$，从而计算得到的 $D$ 小于 0。这进一步说明该楼梯主要用于下楼。查阅资料后我们发现，比萨斜塔的楼梯由两部螺旋楼梯组成，一部用于上行，另一部用于下行。这种设计不仅节省空间，也有助于分散人流的压力。根据计算结果，可以确定我们所研究的楼梯主要用于下行。
+
+\subsection{基于纳维-斯托克斯方程的行走模式模型}
+
+纳维-斯托克斯方程（Navier--Stokes Equations）是描述黏性流体运动的基本方程，可用于模拟行人流或人群运动的动力学。
+
+\subsubsection{假设}
+
+（1）将人群视为连续介质的假设：由于个体是离散的，这是一种简化。作出该假设后，便可以用速度场、密度分布与压力项等连续函数来描述人群。
+
+（2）人与墙壁或障碍物之间无滑移相互作用的假设：假设人与墙壁或障碍物之间的相互作用类似于流体与固体边界之间的关系。即在边界处流体速度为零，意味着人群在与障碍物接触处的速度也为零。
+
+\subsubsection{模拟行走模式的连续性方程}
+
+基于纳维-斯托克斯方程，建立用于模拟行人在空间中运动的连续性方程（又称质量守恒方程）\cite{ref5}：
+\begin{equation}
+\frac{\partial\rho}{\partial t}+\nabla\cdot(\rho v)=N(x,y,t)\tag{5}
+\end{equation}
+
+在该方程中：
+
+\begin{itemize}[leftmargin=2em,itemsep=2pt,topsep=2pt]
+\item $\rho$ 表示行人密度，即单位面积内的人数，描述给定区域的拥挤程度。
+\item $v$ 表示行人的速度向量，表示其速度大小与运动方向。
+\item $N(x,y,t)$ 表示交通流量，表示在时刻 $t$ 有多少人经过特定位置 $(x,y)$。
+\item $\dfrac{\partial\rho}{\partial t}$ 表示行人密度随时间的变化率，描述特定位置的行人密度随时间的变化。
+\item $\nabla\cdot(\rho v)$ 为通量散度，描述行人在一定区域内的流入与流出。$\rho v$ 为行人通量，结合密度与速度描述行人的流动。
+\end{itemize}
+
+我们采用有限差分法（finite-difference, FDM）求解该方程。
+
+对时间导数，采用前向欧拉格式。
+\begin{equation}
+\rho_i^{n+1}=\rho_i^{n}-\Delta t\left[\frac{\partial}{\partial x}(\rho v_x)+\frac{\partial}{\partial y}(\rho v_y)\right]_i+\Delta t\cdot N(x_i,y_i,t_n)\tag{6}
+\end{equation}
+
+对空间导数，采用中心差分。
+\begin{equation}
+\rho_{i,j}^{n+1}=\rho_{i,j}^{n}-\Delta t\left[\frac{(\rho v_x)_{i+1,j}^{n}-(\rho v_x)_{i-1,j}^{n}}{2\Delta x}+\frac{(\rho v_y)_{i,j+1}^{n}-(\rho v_y)_{i,j-1}^{n}}{2\Delta y}\right]_i+\Delta t\cdot N_{i,j}^{n}\tag{7}
+\end{equation}
+
+无滑移边界条件：
+\begin{equation}
+v(x,y,t)=0\tag{8}
+\end{equation}
+
+我们可以根据行人密度与流率之间的关系估计不同密度下的行人流速\cite{ref6}。适用规则如下：
+
+\begin{itemize}[leftmargin=2em,itemsep=2pt,topsep=2pt]
+\item 若 $0<\rho<1.5$，则流率 $N=1$，即每秒通过 1 人。
+\item 若 $1.5\leq\rho\leq 2.5$，则流率增大至 $N=2$。
+\end{itemize}
+
+这可以直观理解：当行人密度较低时，个体之间的空间较大，相互干扰最小，对运动的限制较少。随着密度增大，个体间距减小，相互干扰增强，使运动速度受到更多限制。在该密度区间内，尽管行人仍能通过楼梯，但可用空间变得更受限，流率增大至每秒 2 人。此时每秒通过楼梯的人数增加，但由于密度更高，个体运动速度受到限制。
+
+计算表明 $\rho=0.6535<1.5$，说明\textbf{人们在使用楼梯时通常选择单列通行}。
+
+\section{模型 II：台阶特征分析模型}
+
+基于生活经验，在城市繁荣、人民安定的情况下，新建筑不断建成，而这些建筑在建成之初使用频繁。随着时间推移，城市的兴衰变迁、人口迁移以及新建筑的出现，会导致旧建筑的使用频率下降，楼梯的使用频率也随之持续下降。假设经过楼梯的人数呈指数衰减，于是我们得到人流量随时间的变化如下：
+\begin{equation}
+N(t)=N_0e^{-\lambda t}\tag{9}
+\end{equation}
+
+其中 $N_0$ 为第一天经过台阶的人数，$\lambda$ 为行人衰减率。
+
+观察图 12，起初有许多人踩踏，但参观者或使用者数量逐渐减少，随后趋于平稳，符合指数衰减趋势。
+
+对\textbf{式（6）}积分，得到
+\begin{equation}
+\begin{aligned}
+N(x,y,T)&=\int_0^{T}N_0e^{-\lambda t}dt\\
+&=\frac{N_0}{\lambda}\left(1-e^{-\lambda T}\right)
+\end{aligned}\tag{10}
+\end{equation}
+
+\subsection{实际与理论楼梯使用时间的比较}
+
+\subsubsection{模型建立}
+
+为判断台阶的实际使用时间与理论结果是否一致，我们将\textbf{式（10）}代入\textbf{式（1）}以得到理论磨损深度。
+\begin{equation}
+d_{theoretical}(x,y,T)=k\left(\frac{N_0}{\lambda}\left(1-e^{-\lambda T}\right)\right)^b\tag{11}
+\end{equation}
+
+\subsubsection{结果}
+
+根据图 13，我们可以发现：
+
+（1）比萨斜塔建成于 654 年前，按 $2024-1370=654$ 年计算。理论上，到 2024 年累计磨损深度应为 4.871 cm。相比之下，由图像测得的实际深度约为 4.5 cm，误差仅为 0.371 cm，处于预期范围之内。
+
+（2）此外，我们观察到红色区域（0$\sim$250 年）内楼梯的磨损速率较快，而在绿色区域（251$\sim$700 年）内磨损速率放缓。这是因为建筑建成后的一段时间内参观者数量较多，楼梯使用更为频繁，因而磨损更严重。该结果与 $t\sim N(t)$ 函数一致，证实我们的模型是合理的。
+
+\subsubsection{误差分析}
+
+考虑到单级台阶的磨损状况可能具有随机性，缺乏较强的说服力与准确性，我们采集了同一位置 100 级台阶的磨损深度进行研究。
+
+最后，计算理论磨损深度与实际磨损深度之间的均方误差。
+\begin{equation}
+MSE=\frac{SSE}{n}=\frac{1}{n}\sum_i\left(d(i)-d_{measure}(i)\right)^2\tag{12}
+\end{equation}
+
+若 $MSE<\delta_d$（取 0.2），则可认为理论磨损深度与实际磨损深度相同；否则，该差异意味着楼梯经过修缮与翻新。
+
+最终我们计算得到 $MSE=0.1542<0.2$，表明理论磨损深度与实际情形一致。
+
+\subsection{楼梯使用寿命的计算}
+
+由于我们已经得到台阶磨损深度与使用寿命之间的关系，可以基于测量数据估计台阶的使用寿命：
+\begin{equation}
+\hat T=-\frac{1}{\lambda}\ln\left(1-\frac{\lambda}{N_0}\left(\frac{d_{measure}}{k}\right)^{\frac{1}{b}}\right)\tag{13}
+\end{equation}
+
+我们通过实测磨损深度计算了 $T$，并绘制了 $T$ 关于 $d$ 的函数图像，由此可以看出，磨损深度越大，楼梯越古老。
+
+然后将实测值 $d=4.5$ 代入\textbf{式（13）}，计算得到台阶年龄为 312.5 年。
+
+考虑到在估计台阶使用时间时，实际磨损深度、人流量以及材料属性参数均存在误差，我们使用误差传播计算公式：
+\begin{equation}
+\sigma_T=\sqrt{\left(\frac{\partial T}{\partial d}\sigma_d\right)^2+\left(\frac{\partial T}{\partial N}\sigma_N\right)^2+\left(\frac{\partial T}{\partial k}\sigma_k\right)^2}\tag{14}
+\end{equation}
+
+其中 $\sigma_d$ 表示磨损深度误差，可依据扫描精度计算；$\sigma_N$ 指人流量估计误差，可方便地由历史数据获得；$\sigma_k$ 表示材料磨损系数误差，可通过实验确定。
+\begin{equation}
+\frac{\partial T}{\partial d}=\frac{\dfrac{1}{bk}\left(\dfrac{d}{k}\right)^{\frac{1}{b}-1}}{\lambda\left(\dfrac{d}{k}\right)^{\frac{1}{b}}-N_0}\tag{15}
+\end{equation}
+\begin{equation}
+\frac{\partial T}{\partial k}=\frac{d^{\frac{1}{b}}}{\lambda\left(\dfrac{d}{k}\right)^{\frac{1}{b}}-N_0}\left(-\frac{1}{b}-1\right)k^{-\frac{1}{b}-1}\tag{16}
+\end{equation}
+
+结合上述两式并基于\textbf{式（11）}，最终计算得到的误差为 15.46。
+
+最后，采用蒙特卡洛模拟进行可靠性评估，并进行假设检验：将 $\mu_T$ 视为最优估计，并应用 95\% 置信区间。
+\begin{equation}
+\hat T\pm 1.96\sigma_T\tag{17}
+\end{equation}
+
+蒙特卡洛方法是一种基于随机抽样与统计原理的数值技术，常用于求解复杂问题。其基本步骤如下：
+
+\begin{itemize}[leftmargin=2em,itemsep=2pt,topsep=2pt]
+\item \textbf{步骤 1：定义参数不确定性}
+\begin{itemize}[leftmargin=1.5em,itemsep=1pt,topsep=1pt]
+\item 假设模型中的参数（如 $\lambda,k,b,N_0$）具有一定程度的不确定性，可通过随机抽样模拟以表示这些参数的分布。
+\item 例如，假设这些参数服从正态分布或均匀分布。
+\end{itemize}
+\item \textbf{步骤 2：随机抽样}
+\begin{itemize}[leftmargin=1.5em,itemsep=1pt,topsep=1pt]
+\item 对每个参数进行多次随机抽样，生成一组参数组合。
+\end{itemize}
+\item \textbf{步骤 3：运行模型}
+\begin{itemize}[leftmargin=1.5em,itemsep=1pt,topsep=1pt]
+\item 对每组参数组合运行模型，计算相应的 $T$ 值。
+\end{itemize}
+\item \textbf{步骤 4：统计分析}
+\begin{itemize}[leftmargin=1.5em,itemsep=1pt,topsep=1pt]
+\item 对所有模拟结果进行统计分析，计算均值、标准差、置信区间等，以评估模型的稳定性与可靠性。
+\end{itemize}
+\end{itemize}
+
+从图 15 可以看出，$T$ 始终处于 95\% 置信区间的上下限之内，表明模型具有很高的可靠性。根据\textbf{式（17）}，楼梯年龄的范围为 (282.1984, 342.8016)。
+
+\subsection{楼梯翻新的判定}
+
+比萨斜塔楼梯的修缮与维护需要谨慎处理，以保护其历史价值。常见的维护与翻新技术包括对裂缝进行图像识别与处理、放大细节以观察裂缝填充的痕迹。通过使用便携式表面粗糙度仪，我们可以比较楼梯各区域之间的粗糙度差异。由于修复工艺的原因，裂缝通常用环氧树脂或石灰基材料填充。在损伤严重的区域，表面往往变得更光滑，表明石材已被更换。若某些区域的粗糙度明显低于其他区域，则说明楼梯材料已被替换为同类材料以保持一致。为增强稳定性，也可能采用了不锈钢或碳纤维加固。翻新或修复还可能包括施加防水剂以防止水分渗入。
+
+可以使用便携式激光扫描仪为楼梯建立三维模型，再将其与历史设计图纸进行比较，以观察是否有石材更换的迹象。
+
+由于修复区域的材料可能具有不同的导热性与湿度条件，这些因素会导致温度分布存在差异。通过使用红外热成像技术，我们可以获得楼梯的温度分布并观察是否存在突变。
+
+为检验防水处理，可在楼梯上滴几滴水。若水滴迅速滚落，则表明已施加防水处理。
+
+此外，基于前文分析，我们计算得到台阶年龄为 312.5 年，小于比萨斜塔 654 年的实际年龄。这表明楼梯曾经历修缮或维护。
+
+通过对 比萨斜塔修复历史的调查研究，我们发现该塔曾多次翻新与修复，这可以证明我们的假设是正确的。
+
+\subsection{材料来源的判定}
+
+\subsubsection{原材料特征参数的选取}
+
+通过扫描磨损形貌，我们可以放大观察楼梯的各种磨损特征。
+
+\noindent\textbf{1. 石材}
+
+若材料为石材，我们可以获取裂缝尺寸等参数，从而确定石材的硬度、密度与磨损系数。我们收集了附近采石场的相关数据，并对这些数据进行皮尔逊相关分析，以评估楼梯材料与附近采石场石材之间的相关性，最终确定材料的来源。若材料为木材，我们通过图像扫描获得年轮宽度与裂缝尺寸的数据，由此获得木材的树种、纤维密度与年龄信息。然后我们采用与石材分析相同的方法计算相关系数，以判断材料类型是否匹配。
+
+\noindent\textbf{2. 木材}
+
+对于木材，我们考虑研究年轮宽度、裂缝宽度、纤维密度与吸水率等特征，并进行碳-14 测年。然后，按照与石材分析相同的流程，我们为木质楼梯与原始木材定义特征向量，并计算皮尔逊相关系数以分析其相似性。
+
+碳-14 测年：
+\begin{equation}
+S=1-\frac{\left|T-T_t\right|}{T_t}\tag{18}
+\end{equation}
+
+若 $S\approx 1$，则表明木质楼梯的年龄与所用木材的假定年龄一致。
+
+\subsubsection{Person 相似性检验}
+
+在我们对比萨斜塔石阶的研究中，我们发现两组台阶的石材均来自附近的采石场。比萨斜塔内部台阶的石材采自著名的卡拉拉（Carrara）采石场\cite{ref9}。我们通过分析比较台阶与原始石材之间的相似性来确定材料来源。我们假设台阶与各采石场岩石的特征向量如下：
+\[
+X_{stair}=[k,\rho,h,r,p]
+\]
+\[
+X_{quarry}=[k',\rho',h',r',p']
+\]
+其中 $k$ 为磨损系数，$\rho$ 为密度，$h$ 为莫氏硬度，$r$ 为孔隙率，$p$ 为渗透性。
+
+经计算，$r=0.98$，并进行假设检验，结果表明比萨斜塔楼梯的石材来源于附近的卡拉拉采石场。
+
+然后，我们使用皮尔逊相关系数计算楼梯与原始石材之间的相似性。
+\begin{equation}
+r=\frac{\sum\left(X_{stair}(i)-\bar X_{stair}\right)\left(X_{quarry}(i)-\bar X_{quarry}\right)}{\sqrt{\sum\left(X_{stair}(i)-\bar X_{stair}\right)^2}\sqrt{\sum\left(X_{quarry}(i)-\bar X_{quarry}\right)^2}}\tag{19}
+\end{equation}
+
+最后，基于显著性水平（$p$ 值）评估相关系数的显著性。
+
+\begin{itemize}[leftmargin=2em,itemsep=2pt,topsep=2pt]
+\item $p<0.05$（或 $p<0.01$）：表明存在显著相关，可以拒绝原假设（即两个变量不相关）。
+\item $p>0.05$：表明不存在显著相关，不能拒绝原假设。
+\end{itemize}
+
+如上图所示，该石材的相关参数与卡拉拉采石场的参数相似。
+
+\subsection{人流量时间分布的研究}
+
+本问题的重点是研究人流量的时间分布，采用瞬时磨损分析。假设短期内多数人与长期内少数人造成的台阶磨损相同，但若短期内人流量过高，则会加剧磨损，由此我们得到
+\begin{equation}
+\frac{\partial d(x,y,t)}{\partial t}=kN(t)^b\tag{20}
+\end{equation}
+
+其中 $N(t)$ 为台阶的瞬时人流量，$d(x,y,t)$ 为瞬时磨损深度。设数量为 $N_{daily}$ 的人流在长时间内均匀分布，则
+\begin{equation}
+\begin{aligned}
+d_{long}&=k\int_0^{T_h}\left(\frac{N_{daily}}{T_h}\right)^bdt\\
+&=k\left(\frac{N_{daily}}{T_h}\right)^bT_h
+\end{aligned}\tag{21}
+\end{equation}
+
+若同样数量的行人在短时间内出现人流高峰，且由于该高峰时段相对于一整天（24 小时）非常短暂，我们假设该高峰时段可近似为冲激函数。于是得到
+\begin{equation}
+\begin{aligned}
+d_{short}&=k\int_0^{T_h}N_{daily}^{\ b}\delta(t)dt\\
+&=kN_{daily}^b
+\end{aligned}\tag{22}
+\end{equation}
+
+因此，短期人流高峰与长期均匀人流之间的磨损差异为
+\begin{equation}
+\begin{aligned}
+R&=\frac{d_{short}}{d_{long}}=\frac{kN_{daily}^b}{k\left(\dfrac{N_{daily}}{T_h}\right)^bT_h}\\
+&=T_h^{1-b}>1
+\end{aligned}\tag{23}
+\end{equation}
+
+其中 $T_h$ 为一天的时间。这表明短时间内的过量人流确实会增加磨损。
+
+通过扫描连续两天拍摄的比萨斜塔楼梯图像，我们可以评估一天使用之后楼梯的磨损。然后，通过调查当天比萨斜塔的参观人数，我们可以用下式判断当天的人流量是出现了短期高峰，还是在较长时间内均匀分布。
+
+\begin{itemize}[leftmargin=2em,itemsep=2pt,topsep=2pt]
+\item $d_{measure}>\dfrac{d_{short}+d_{long}}{2}$ 说明当天的人流量出现了短期高峰；
+\item $d_{measure}<\dfrac{d_{short}+d_{long}}{2}$ 说明当天的人流量在较长时间内均匀分布。
+\end{itemize}
+
+此外，当大量行人在短时间内使用楼梯时会发生拥堵，行人倾向于交错行走，从而导致凹陷变宽。因此，通过比较连续两天扫描图像中凹陷宽度的变化，我们也可以判断当天的人流量是出现了短期高峰，还是在较长时间内均匀分布。
+
+根据式（），我们计算得到
+\[
+d_{measure}\approx 0.205\,\mu\mathrm{m}
+\]
+\[
+\frac{d_{short}+d_{long}}{2}\approx\frac{0.326+0.156}{2}=0.241\,\mu\mathrm{m}
+\]
+
+由于 $0.205<0.241$，我们判定\textbf{在较长时间内有少量人群使用楼梯}。
+
+通过查阅比萨斜塔官方网站，我们发现该塔管理非常严格，通常一次只允许 20-30 名参观者进入，每次参观持续 20-30 分钟。这表明，现实中楼梯是在长时间内均匀使用的，这与我们的模型结果一致，从而证实了模型的可行性与合理性。
+
+\section{敏感性分析}
+
+\subsection{磨损深度二维正态分布模型的敏感性分析}
+
+对于模型
+\[
+d(x,y)=\left(2\pi\sigma_1\sigma_2\sqrt{1-\rho^2}\right)^{-1}\exp\left[-\frac{1}{2(1-\rho^2)}\left(\frac{(x-\mu_1)^2}{\sigma_1^2}-\frac{2\rho(x-\mu_1)(y-\mu_2)}{\sigma_1\sigma_2}+\frac{(y-\mu_2)^2}{\sigma_2^2}\right)\right],
+\]
+我们检验了参数 $\sigma_2$ 对磨损深度与磨损凹陷形状的影响。以下是当 $\sigma_2$ 分别取 5、10、15、20 时，$x=0$ 处台阶的纵剖面。
+
+从图像中我们发现，随着 $\sigma_2$ 逐渐增大，磨损深度逐渐减小，磨损凹陷由集中变为分散，整体形状趋于平缓。因此，它是描述磨损程度的合理而准确的选择，模型具有较高的敏感性。
+
+\subsection{模拟行走模式的连续性方程的敏感性分析}
+
+对于模型
+\[
+\frac{\partial\rho}{\partial t}+\nabla\cdot(\rho v)=N(x,y,t),
+\]
+我们通过将人数 $N(x,y,t)$ 从 0 增至 0.06 来检验 $N(x,y,t)$ 的影响。
+
+从图 21 可以看出，红色区域 $0<\rho<1.5$ 为单列通行，绿色区域 $1.5<\rho<2.5$ 为并排通行。人流密度 $\rho$ 随着每秒通过人数的增加而增大。因此，该模型在判断人们是单独使用楼梯还是并排使用方面具有较高的敏感性。
+
+\section{优点与缺点}
+
+\subsection{优点}
+
+\begin{itemize}[leftmargin=2em,itemsep=3pt,topsep=2pt]
+\item 二维正态分布模型不仅与磨损深度分布的描述相符，而且通过人们在不同位置上下楼梯的施力习惯，刻画了参数取值在不同位置所造成的磨损差异。
+\item 为提高二维正态分布模型的拟合效果，我们采用了先进的机器学习算法——粒子群优化算法（PSO），它不仅提高了拟合效率，也增强了拟合的准确性。
+\item 将人群流抽象为液体流，进而使用纳维-斯托克斯方程对人群流动建模，是非常有创新性的想法。有限差分法（FDM）是一种非常成熟的求解方法，用于求取模型的数值解，求解效果具有较高精度。
+\item 我们还创新性地引入冲激函数来模拟大量人群在短时间内使用楼梯的情形，解决了判断楼梯是被大量人群在短时间内使用还是被少量人群长期使用的问题。
+\end{itemize}
+
+\subsection{缺点}
+
+\begin{itemize}[leftmargin=2em,itemsep=3pt,topsep=2pt]
+\item 我们没有使用更先进的仪器到现场对楼梯的磨损进行更精确的测量。
+\item 由于篇幅限制，我们仅研究了比萨斜塔内部磨损的楼梯，而未研究更为丰富多样的楼梯类型。
+\end{itemize}
+
+\section{结论}
+
+本研究基于阿查德磨损模型，将磨损深度、磨损系数与人流量纳入计算，并建立了扩展模型。在给定磨损深度的条件下，我们反演出人流量，用以表示使用频率。此外，通过对人体生物力学与运动学的分析，我们建立了偏好指数模型，以区分上行与下行运动。进一步地，通过将行人流类比为流体运动，我们应用纳维-斯托克斯方程，通过求解密度来确定行人流量。此外，我们利用皮尔逊相关系数评估材料的来源。
+
+本文为历史建筑的保护、建筑寿命的评估及相关研究提供了重要的理论支持。
+
+%====================== 参考文献 ======================
+\newpage
+\begin{thebibliography}{99}
+\setlength{\itemsep}{2pt}
+
+\bibitem{ref1} Zhang, Qingyuan. Modern Chinese Common Words Dictionary. Chengdu: Sichuan People's Publishing House, 1992. 368.
+
+\bibitem{ref2} What Are the Particular Considerations for Steps in Ancient Chinese Architecture? 163.com, https://m.163.com/dy/article/G0SC3KCH0518I16I.html?spss=adap\_pc.
+
+\bibitem{ref3} Archard, J. F. Contact and Rubbing of Flat Surfaces. Journal of Applied Physics, vol. 24, no. 9, 1953, pp. 981-988. https://doi.org/10.1063/1.1721448.
+
+\bibitem{ref4} https://leaningtowerpisa.com/history
+
+\bibitem{ref5} Karaca, Z., Günes Yılmaz, N., and Goktan, R. M. Abrasion Wear Characterization of Some Selected Stone Flooring Materials with Respect to Contact Load. Construction and Building Materials, vol. 36, 2012, pp. 520-526. https://doi.org/10.1016/j.conbuildmat.2012.06.004.
+
+\bibitem{ref6} Helbing, D. Gas-Kinetic Derivation of Navier-Stokes-Like Traffic Equations. Physical Review E, vol. 53, no. 3, 1996, pp. 2366. https://arxiv.org/pdf/cond-mat/9806026.
+
+\bibitem{ref7} Schadschneider, A., and Seyfried, A. Pedestrian and Evacuation Dynamics. Encyclopedia of Complexity and Systems Science, 2012, pp. 6889-6902. Springer.
+
+\bibitem{ref8} Yue Xueqing, Wang Hua, Liu Lecun, et al. Friction and Wear Properties of Graphite-Coated Iron Nanoparticles Prepared by Ball Milling and Annealing. Mechanical Engineering Materials, 2015, 39(05): 73-76+80.
+
+\bibitem{ref9} Yang Na, Zhang Chong, Li Tianhao. Design of a Crack Monitoring System for Ancient Chinese Wooden Architecture Based on Drones and Computer Vision. Engineering Mechanics, 2021, 38(03): 27-39.
+
+\bibitem{ref10} Parameters of Carara Quarry: https://www.stonecontact.com/bianco-carrara-marble/s188.
+
+\bibitem{ref11} https://jingyan.baidu.com/article/3f16e00303e3576491c1039d.html
+
+\end{thebibliography}
+
+\end{document}

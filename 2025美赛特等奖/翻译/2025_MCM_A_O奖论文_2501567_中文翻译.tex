@@ -1,0 +1,594 @@
+\documentclass[11pt,a4paper]{ctexart}
+\usepackage{amsmath,amssymb,bm}
+\usepackage[margin=2.4cm]{geometry}
+\usepackage{fancyhdr}
+\usepackage{enumitem}
+\usepackage[hidelinks]{hyperref}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{Team 2501567}
+\fancyhead[R]{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+\fancypagestyle{plain}{\fancyhf{}\fancyhead[L]{Team 2501567}\fancyhead[R]{\thepage}\renewcommand{\headrulewidth}{0.4pt}}
+
+\setlength{\headheight}{14pt}
+\setlength{\parskip}{0.35em}
+\linespread{1.15}
+\setlist[itemize]{topsep=0.3em,itemsep=0.15em,parsep=0.1em,leftmargin=2em}
+\setlist[description]{topsep=0.2em,itemsep=0.05em,parsep=0.05em,leftmargin=5.0em,labelwidth=4.6em,labelsep=0.4em,align=left}
+
+\newcommand{\wb}{\ensuremath{W_{\mathrm{wear}}}}
+\newcommand{\cfgup}{\mathrm{up}}
+\newcommand{\cfgdown}{\mathrm{down}}
+
+\begin{document}
+
+%==================== 摘要页 ====================
+\thispagestyle{empty}
+\begin{center}
+{\small 赛题：A \qquad 2025 年 MCM/ICM \qquad 摘要页 \qquad 队伍控制号：2501567}\\[1.2em]
+{\LARGE\bfseries 台阶纪事：一个将磨损模式与古代楼梯\\[0.3em]使用时间相联系的多尺度模型}\\[1.2em]
+\end{center}
+
+\section*{摘要}
+\addcontentsline{toc}{section}{摘要}
+
+楼梯磨损是一种复杂现象，受材料属性、使用频率与环境条件等多种因素的影响。然而，理解这种磨损在考古学中至关重要，它能为认识古代社会、其日常活动与技术发展提供有价值的线索。为辅助考古研究，我们建立了模拟楼梯磨损的模型，从而更精确地理解磨损是如何产生的。
+
+在任务 1 中，我们建立了一个基于 Archard 磨损定律（Archard's Wear Law）与人类行为分析（Human Behavior Analysis）的模型，以刻画楼梯磨损的使用频率与使用量。通过分析磨损深度 $W(x,y)$ 并拟合地面反作用力（Ground Reaction Force, GRF）数据，该模型估计磨损的数量与楼梯使用频率的融合。此外，通过三维扫描数据进行的验证进一步确认了模型的准确性。
+
+在任务 2 中，我们采用一个基于高斯混合模型（Gaussian Mixture Model, GMM）与贝叶斯信息准则（Bayesian Information Criterion, BIC）的概率模型来分析楼梯的方向与使用模式。该模型通过比较 $n_{\cfgup}$ 与 $n_{\cfgdown}$ 来评估方向偏好，这两个参数是模型中可由期望最大化（Expectation-Maximization, EM）算法统计计算的参数。同时使用楼梯的人数与混合高斯分布的个数相关，可通过最小化贝叶斯信息准则得到。
+
+在任务 3 中，我们建立了一个结合蒙特卡洛模拟（Monte Carlo simulation）与平滑度检测（Smoothness Detection）的模型，以验证磨损一致性与材料来源。该模型评估磨损深度 $W(x,y)$ 与表面梯度 $S(x,y)$，以检测自然磨损模式中的中断，从而指示修补或翻修。该模型还模拟使用过程中的磨损演化，并预测在达到安全限值之前的剩余使用寿命。除此之外，我们进行磨损系数分析与统计检验以识别楼梯的源材料，将定量方法与考古证据相结合以实现准确验证。为获得频率与持续时间模式，我们使用 Chaboche 模型分析楼梯在不同踩踏模式下的疲劳损伤，结果表明与长时间低频踩踏相比，短时高频踩踏会加速磨损。
+
+最后，该模型能够可靠地预测楼梯磨损，但仍存在局限，未来的改进将聚焦于材料适应性、动态环境因素与多尺度建模。
+
+\vspace{0.6em}
+\noindent\textbf{关键词：}楼梯磨损；高斯分布；蒙特卡洛模拟；疲劳损伤
+
+\newpage
+
+%==================== 正文 ====================
+\section{引言}
+
+\subsection{问题背景}
+
+楼梯是建筑的关键组成部分，直接影响建筑结构的功能性与安全性。随着时间推移，楼梯的持续使用与环境因素会导致不同程度的磨损，而这种磨损受材料、设计、使用频率、使用者行为、湿度与温度变化等多种因素影响，如图 1 所示。考古学家常依据楼梯的磨损推断古建筑在历史上的使用情况~[1]。然而，准确判定楼梯的使用时间与磨损程度，尤其是考古遗址中的楼梯，仍面临重大挑战。对磨损机理的研究表明，预测磨损有助于推断结构的历史使用情况，使其成为考古学家与工程师的重要工具~[2]。
+
+楼梯由不同材料制成。通过建立数学模型预测楼梯磨损，我们可以帮助考古学家推断楼梯的历史使用情况。此外，已发展出无损检测方法来监测磨损，这在研究历史结构时尤为重要~[3]。
+
+\subsection{问题的重述}
+
+基于上述背景，我们的目标是建立一个通用模型，帮助建筑师与考古学家从楼梯磨损模式推断使用模式、使用频率与环境影响。该模型应回答以下问题：
+
+\begin{itemize}
+\item \textbf{使用频率与使用量}：确定楼梯被使用的频繁程度，包括其是被大批人还是小批人频繁使用或零星使用。
+\item \textbf{方向与使用模式}：辨别使用中是否存在某一方向优于另一方向的偏好，并观察人们通常如何使用台阶（例如同时使用的人数、其队形）。
+\item \textbf{磨损一致性与材料来源}：验证磨损模式是否与历史数据以及基于材料来源的预期磨损相符，并评估是否发生过修补或翻修。
+\item \textbf{年代与可靠性估计}：估计楼梯的年代，并评估该估计基于磨损模式的准确度。
+\end{itemize}
+
+\subsection{我们的工作}
+
+\begin{itemize}
+\item \textbf{数据收集}：激光雷达扫描（LiDAR Scanning）、结构光扫描（Structured Light Scanning），汇总为三维模型（3D Model）。
+\item \textbf{物理分析}：Archard 方程（Archard Equation）给出磨损系数（Wear Coefficient）与硬度修正（Hardness Correction）；人类行为（Human Behavior）给出 GRF 曲线（GRF Curve）；二者汇总为动态磨损模型（Dynamic Wear Model）。
+\item \textbf{频率模型}：总磨损（Total Wear）经线性回归（Linear Regression）处理。
+\item \textbf{单阶段磨损模型}：模型建立（Model Establishment）包括踩踏位置分布（Stepping Location Distribution）与高斯混合模型（Gaussian Mixture Model）；模型求解（Model Solving）包括期望最大化算法（Expectation-Maximization Algorithm）与贝叶斯信息准则（Bayesian Information Criterion）；该分支整体对应行走偏好（Walking Preference）。
+\item \textbf{一致性}：蒙特卡洛模拟（Monte Carlo Simulation）、耐久性预测（Durability Prediction）、材料识别（Material Identification）。
+\item \textbf{修补与翻修}：由梯度（Gradient）给出检测指标（Detection Index）。
+\item \textbf{频率与持续时间模式}：由疲劳损伤（Fatigue Damage）引出 Chaboche 模型（Chaboche Model）。
+\end{itemize}
+
+其中三维模型的结果用于校验（Validation），动态磨损模型的结果用于对频率模型作校正（Correction）。
+
+\section{假设与理由}
+
+为简化问题，作出如下假设。
+
+\noindent\textbf{假设 2.1.} 假设楼梯每一级台阶的初始材料属性（如硬度与密度）是均匀的，不存在明显的质量差异。
+
+\noindent\textbf{假设 2.2.} 假设楼梯在初建时表面是平整的，不存在初始磨损或施工不规则。
+
+\noindent\textbf{假设 2.3.} 假设人流在一定时期内具有主导方向，而不是大量人群同时向两个方向移动。
+
+\noindent\textbf{假设 2.4.} 假设楼梯的磨损主要由长期重复的足流造成，而不是短期强烈损伤。
+
+\noindent\textbf{假设 2.5.} 假设使用楼梯者的行为模式（如行走速度、步宽）在楼梯的整个使用历史中保持一致。
+
+\noindent\textbf{假设 2.6.} 假设不存在显著的极端环境变化。
+
+\noindent\textbf{假设 2.7.} 假设楼梯历史上所经历的任何修补或翻修都是有限的，且未改变楼梯的主要结构特征或材料属性，或者所使用的主要材料限于少数预先确定的类型。
+
+\noindent\textbf{假设 2.8.} 假设楼梯上足流的分布服从某一概率模型。
+
+\section{符号说明}
+
+本节所用符号、其定义与单位如下。
+
+\begin{description}
+\item[$W,w$] 磨损深度，单位 m
+\item[$V_{\mathrm{wear}}$] 磨损体积，单位 m$^3$
+\item[$w$] 体重，单位 kg
+\item[$A$] 表面积，单位 m$^2$
+\item[$C$] 接触面积，单位 m$^2$
+\item[$P$] 法向压力，单位 Pa
+\item[$F$] 法向载荷，单位 N（牛顿）
+\item[$L$] 滑动距离，单位 m
+\item[$H$] 硬度，单位 Pa
+\item[$k,\alpha$] 磨损系数，无量纲
+\item[$g$] 材料硬度修正，无量纲
+\item[$T$] 寿命，单位 d
+\item[$f_{\mathrm{use}}$] 使用频率，单位 d$^{-1}$
+\item[$R$] 修补检测指标，无量纲
+\item[$D$] 疲劳损伤，无量纲
+\item[$n$] 在楼梯上踩踏的次数，无量纲
+\item[$\mathbf{x}$] 位置向量，无量纲
+\item[$\pi$] 不同高斯分布的权重，无量纲
+\item[$\gamma$] 责任度，无量纲
+\item[$l$] 对数似然，无量纲
+\item[$\varepsilon$] 误差项，无量纲
+\end{description}
+
+\section{分析与建模}
+
+\subsection{楼梯磨损的数据采集}
+
+在楼梯磨损的测量中，三维扫描技术被广泛用于精确捕捉表面形貌的变化。作为一种获取三维数据的高精度方法，激光扫描技术能够生成详尽的点云数据，精确测量楼梯表面磨损的深度与形状。这使激光扫描成为长期监测楼梯磨损的重要工具，能够探测细微的表面变化。此外，结构光扫描技术通过投射结构光图案并记录其形变，生成高分辨率的三维表面图像，帮助研究者分析由使用造成的楼梯表面磨损特征~[4]。图 2 展示了楼梯磨损模式的三维扫描。图像左侧为楼梯的原始表面，右侧为三维扫描结果。
+
+在某些应用中，深度传感设备（如 Kinect v2）可通过获取深度数据执行实时测量。此类设备追踪位置变化，能够有效获得楼梯表面的三维信息，因而适用于基础的楼梯磨损测量~[5]。
+
+\subsection{基本物理磨损模型}
+
+\subsubsection{磨损理论概述}
+
+磨损可广义地定义为由机械作用引起的固体表面材料逐渐去除或变形。主要的磨损机理包括粘着磨损、磨粒磨损、疲劳磨损与腐蚀磨损。就石质楼梯而言，磨粒磨损是最主要的机理，源于鞋类与楼梯表面的反复接触。理解磨损机理为磨损的定量与定性建模奠定了基础。
+
+\subsubsection{Archard 磨损模型及其应用}
+
+Archard 磨损定律~[6] 是量化磨损最广泛使用的模型之一。它为理解材料磨损提供了基础框架，将材料损失的体积描述为载荷、滑动距离与材料硬度的函数。其表达式为：
+\begin{equation}
+V_{\mathrm{wear}} = k\cdot\frac{F\cdot L}{H}
+\end{equation}
+
+在楼梯磨损的情形下，法向载荷直接与使用楼梯者的体重相关。滑动距离对应于随时间累积的足部轨迹。材料硬度反映了楼梯材料对磨损的抵抗能力。
+
+在楼梯磨损分析的背景下，必须对 Archard 模型加以调整，以考虑足流与材料属性的具体特征。由此得到一个扩展模型，其表达式为：
+\begin{equation}
+V_{\mathrm{wear}} = \alpha\cdot\frac{h}{H}\cdot g(M)
+\end{equation}
+
+在该表达式中，$\alpha$ 表示材料磨损系数，类似于 Archard 模型中的磨损系数 $k$。不同材料的 $\alpha$ 取值如表 2 所示。
+
+$h$ 是一个人体特征参数，用以刻画行人行为的变异性，如体重、步态与鞋类的差异，这些因素共同影响楼梯表面的压力分布。其表达式为：
+\begin{equation}
+h = \int \rho(w)\cdot P(w)\cdot C(w)\cdot L(w)\,\mathrm{d}w
+\end{equation}
+
+这里，$\rho(w)$ 是体重分布的概率密度函数，$P(w)$ 表示压力，$C(w)$ 表示接触面积，$L(w)$ 表示滑动距离，反映了行人动力学所引入的变异性。该函数通过考虑人体运动的随机性，细化了 Archard 模型中的载荷因子。
+
+最后，$g(M)$ 是一个材料硬度修正函数，它通过引入材料特定属性以及温度、疲劳效应等环境因素，细化了 $H$ 的作用。其表达式为：
+\begin{equation}
+g(M) = \frac{\exp\left(-\dfrac{H}{RT}\right)}{\exp\left(-\dfrac{H_0}{RT_0}\right)}
+\end{equation}
+
+其中 $H$ 是材料硬度，$R$ 是通用气体常数，$T$ 是绝对温度。该项针对材料特定与环境影响对磨损模型进行调整，提高了实际应用中预测的精度。
+
+图 3 描绘了硬度与修正因子 $g(M)$ 之间的非线性关系。随着硬度增大，修正因子 $g(M)$ 显著下降，这一趋势在所有测试温度下均一致。此外，温度升高似乎会加快修正因子的下降速率，表明温度对材料硬度与修正因子有显著影响。这一关系对于理解与预测材料在不同环境条件下的性能至关重要。
+
+\subsubsection{单步磨损}
+
+为研究爬楼梯过程中作用于楼梯表面的力，必须获得该过程中的地面反作用力（Ground Reaction Force, GRF）曲线。GRF 曲线表示人移动时地面对其足部施加的力，反映整个支撑相中力的竖直分量与水平分量。
+
+测试参数按照 Stüssi 与 Debrunner~[7] 所述流程测量，该方法被应用于该研究的整个数据集。力值被归一化为体重，每条曲线被分为两半。随后在中线两侧识别出最大值，从而定义 $Z_1$（第一峰）与 $Z_3$（第二峰）（图 4）。$Z_1$ 出现在触地后的承重阶段，而 $Z_3$ 出现在蹬离阶段。在 $Z_1$ 与 $Z_2$ 之间还测量了最小值 $Z_2$，表示支撑中期（midstance）的卸载。
+
+为分析上楼梯与下楼梯过程中压力的变化，我们在 Stacoff 的研究~[8] 中找到了相关的 GRF 曲线。该研究给出了上、下楼梯运动各自不同的力剖面，突出了两种动作在力分布与强度上的差异。通过比较这些曲线，可以识别爬楼各阶段所特有的力学需求与载荷变化。这一比较对于理解不同的爬楼任务如何影响作用于人体与楼梯表面的力至关重要。
+
+根据 Stacoff 的数据，下楼梯时竖直 GRF 曲线的形状仅显示一个峰，即 $Z_2$ 与 $Z_3$ 不存在。表 3 给出了多次测试中检测到的这些关键参数的均值。为分析不同方向造成的不同磨损，我们使用多项式拟合分析由多次实验获得的 GRF 曲线，如图 5 所示。通过对实验数据拟合多项式，我们可以得到一条光滑曲线，准确表示时间与力之间的关系，从而更好地解释实验结果并洞察数据中的潜在规律。
+
+对两条拟合函数 $G(t)$ 积分，可得上行与下行台阶的人体特征参数 $h$。
+\begin{equation}
+P\cdot C = \int_{0}^{T} G(t)\,\mathrm{d}t
+\end{equation}
+
+假设滑动距离与接触时间成正比，滑动距离为每秒 1 cm。由式 3，我们有：
+\begin{equation}
+h = T\cdot v\cdot\int_{0}^{T} G(t)\,\mathrm{d}t
+\end{equation}
+
+用上行运动的 $h$ 除以下行运动的 $h$，可得同一楼梯上行与下行阶段的磨损比：
+\begin{equation}
+\frac{w_{\cfgup}}{w_{\cfgdown}} = \frac{0.4335}{0.3804}
+\end{equation}
+
+\subsection{步行频率模型}
+
+\subsubsection{频率估计}
+
+在现实场景中，磨损体积与楼梯表面的磨损深度直接相关。磨损深度提供了关于因使用而去除多少材料的关键信息。在分析频率时，我们简化了过程，基于总体磨损水平估计频率，而非使用复杂的物理模型进行细致计算。
+
+总磨损体积 $V_{\mathrm{wear}}$ 可表示为磨损深度 $W(x,y)$ 在楼梯表面积 $A$ 上的积分，如图 6 所示：
+\begin{equation}
+V_{\mathrm{wear,tot}} = \iint_{A} W(x,y)\,\mathrm{d}S
+\end{equation}
+
+在我们的模型中，它由每周期磨损体积、频率与台阶使用时间相乘计算。因此，可将其解释为：
+\begin{equation}
+V_{\mathrm{wear,tot}} = V_{\mathrm{wear}}\cdot f_{\mathrm{use}}\cdot T
+\end{equation}
+
+现实中，磨损体积与使用频率之间的关系受环境条件、使用者行为与测量不准确等因素影响。为考虑这些因素，我们引入误差项 $\epsilon$，它表示系统中的随机波动或不确定性。因此，带误差项的模型变为：
+\begin{equation}
+V_{\mathrm{wear,tot}} = V_{\mathrm{wear}}\cdot f_{\mathrm{use}}\cdot T + \epsilon
+\end{equation}
+
+在分析频率时，我们简化了过程，估计总体磨损水平而非使用复杂的物理模型。该方法可快速进行初步评估，但其准确性需要通过与实际磨损数据比较来验证。定期检查楼梯的实际磨损状况并收集现场数据，可以校准模型结果并提高其可靠性。
+
+\subsubsection{频率模型的验证}
+
+为验证所提出的模型，我们在受控环境条件下使用花岗岩楼梯进行了实验。目的是计算 $h$ 与 $g(M)$ 的值，并将模型预测与实际磨损数据比较。
+
+选用花岗岩是因为其使用普遍且属性有充分记录。环境温度保持在 20\,$^\circ$C 至 25\,$^\circ$C 之间。行人特征（如体重、步态与鞋类）通过动作捕捉传感器记录，以计算 $h$。测得花岗岩的硬度 $H = 278$ MPa 及其环境依赖性，以确定 $g(M)$ 与 $\alpha$。基于实验数据，计算得 $h$ 为 0.15，测得 $\alpha$ 为 0.74，而在 22\,$^\circ$C 温度下 $g(M)$ 为 0.854。
+
+磨损体积 $V_{\mathrm{wear,tot}}$ 使用该模型计算，并与通过楼梯表面三维扫描获得的实际测量值比较。我们可以使用三维扫描技术获取楼梯的详尽表面数据，并对磨损模式进行更精确的分析。将扫描数据与模型预测的磨损区域比较，有助于进一步验证模型的准确性并优化磨损预测过程。例如，在步行频率 $f_{\mathrm{use}} \approx 52$ 次/天、总使用时间 1647 天的情况下，预测磨损体积为 29.2 cm$^3$，而实际测得磨损体积为 30.7 cm$^3$。相对误差约为 4.89\%，处于可接受范围内。
+
+\subsection{单阶段磨损模型}
+
+\subsubsection{模型的基本建立}
+
+在长楼梯上，人们在每一级台阶上的行走模式几乎相同。此外，人们几乎不会接触楼梯的竖直面。因此，适宜的做法是单独考虑单级台阶的水平面。
+
+选取一个适当的笛卡尔坐标系 $Oxyz$，使台阶顶面的投影为 $xy$ 平面中的区间 $D:[0,l]\times[0,w]$，其中 $l$ 与 $w$ 分别为台阶的长度与宽度。假设通过无损测量可获得磨损深度函数 $W:D\to\mathbb{R},\ (x,y)\mapsto W(x,y)$。
+
+假设一个人站在台阶任意位置踏一次所造成的磨损深度（记为 $w$）为常数，则在位置 $(x,y)$ 处，$W$ 可写为：
+\begin{equation}
+W(x,y) = w\cdot N(x,y)
+\end{equation}
+其中 $N(x,y)$ 是人们在位置 $(x,y)$ 上踩踏的总次数。
+
+由于人们上楼与下楼时用力大小不同，人们上楼与下楼时每次造成的磨损深度也不同。于是 $W$ 可具体写为：
+\begin{equation}
+W(x,y) = w_{\cfgup}\cdot N_{\cfgup}(x,y) + w_{\cfgdown}\cdot N_{\cfgdown}(x,y)
+\end{equation}
+
+\subsubsection{$N_{\cfgup}$ 与 $N_{\cfgdown}$ 的进一步处理}
+
+人们上楼时，落脚位置是随机的，但其背后存在某种倾向。例如，多数人倾向于把左脚放在台阶的中左部而不是角落。
+
+不失一般性，我们考虑 $N_{\cfgup}$，即实际踩踏过 $(x,y)$ 的人数。对于台阶顶面上的某点 $(x,y)$，当一个人经过该级台阶时，$(x,y)$ 可能被踩到，也可能未被踩到。若总共有 $n_{\cfgup}$ 人上楼，我们用一列随机变量 $\{X_i\}_{i=1}^{n}$ 表示第 $i$ 个人是否踩到 $(x,y)$ 的结果。具体地，
+\begin{equation}
+\begin{cases}
+X_i = 1 & (x,y)\ \text{被踩到}\\
+X_i = 0 & (x,y)\ \text{未被踩到}
+\end{cases}
+\end{equation}
+
+若给出以下两个假设：
+
+\noindent\textbf{假设 4.1.} $\{X_i\}_{i=1}^{n}$ 独立同分布，其中 $P(X_i = 1) = p_{\cfgup}(x,y)$。
+
+\noindent\textbf{假设 4.2.} $n$ 充分大，即已有足够多的人走过该楼梯。
+
+则由大数定律，$\overline{X_i}$ 依概率收敛于 $\mathbb{E}X_i$。为简化：
+\begin{equation}
+N_{\cfgup} = n\overline{X_i} = n_{\cfgup}\mathbb{E}X_i = n_{\cfgup}\cdot p_{\cfgup}(x,y)
+\end{equation}
+
+类似地，$N_{\cfgdown}$ 具有相同的形式。因此，
+\begin{equation}
+W(x,y) = w_{\cfgup}n_{\cfgup}\cdot p_{\cfgup}(x,y) + w_{\cfgdown}n_{\cfgdown}\cdot p_{\cfgdown}(x,y)
+\end{equation}
+
+\subsubsection{踩踏 $(x,y)$ 的概率分布}
+
+人们走过楼梯时，目标是找到舒适且省力的落脚处，这导致落脚位置的概率分布出现一定集中。然而，由于腿长、步态习惯或身体的轻微不对称等因素，足部的确切位置会随步而异，如图 7 所示。因此，磨损深度的分布（如图 8 所示）与足部位置的分布表现出相似的形态。
+
+为简化模型，我们假设人们每次踩踏楼梯的概率分布服从二维联合高斯分布。由于每人有两只脚，且可能有多人并行，该概率分布是 2 个或更多联合高斯分布的混合：
+\begin{equation}
+p_{\cfgup}(x,y) = \frac{1}{k}\sum_{i=1}^{k}\mathcal{N}(\mathbf{x}|\mu_i,\Sigma_i)
+\end{equation}
+其中
+\begin{equation}
+\mathcal{N}(\mathbf{x}|\mu_i,\Sigma_i) = \frac{1}{2\pi|\Sigma_i|^{1/2}}\exp\left(-\frac{1}{2}(\mathbf{x}-\mu_i)^{\mathrm{T}}\Sigma_i^{-1}(\mathbf{x}-\mu_i)\right)
+\end{equation}
+$\mathbf{x} = (x,y)^{\mathrm{T}}$，且若只有一个人能通过楼梯则 $k=2$，若可多人同时通过则累加。
+
+于是有：
+\begin{equation}
+W(x,y) = \frac{1}{k}\left(w_{\cfgup}n_{\cfgup}\sum_{i=1}^{k}\mathcal{N}(x,y|\mu_i,\Sigma_i) + w_{\cfgdown}n_{\cfgdown}\sum_{i=1}^{k}\mathcal{N}(x,y|\mu_i,\Sigma_i)\right)
+\end{equation}
+
+由于 $n_{\cfgup}$ 或 $n_{\cfgdown}$ 可能略有不同，引入误差项 $\varepsilon$。因此，最终模型为：
+\begin{equation}
+\begin{aligned}
+W(x,y) = \frac{1}{k}\Bigg(& w_{\cfgup}\sum_{i=1}^{k}(n_{\cfgup}+\varepsilon_i)\cdot\mathcal{N}(x,y|\mu_i,\Sigma_i)\\
+&+ w_{\cfgdown}\sum_{i=1}^{k}(n_{\cfgdown}+\varepsilon_i)\cdot\mathcal{N}(x,y|\mu_i,\Sigma_i)\Bigg)
+\end{aligned}
+\end{equation}
+
+\subsubsection{模型求解}
+
+该模型中待求解的参数为：$k$、$n_{\cfgup}$、$n_{\cfgdown}$、$\mu$、$\Sigma$。$w_{\cfgup}$、$w_{\cfgdown}$ 的量级可通过物理分析获得。
+
+由于 $W(x,y)$ 仿射等价于高斯分布的混合，我们首先可将 $W$ 仿射为一个概率分布：
+\begin{equation}
+p_W(x,y) = \frac{W(x,y)}{\displaystyle\iint_{D} W(x,y)\,\mathrm{d}x\,\mathrm{d}y} = \sum_{i=1}^{2k}\pi_i\cdot\mathcal{N}(x,y|\mu_i,\Sigma_i)
+\end{equation}
+其中
+\begin{equation}
+\pi_i =
+\begin{cases}
+\dfrac{w_{\cfgup}(n_{\cfgup}+\varepsilon_i)}{k\displaystyle\iint_{D} W(x,y)\,\mathrm{d}x\,\mathrm{d}y} & 1\le i\le k,\\[2.2em]
+\dfrac{w_{\cfgdown}(n_{\cfgdown}+\varepsilon_i)}{k\displaystyle\iint_{D} W(x,y)\,\mathrm{d}x\,\mathrm{d}y} & k< i\le 2k
+\end{cases}
+\end{equation}
+而 $\displaystyle\iint_{D} W(x,y)\,\mathrm{d}x\,\mathrm{d}y$ 可由程序离散计算。于是求解该模型可归结为求解参数 $\pi_i$、$\mu_i$、$\Sigma_i$、$k$。
+
+在 $k$ 值已知的假设下，期望最大化（Expectation-maximization, EM）算法能够有效求解该问题。
+
+首先随机初始化 $\pi_i$、$\mu_i$、$\Sigma_i$。然后对每个数据点 $\{\mathbf{x}_m\}_{m=1}^{M} = \{(x_{m1},y_{m1})^{\mathrm{T}}\}_{m=1}^{M}$ 计算责任度 $\gamma_{m,i}$：
+\begin{equation}
+\gamma_{m,i} = \frac{\pi_i\cdot\mathcal{N}(\mathbf{x}_m|\mu_i,\Sigma_i)}{\sum_{i=1}^{M}\pi_i\cdot\mathcal{N}(\mathbf{x}_m|\mu_i,\Sigma_i)}
+\end{equation}
+
+分别按下式更新 $\pi_i$、$\mu_i$、$\Sigma_i$：
+\begin{equation}
+\pi_i = \frac{1}{M}\sum_{m=1}^{M}\gamma_{m,i}
+\end{equation}
+\begin{equation}
+\mu_i = \frac{\sum_{m=1}^{M}\gamma_{m,i}\mathbf{x}_m}{\sum_{m=1}^{M}\gamma_{m,i}}
+\end{equation}
+\begin{equation}
+\Sigma_i = \frac{\sum_{m=1}^{M}\gamma_{m,i}(\mathbf{x}_m-\mu_i)(\mathbf{x}_i-\mu_i)^{\mathrm{T}}}{\sum_{m=1}^{M}\gamma_{m,i}}
+\end{equation}
+
+给定上述更新后的参数，计算对数似然：
+\begin{equation}
+l = \sum_{m=1}^{M}\log\left(\sum_{i=1}^{2k}\pi_i\cdot\mathcal{N}(x,y|\mu_i,\Sigma_i)\right)
+\end{equation}
+
+若相邻迭代间对数似然的变化小于预设阈值（例如 $\epsilon$），则达到 $l$ 的最大值，并获得 $\pi_i$、$\mu_i$、$\Sigma_i$ 的适当取值。
+
+一旦获得 $\pi_i$ 的值，
+\begin{equation}
+\begin{aligned}
+n_{\cfgup}+\varepsilon_i &= \frac{\pi_i k}{w_{\cfgup}}\iint_{D} W(x,y)\,\mathrm{d}x\,\mathrm{d}y,\\
+n_{\cfgdown}+\varepsilon_i &= \frac{\pi_i k}{w_{\cfgdown}}\iint_{D} W(x,y)\,\mathrm{d}x\,\mathrm{d}y
+\end{aligned}
+\end{equation}
+
+误差项 $\varepsilon_i$ 可分别通过回归消除。于是使用楼梯的人们所偏好的行进方向为：
+
+\begin{itemize}
+\item 上楼，若 $n_{\cfgup} > n_{\cfgdown}$，或
+\item 下楼，若 $n_{\cfgup} < n_{\cfgdown}$。
+\end{itemize}
+
+然而，上述求解过程基于 $k$ 的确定取值。为确定 $k$ 的值，我们将使用贝叶斯信息准则（Bayesian Information Criterion, BIC）：
+\begin{equation}
+\mathrm{BIC} = p\ln M - 2l
+\end{equation}
+其中 $p$ 是参数总数，$M$ 是数据点总数，$l$ 是对数似然函数的最大值。
+
+初始时，我们为 $k$ 设定适当范围 $\mathcal{I}$，例如 $1\le k\le 10$，并对 $k$ 的每个可能取值计算 BIC。然后，
+\begin{equation}
+k = \arg\min_{k\in\mathcal{I}}\mathrm{BIC}
+\end{equation}
+
+由于每人有两只脚，同时使用楼梯的人数为 $\frac{k}{2}$。例如，在图 9 中，当 1 人或 2 人走过楼梯时，$k$ 分别在 4 或 8 处取最小。
+
+图 10 是用上述方法拟合图 8 的一个实例。
+
+\subsection{磨损与可得信息的一致性}
+
+\subsubsection{磨损与可得信息的一致性}
+
+考古学家通过比较台阶的磨损程度与建筑的年代来验证历史记录。轻微磨损可能表明使用较少，而特定区域的集中磨损则表明这些部位被更频繁地使用。通过细致研究磨损模式，考古学家可以判定其是否与已知的日常活动相符。如果楼梯是主要通道，则应能看到显著的磨损。地层数据、磨损率计算与表面化学分析有助于确定不同时期的使用强度，并验证现有的历史背景。通过这些分析，考古学家可以全面考察台阶磨损，并评估其是否与建筑的历史和使用模式相符。
+
+\subsubsection{蒙特卡洛模拟}
+
+蒙特卡洛模拟~[9] 对于建模复杂的随机系统尤为有效，因为它能捕捉磨损等过程固有的随机性与变异性。我们选择蒙特卡洛模拟进行楼梯踏面磨损分析，因为它能够对难以或无法解析求解的复杂系统建模。与给出单一结果的确定性方法不同，蒙特卡洛方法提供潜在结果的分布，从而更准确地表示磨损，并将行人流量与环境条件等因素纳入考虑。
+
+为验证该方法的有效性，我们实现了一个细致的蒙特卡洛模拟过程，如算法 1 所示。通过构建楼梯踏面磨损的随机模型，我们生成了大量模拟场景，以全面评估不同条件下的磨损特征。
+
+\begingroup
+\small
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{1.5pt}
+\noindent\rule{\linewidth}{0.5pt}\par\vspace{2pt}
+\noindent\textbf{算法 1：}楼梯磨损蒙特卡洛模拟\par\vspace{2pt}
+\noindent\rule{\linewidth}{0.3pt}\par\vspace{3pt}
+\noindent\textbf{输入：}$T$：总模拟时间\par
+\hspace*{1.2em}$l,w$：楼梯的长度与宽度\par
+\hspace*{1.2em}$\alpha,H,g$：材料磨损系数、硬度与修正\par
+\hspace*{1.2em}$N$：每个模拟区间的人数\par
+\hspace*{1.2em}$\mu_w,\sigma_w$：体重的均值与体重的标准差\par
+\hspace*{1.2em}$\mu_n,\sigma_n$：同时使用楼梯人数的均值与标准差\par
+\hspace*{1.2em}$p_{up}$：上楼的概率\par
+\noindent\textbf{输出：}$wear$：楼梯磨损\par\vspace{3pt}
+\noindent\makebox[2.2em][r]{1}\ $wear \leftarrow [l,w]$;\par
+\noindent\makebox[2.2em][r]{2}\ \textbf{for} $time \leftarrow 0$ \textbf{to} $T$ \textbf{do}\par
+\noindent\makebox[2.2em][r]{3}\ \hspace*{1.2em}\textbf{for} $person \leftarrow 1$ \textbf{to} $N$ \textbf{do}\par
+\noindent\makebox[2.2em][r]{4}\ \hspace*{2.4em}$weight \leftarrow \mathrm{NormalDistribution}(\mu_w,\sigma_w)$;\par
+\noindent\makebox[2.2em][r]{5}\ \hspace*{2.4em}$parallel \leftarrow \mathrm{NormalDistribution}(\mu_n,\sigma_n)$;\par
+\noindent\makebox[2.2em][r]{6}\ \hspace*{2.4em}\textbf{if} $\mathrm{Random}() < p_{up}$ \textbf{then}\par
+\noindent\makebox[2.2em][r]{7}\ \hspace*{3.6em}$direction \leftarrow \mathrm{UP}$;\par
+\noindent\makebox[2.2em][r]{8}\ \hspace*{2.4em}\textbf{else}\par
+\noindent\makebox[2.2em][r]{9}\ \hspace*{3.6em}$direction \leftarrow \mathrm{DOWN}$;\par
+\noindent\makebox[2.2em][r]{10}\ \hspace*{2.4em}\textbf{end}\par
+\noindent\makebox[2.2em][r]{11}\ \hspace*{2.4em}$normal\_force \leftarrow \mathrm{GRF}(weight,direction)$;\par
+\noindent\makebox[2.2em][r]{12}\ \hspace*{2.4em}$sliding\_distance \leftarrow \mathrm{L}(weight,direction)$;\par
+\noindent\makebox[2.2em][r]{13}\ \hspace*{2.4em}$h \leftarrow normal\_force \cdot sliding\_distance$\par
+\noindent\makebox[2.2em][r]{}\ \hspace*{2.4em}$(x,y) \leftarrow \mathrm{PositionGenerator}(direction,parallel)$;\par
+\noindent\makebox[2.2em][r]{14}\ \hspace*{2.4em}$wear[x,y] \leftarrow wear[x,y] + \alpha\times\dfrac{h}{H}\times g$;\par
+\noindent\makebox[2.2em][r]{15}\ \hspace*{1.2em}\textbf{end}\par
+\noindent\makebox[2.2em][r]{16}\ \textbf{end}\par
+\vspace{2pt}
+\noindent\rule{\linewidth}{0.5pt}\par
+\endgroup
+
+\subsection{楼梯耐久性预测}
+
+基于上述楼梯磨损模型，我们可以预测楼梯的剩余使用寿命。该模型考虑了材料磨损系数、使用的频率与分布以及使用者施加的力等多种因素。通过模拟楼梯与使用者的相互作用，我们可以估计磨损速率，并计算楼梯表面达到临界退化水平之前的剩余时间。
+
+\noindent\textbf{假设 4.3.} 假设当磨损所致凹坑的最大深度达到台阶高度时，台阶即不可用。该阈值基于台阶的结构完整性：如此深度的凹坑会损害台阶的功能性与安全性。一旦磨损达到该临界深度，台阶即被视为不适合使用，需要更换或修补。
+
+图 11 展示了在我们磨损模型下楼梯的磨损演化，说明了使用 5、10、15 与 20 年后的变化。结果表明，随时间推移，由于使用模式的累积效应，磨损深度增加。20 年后，观测到的最大磨损深度接近台阶高度，验证了模型关于楼梯寿命的预测。这为估计楼梯何时需要维护或更换以确保其持续的功能性与安全性提供了定量依据。
+
+\subsection{修补与翻修检测}
+
+较旧的楼梯，尤其是历史建筑中的楼梯，常因与年代相关的磨损而需要修补或翻修~[10]。随着这些楼梯随时间劣化，翻修对于确保安全与保持其结构完整性是必要的。识别楼梯此前是否被修补或翻修，对于评估其现状与预测其未来寿命十分重要。
+
+自然磨损由于长期使用而在表面形成渐进且一致的梯度。然而，修补由于材料的更换或重铺而引入梯度的突变，破坏了自然模式。表面 $W(x,y)$ 的梯度计算为：
+\begin{equation}
+S(x,y) = \sqrt{\left(\frac{\partial W}{\partial x}\right)^{2} + \left(\frac{\partial W}{\partial y}\right)^{2}}
+\end{equation}
+其中 $\dfrac{\partial W}{\partial x}$ 与 $\dfrac{\partial W}{\partial y}$ 是表面高度在 $x$ 方向与 $y$ 方向的偏导数。
+
+修补检测指标 $R(x,y)$ 现在可以仅用梯度及其局部偏差来定义：
+\begin{equation}
+R(x,y) = \left|S(x,y) - \overline{S}_{\mathrm{local}}(x,y)\right|
+\end{equation}
+其中 $\overline{S}_{\mathrm{local}}(x,y)$ 是 $(x,y)$ 周围局部邻域内的平均梯度。
+
+$R(x,y)$ 量化了每点梯度相对周围区域的偏差。自然磨损区域的梯度相对一致，而修补会引入梯度的突变，使偏差更大。
+
+该方法通过聚焦梯度简化了检测，减少了冗余并使模型更简洁。它通过捕捉表面纹理与变异来识别修补造成的扰动，同时保持高准确度。通过使用单一的梯度指标，它基于表面连续性的破坏有效检测修补区域。该方法计算高效、准确，并为识别修补提供了有用的结果。
+
+\subsection{材料来源识别}
+
+为识别楼梯所用材料的来源，磨损系数分析首先对来自疑似采石场或伐木场的材料进行受控摩擦学测试，以确定其磨损系数（$\alpha$）。对于既有楼梯，可参照基本磨损方程（2）计算有效磨损系数（$\alpha_e$）。
+
+统计一致性检验采用原假设 $H_0: K = K_e$，对立假设 $H_1: K\neq K_e$。$t$ 检验统计量为：
+\begin{equation}
+t = \frac{K-K_e}{s/\sqrt{n}}
+\end{equation}
+
+对于非正态分布，Kolmogorov-Smirnov 检验提供了分布比较：
+\begin{equation}
+D = \sup_{x}|F_1(x)-F_2(x)|
+\end{equation}
+
+该框架使得源材料与考古样品之间能够进行定量比较，同时考虑测量不确定性与环境效应。结果应结合其他考古证据加以解释，以实现全面的材料来源验证。
+
+\subsection{频率与持续时间模式}
+
+\subsubsection{Chaboche 模型}
+
+在结构工程中，疲劳损伤（fatigue damage）是一个关键考虑因素，尤其是当构件承受重复载荷时。对于楼梯，两种常见的载荷情形是短时高频踩踏与长时低频踩踏，二者以不同方式影响结构~[11]。前者造成快速、大幅值的冲击，可能导致突发的局部损伤，而后者涉及长时间、较低幅值的应力，随时间累积。理解这两类踩踏如何贡献疲劳损伤，对于评估楼梯的长期耐久性至关重要。本节旨在探讨这些不同载荷条件下的疲劳损伤机理。
+
+Chaboche 模型使用多个背应力（backstress）分量描述材料的非线性硬化行为。屈服函数与背应力演化方程是该模型的核心：
+\begin{equation}
+f = \sqrt{\frac{3}{2}(\mathbf{s}-\mathbf{X}):(\mathbf{s}-\mathbf{X})} - \sigma_y = 0
+\end{equation}
+\begin{equation}
+\dot{\mathbf{X}}_i = \frac{2}{3}C_i\dot{\bm{\epsilon}}_p - \gamma_i\mathbf{X}_i\dot{p} \qquad (i = 1,2,\dots,N)
+\end{equation}
+
+这里，$\mathbf{s}$ 是偏应力张量，定义为 $\mathbf{s} = \bm{\sigma} - \frac{1}{3}\mathrm{tr}(\bm{\sigma})\mathbf{I}$。项 $\mathbf{X}_i$ 表示第 $i$ 个背应力分量，刻画材料的硬化状态。屈服应力记为 $\sigma_y$，而 $C_i$ 与 $\gamma_i$ 是控制硬化速率与动态回复的材料参数。塑性应变率张量为 $\dot{\bm{\epsilon}}_p$，等效塑性应变率为 $\dot{p} = \sqrt{\frac{2}{3}\dot{\bm{\epsilon}}_p:\dot{\bm{\epsilon}}_p}$。
+
+Chaboche 模型中的损伤演化方程由下式给出：
+\begin{equation}
+\dot{D} = \left(\frac{Y}{S}\right)^{s}\cdot\dot{p}\cdot\langle\sigma_H\rangle^{m}
+\end{equation}
+
+在该方程中，$Y$ 表示弹性应变能密度，计算为 $Y = \frac{1}{2}\bm{\sigma}:\mathbf{C}^{-1}:\bm{\sigma}$。参数 $S$、$s$ 与 $m$ 是材料特定的损伤参数。项 $\sigma_H$ 表示静水压力，定义为 $\sigma_H = \frac{1}{3}\mathrm{tr}(\bm{\sigma})$。Macaulay 括号 $\langle\cdot\rangle$ 确保只考虑正值。
+
+\subsubsection{参数标定与损伤计算}
+
+为将 Chaboche 模型应用于台阶磨损分析，我们假设台阶材料为混凝土。材料参数基于单轴循环试验标定：
+
+\begin{itemize}
+\item 弹性参数：杨氏模量 $E = 30$ GPa，泊松比 $\nu = 0.2$。
+\item 塑性参数：初始屈服应力 $\sigma_y = 20$ MPa。
+\item 背应力分量：使用三个分量，参数为 $C_1 = 1000$ MPa、$\gamma_1 = 100$、$C_2 = 500$ MPa、$\gamma_2 = 50$、$C_3 = 200$ MPa 与 $\gamma_3 = 10$。
+\item 损伤参数：$S = 0.1$ MPa$^{-1}$、$s = 2$ 与 $m = 1$。
+\end{itemize}
+
+载荷条件定义如下：
+
+\begin{itemize}
+\item 单步应力：体重 70 kg、接触面积 0.02 m$^2$ 的人产生静应力 $\sigma_{\mathrm{static}} = \frac{70\times 9.8}{0.02} = 34.3$ kPa。
+\item 动态效应：短时密集人流可能造成冲击应力，假设为静应力的两倍（$\sigma_{\mathrm{dynamic}} = 68.6$ kPa）。
+\item 时间分布：考虑两种情景——分散使用（1000 人在 10 小时内均匀分布）与集中使用（1000 人在 1 小时内）。
+\end{itemize}
+
+对于分散使用，应力历史由每小时 100 次踩踏组成，每次应力为 $\sigma_{\mathrm{static}} = 34.3$ kPa，持续 10 小时。每一步的等效塑性应变增量假设为 $\Delta p = 1\times 10^{-5}$。每周期损伤增量计算为：
+\begin{equation*}
+\Delta D = \left(\frac{Y}{S}\right)^{s}\cdot\Delta p\cdot\langle\sigma_H\rangle^{m}
+\end{equation*}
+
+对于静载，弹性应变能密度 $Y$ 为：
+\begin{equation*}
+Y = \frac{\sigma_{\mathrm{static}}^{2}}{2E} = \frac{(34.3\times 10^{3})^{2}}{2\times 30\times 10^{9}} \approx 1.96\times 10^{-3}\ \mathrm{MPa}
+\end{equation*}
+
+代入数值，每一步的损伤增量为：
+\begin{equation*}
+\Delta D = \left(\frac{1.96\times 10^{-3}}{0.1}\right)^{2}\times 1\times 10^{-5}\times 34.3 \approx 2.3\times 10^{-9}
+\end{equation*}
+
+分散使用的总损伤为：
+\begin{equation*}
+D_{\mathrm{distributed}} = 1000\times 2.3\times 10^{-9} = 2.3\times 10^{-6}
+\end{equation*}
+
+对于集中使用，应力历史由 1 小时内的 1000 次踩踏组成。按相同步骤计算，集中使用的总损伤为：
+\begin{equation*}
+D_{\mathrm{concentrated}} = 1000\times 1.1\times 10^{-7} = 1.1\times 10^{-4}
+\end{equation*}
+
+集中使用与分散使用之间的损伤比约为 48，表明短时使用显著加速台阶磨损。
+
+Chaboche 模型通过非线性硬化（背应力演化）与动态损伤放大捕捉了该效应。结果表明该模型能够量化不同使用模式对材料退化的影响。
+
+\section{模型评价与进一步讨论}
+
+\subsection{模型的优势与局限}
+
+所提出的模型综合了物理磨损理论、概率化行人行为与环境因素来预测楼梯磨损。其主要优势在于将 Archard 磨损定律与随机人体动力学相结合，从而在理论严谨性与实际适用性之间取得平衡。蒙特卡洛模拟进一步增强了模型捕捉行人流与环境变异中不确定性的能力。在花岗岩楼梯上的验证实验显示相对误差仅为 4.89\%，表明在受控条件下具有高可靠性。
+
+然而，必须承认若干局限。第一，模型假设材料属性均匀且行人行为理想化。现实中，材料不均匀性与多样化的使用者行为可能引入偏差。第二，湿度与冻融循环等环境因素通过修正因子 $g(M)$ 被简化处理，但其对材料疲劳的瞬态效应并不完全动态。第三，修补检测方法依赖梯度分析，在高度不规则的磨损模式中可能难以区分细微的修补。
+
+\subsection{未来方向}
+
+\begin{enumerate}
+\item \textbf{材料特定的适应性}：扩展模型以考虑各向异性材料（例如层状石材或木纹）。例如，磨损系数（$\alpha$）可依据材料微观结构在空间上变化。
+\item \textbf{动态环境整合}：为 $g(M)$ 建立随时间变化的函数，以反映季节性湿度波动或长期气候趋势，提高对室外楼梯的预测准确性。
+\item \textbf{多尺度建模}：将宏观尺度磨损预测与微观尺度摩擦学模拟耦合，以更好地捕捉局部磨损机理，例如磨粒相互作用。
+\end{enumerate}
+
+\section{结论}
+
+我们提出了楼梯预测模型，以准确评估磨损模式。经三维扫描数据验证的模型成功解决了各项任务。这为考古研究提供了有价值的工具。
+
+\begin{thebibliography}{99}
+\small
+\setlength{\itemsep}{0.1em}
+
+\bibitem{1} A. Figueiredo and J. Ribeiro. Wear patterns in historical staircases and their relevance for archaeological studies. Journal of Archaeological Science, 106:58--67, 2019.
+
+\bibitem{2} J. Williams. Wear and Surface Damage. Cambridge University Press, 2005.
+
+\bibitem{3} R. Crespo and S. Kenny. Staircase predictor models for reliability and risk analysis. International Journal of Architectural Heritage, 22(1):1--15, 2018.
+
+\bibitem{4} Z. Zheng, G. Zhong, and H. Deng. A method to detect stairs with three-dimensional scanning for hexapod robot stair climbing. In 2016 IEEE International Conference on Mechatronics and Automation (ICMA), pages 1450--1455, 2016.
+
+\bibitem{5} Atsushi Ogawa, Akira Mita, A. Yorozu, and M. Takahashi. Markerless knee joint position measurement using depth data during stair walking. Sensors (Basel, Switzerland), 17(11):2698, 2017.
+
+\bibitem{6} J. F. Archard. Contact and rubbing of flat surfaces. Journal of Applied Physics, 24(8):981--988, 08 1953.
+
+\bibitem{7} E. Stüssi and H. U. Debrunner. Parameter-analyse des menschlichen ganges. Biomedical Engineering / Biomedizinische Technik, 25(s1):222--224, 1980.
+
+\bibitem{8} Alex Stacoff, Christian Diezi, Gerhard Luder, Edgar Stüssi, and Inès A. Kramers-de Quervain. Ground reaction forces on stairs: effects of stair inclination and age. Gait Posture, 21(1):24--38, 2005.
+
+\bibitem{9} D. Landau and K. Binder. A Guide to Monte Carlo Simulations in Statistical Physics. Cambridge University Press, 2021.
+
+\bibitem{10} J.W.P. Campbell and M. Tutton. Staircases: History, Repair and Conservation. Taylor \& Francis, 2013.
+
+\bibitem{11} B. Cerfontaine and F. Collin. Cyclic and fatigue behaviour of rock materials: Review, interpretation and research perspectives. Rock Mechanics and Rock Engineering, 51(2):391--414, Feb 2018.
+
+\end{thebibliography}
+
+\end{document}

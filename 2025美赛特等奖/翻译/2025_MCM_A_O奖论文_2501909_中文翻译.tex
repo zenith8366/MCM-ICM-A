@@ -1,0 +1,581 @@
+\documentclass[11pt,a4paper]{ctexart}
+\usepackage[margin=2.4cm]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage{fancyhdr}
+\usepackage{enumitem}
+\usepackage{array}
+\usepackage{url}
+
+\linespread{1.28}
+\setlength{\parskip}{0pt}
+
+\ctexset{
+  section/format = {\Large\bfseries\raggedright},
+  subsection/format = {\large\bfseries\raggedright},
+  subsubsection/format = {\normalsize\bfseries\raggedright},
+  section/aftername = \quad,
+  subsection/aftername = \quad,
+  subsubsection/aftername = \quad
+}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small Team \# 2501909}
+\fancyhead[R]{\small 第 \thepage 页}
+\renewcommand{\headrulewidth}{0.4pt}
+\fancypagestyle{plain}{\fancyhf{}\renewcommand{\headrulewidth}{0pt}}
+
+\setlist[itemize]{leftmargin=2.2em,itemsep=1pt,topsep=2pt,parsep=0pt}
+\setlist[enumerate]{leftmargin=2.2em,itemsep=1pt,topsep=2pt,parsep=0pt}
+
+\newcommand{\kw}[1]{\textbf{#1}}
+
+\begin{document}
+
+%====================== 摘要页 ======================
+\thispagestyle{empty}
+
+\noindent
+\begin{minipage}[t]{0.30\textwidth}\centering
+  {\small\bfseries 选题}\\[3pt] {\Large A}
+\end{minipage}%
+\begin{minipage}[t]{0.36\textwidth}\centering
+  {\small\bfseries 2025}\\[3pt] {\small\bfseries MCM/ICM}\\[2pt] {\small\bfseries 摘要页}
+\end{minipage}%
+\begin{minipage}[t]{0.30\textwidth}\centering
+  {\small\bfseries 队伍控制号}\\[3pt] {\Large 2501909}
+\end{minipage}
+
+\vspace{4pt}
+\noindent\rule{\textwidth}{1pt}
+
+\vspace{10pt}
+\begin{center}
+{\LARGE\bfseries 楼梯磨损：历史的痕迹}
+\end{center}
+
+\vspace{6pt}
+\begin{center}
+{\large\bfseries 摘要}
+\end{center}
+
+{\small
+\noindent 即便最坚硬的石阶，也会在人们日复一日的踩踏下渐渐磨损。楼梯以独特的方式记录着历史。为帮助考古学家从一组磨损的楼梯中提取更多信息，我们分析可测数据并建立相应模型。
+
+\noindent \kw{任务 1：}为分析楼梯的基本信息，我们建立了\kw{楼梯磨损模型}（Stair Wear Model），它由磨损体积模型（Wear Volume Model, WVM）与磨损分布模型（Wear Distribution Model, WDM）组成。我们将台阶的俯视图栅格化，并结合磨损数据生成磨损测量矩阵。基于该矩阵与\kw{Archard 磨损定律}（Archard Wear Law），我们建立了 WVM。我们引入并分析磨损系数、平均人体体重、材料硬度与台阶面积等参数，以计算楼梯的年龄与使用频率。此外，我们基于中心极限定理建立了 WDM。它计算磨损测量矩阵的边际分布，并用\kw{高斯混合算法}（Gaussian Mixture Algorithm）拟合 X 与 Y 方向的磨损分布。在 Y 方向，正态分布的数量与位置指示行走方向，而 X 方向的分布反映移动的并行程度。
+
+\noindent 我们为考古学家提供了测量项与查询项（表 3）以及详细的使用说明（图 7）。我们提出的所有方法都遵循无损原则。作为一个例子，我们分析了一组爱丁堡的古代砂岩台阶。结果表明，这些台阶约建于一个世纪之前，通常由\kw{三个人}并排行走。两个方向都被使用，上行与下行之比为 \kw{3:2}，日使用频率为 \kw{261}。更详细的结果呈现在表 5、表 6 与图 8 中。
+
+\noindent \kw{任务 2：}我们利用楼梯磨损模型与可得信息处理进一步的问题。为评估磨损分布的一致性，我们定义磨损矩阵之间的一致性参数。楼梯间的年龄由台阶年龄计算得到，并用一个可靠性参数评估其精度。为判断楼梯是否被修理过，除台阶年龄法之外，我们引入一种基于布氏硬度（Brinell Scale）与 KL 散度的\kw{创新性}无损方法，以进行更全面的一致性分析。
+
+\noindent 基于材料硬度的一致性，我们开发了一种追溯材料来源的方法。用楼梯磨损模型进行模拟有助于评估材料磨损的一致性。\kw{蒙特卡罗方法}（Monte Carlo Method）揭示了 X 方向磨损的标准差与楼梯日使用量之间的关系。将这些方法应用于所研究的台阶，得到的年龄预测可靠性高于 \kw{95\%}。两种方法都确认该楼梯没有经过修理，且材料与档案记录相符。X 方向磨损的分散表明其在短期内被高强度使用。
+
+\noindent 材料硬度在我们的模型中表现出很高的\kw{敏感性}。模型对 4 个世纪以内的风化速率常数敏感性较低，但在 20 个世纪的尺度上敏感性更高，这表明它在特定时间范围内表现良好。跨地区的稳健性检验进一步支持了这一点。我们希望我们的工作能对考古学家有所帮助。坚硬的石头有它们记录历史的方法，而我们有解读它们的模型。
+}
+
+\vspace{6pt}
+\noindent\textbf{关键词：}楼梯磨损，Archard 定律，中心极限定理，高斯混合算法
+
+\newpage
+\pagestyle{fancy}
+
+%====================== 1 ======================
+\section{引言}
+
+\subsection{问题背景}
+
+作为永恒的象征，石材常被用于建筑构件。尽管耐久，石头并非不可侵蚀。随着人们在时间中上下行走，台阶被塑造成不同的形状，讲述着过去的故事，等待被探索。
+
+楼梯上的磨损反映了过去人们的行为模式。人的长期行为很可能使台阶产生不均匀的磨损，使踏面顶部呈弧形。例如，在古代寺庙的楼梯中，台阶的中央比边缘磨损得更严重。考古学家关心楼梯的年龄、人流模式与使用频率。但人的存在、楼梯建造过程的时间变化以及楼梯的翻修，都遮蔽了其中部分信息。
+
+为帮助考古学家，团队被要求为以下任务建立相关的数学模型：
+
+\textbf{任务 1：}给定一组楼梯，建立一个考虑某一特定楼梯磨损模式的数学模型。给出一些基本预测：
+\begin{itemize}
+\item 讨论该楼梯的使用频率。
+\item 探究使用该楼梯的人所偏好的行进方向。
+\item 研究有多少人同时使用该楼梯。
+\end{itemize}
+
+当考古学家对某座楼梯存疑时，可以进行现场测量。可以采用一套成本最低、所需人员最少、工具最少的无损勘测方案。
+
+\textbf{任务 2：}进一步解决问题。利用可得的估计，确定为以下问题能够提供什么指导：
+\begin{itemize}
+\item 磨损与可得信息的一致性。
+\item 楼梯间的年龄以及该估计的可靠性。
+\item 楼梯间是否经过修理或翻修。
+\item 确定材料的来源，并将其与考古学家的推测进行比较。
+\item 分析楼梯间在典型一天中的使用情况。
+\end{itemize}
+
+\subsection{我们的工作}
+
+根据要求，我们的工作如下所示。
+
+%====================== 2 ======================
+\section{假设与符号说明}
+
+\subsection{假设}
+
+为简化问题并便于我们模拟真实情况，我们作出以下基本假设，每条假设都给出了恰当的理由。
+
+\begin{itemize}
+\item \textbf{假设 1：}所有人以单步策略在楼梯上行走；同一组台阶在同一时间受到相同的踩踏。
+
+\textbf{理由：}单步（single-step, SS）与双步（double-step, DS）是人们在楼梯台阶上行走时偏好的两种迈步策略[1]。我们选择前一种策略，以确保一组台阶中的所有台阶被均匀踩踏。
+
+\item \textbf{假设 2：}自然磨损与其他形式的侵蚀对同一组台阶的所有表面影响相同。
+
+\textbf{理由：}同一组台阶通常暴露于相同的环境条件，且常由相同的材料建造。由于环境因素在空间上是均匀的，可以假定它们对台阶的所有表面产生相同的影响。
+
+\item \textbf{假设 3：}维护与翻修方式包括用另一种材料完全更换楼梯，或用相同材料填补以恢复其原有形状。
+
+\textbf{理由：}这些楼梯主要承受人们向上攀爬带来的磨损载荷。必须确保修复后的楼梯具有足够的耐磨性与承载能力以满足使用要求。因此，整体更换材料或用相同材料细致填补，可确保维护后楼梯的结构完整性与耐久性。
+
+\item \textbf{假设 4：}攀爬时鞋面与楼梯表面所施加的力均匀地指向下方。
+
+\textbf{理由：}鞋面与楼梯表面可近似为刚体。在真实环境中，当然存在摩擦力（用于防滑或推进）以及脚部运动引起的瞬时力学变化。然而，对于仅关注总体承载与磨损量的简化分析，较小的水平分力或不均匀分布可以暂时忽略。这便得到理想化的“均匀垂直压力模型”。
+\end{itemize}
+
+\subsection{符号说明}
+
+\begin{description}[leftmargin=3.6cm,labelwidth=3.3cm,labelsep=0.3cm,itemsep=1.5pt,topsep=2pt,parsep=0pt]
+\item[\(d(x,y)\)] 台阶上网格 \((x,y)\) 处的磨损深度
+\item[\(D^{measure}\)] 磨损测量矩阵 \((x,y)\)
+\item[\(T\)] 楼梯的建造时长
+\item[\(N_d\)] 台阶的使用频率
+\item[\(G\)] 行走的人所受到的平均重力
+\item[\(k_m\)] 单位力在石阶上造成的磨损量
+\item[\(D(x,y)\)] 石阶上点 \((x,y)\) 处造成磨损的人流率
+\item[\(k_m\)] 材料的磨损系数
+\item[\(d\)] 台阶踏面上接触的滑动距离
+\item[\(H_0\)] 初始材料硬度
+\item[\(D_X\)] \(D(x,y)\) 沿 \(x\) 的边际函数
+\item[\(D_Y\)] \(D(x,y)\) 沿 \(y\) 的边际函数
+\item[\(RS(d_1,d_2)\)] 两个石阶 \(d_1\)、\(d_2\) 之间的相关性
+\item[\(PA\)] 两个矩阵之间的相关性
+\item[\(CI\)] 台阶年龄的可靠性
+\end{description}
+
+%====================== 3 ======================
+\section{楼梯磨损模型}
+
+除了我们所关注的磨损信息外，对于一级台阶而言，台阶的角度与面积是容易获得的。角度越小，台阶越平缓，行走越不费力。如果该区域的地形相对较高，可能表明人们在此行动困难。
+
+根据假设 1 与假设 2，所有人都采用单步策略（SS）在楼梯上行走。其余因素对给定的一组台阶影响相同。因此，在没有修理的情况下，单个石阶的状况能很好地反映给定一组台阶的年龄、人流模式以及日常生活规律。为向考古学家获取这些有价值的信息，我们建立了磨损体积模型与磨损分布模型。此外，我们给出了需要测量的数据。最后，以爱丁堡的一组古代砂岩台阶为例求解问题。
+
+\subsection{磨损体积模型}
+
+\subsubsection{台阶表面的栅格化}
+
+为了用数学模型表示实际的物理台阶以便于计算机处理，我们对台阶进行栅格化。如图 3 所示，我们取一级台阶的俯视图，得到一个长为 \(X\) m、宽为 \(Y\) m 的矩形，将其离散化并划分为 \(m\times n\) 个栅格。
+
+COP[2] 定义为每个网格的中心。
+\begin{equation}
+x=\left\lfloor\frac{p}{G_s}\right\rfloor,\qquad y=\left\lfloor\frac{q}{G_s}\right\rfloor \tag{3.1}
+\end{equation}
+\(p\) 表示该 COP 到台阶最左侧的距离，\(q\) 表示该 COR 到台阶底边的距离，\(G_s\) 是网格的尺寸。\(d(x,y)\) 定义为网格 COP\((x,y)\) 处的磨损量。考古学家测量石阶的磨损体积，进而构建测量磨损矩阵 \(D^{measure}(x,y)\)。
+
+\subsubsection{磨损体积模型}
+
+对于像石头这样坚硬的材料，磨损源于随时间发生的行为。同一位置上所走的总步数决定了该位置的磨损量。时间长度决定了累积磨损的时间尺度。材料的硬度与耐磨性直接影响磨损速率。此外，不同区域踩踏分布与所施重力的不同会导致不均匀的磨损。为了准确获得台阶的信息，我们引入一个综合的磨损体积模型，将磨损分布模型与时间、材料和踩踏次数的引入结合起来：
+\begin{equation}
+d(x,y)=T\cdot N_d\cdot D(x,y)\cdot G\cdot k_m \tag{3.2}
+\end{equation}
+\(d(x,y)\) 表示考古学家测得的磨损，\(T\) 表示楼梯的年龄，\(N_d\) 表示每天在楼梯上行走的平均人数，也称为使用频率。\(D(x,y)\) 是磨损分布函数，我们在 3.2 节中讨论它。\(G\) 是行走的人所受到的平均重力，\(k_m\) 定义为磨损体积系数（石阶上每单位 N 所造成的磨损量）。进一步，我们分析参数 \(k_m\) 与 \(G\)。
+
+\begin{itemize}
+\item \textbf{Archard 磨损理论（\(k_m\)）}
+
+Archard 磨损理论是经典的磨损模型之一，由 J.F. Archard 提出。该理论用于描述固体表面的磨损行为。每一步在这个过程中都会对台阶施加一定的正压力，这可直接用于分析台阶表面所承受的磨损。同时，尽管行走时人与台阶之间的相对运动距离有限，但每一步的轻微滑动都会在台阶表面造成局部磨损。因此，Archard 磨损理论适用于分析人们行走所造成的台阶磨损。该理论建立了固体单位磨损系数 \(k_m\) 的基本公式，其定义为：
+\begin{equation}
+k_m=K\cdot\frac{d}{H} \tag{3.3}
+\end{equation}
+其中 \(K\) 表示石材磨损系数，\(d\) 表示踏面的相对滑动距离，\(H\) 表示石材的材料硬度。
+
+材料硬度 \(H\) 并非静止不变，而是随时间变化，这源于物理因素（如温度变化与风蚀）以及化学风化（如水解与氧化）。因此，我们用指数衰减模型来模拟岩石风化所造成的硬度损失：
+\begin{equation}
+H(t)=H_0e^{-pt} \tag{3.4}
+\end{equation}
+\(H_0\) 表示初始材料硬度，而 \(p\) 表示风化速率常数。
+
+此外，还可以给出硬度与年龄之间另一种形式的关系：
+\begin{equation}
+HT=\int_t H(t) \tag{3.5}
+\end{equation}
+基于现场调查，需要通过资料查阅获得 \(K\)、\(H_0\) 与 \(p\)。
+
+\item \textbf{重力评估模型（\(G\)）}
+
+同一级台阶可能被不同年龄与性别、具有不同体重特征的人使用。我们将人群分为六组：未成年男性（male minors, mm）、未成年女性（female minors, fm）、成年男性（adult males, am）、成年女性（adult females, af）、老年男性（older men, om）、老年女性（older women, ow）。为使结果更精确，我们在模型中使用他们的体重期望作为 \(W\)，其计算如下：
+\begin{equation}
+W=\sum_i u_i\cdot q_i \tag{3.6}
+\end{equation}
+其中 \(u_i\) 描述各人群的平均体重，\(q_i\) 表示各人群占总人口的比例。
+
+如果他们不具备这些信息，基于世界卫生组织（World Health Organization, WHO）提供的全球体重数据[6][7]，我们给出如表 2 所示的参考数据。
+
+人群的总体平均体重为 \(W=62.8\)kg。该平均值通常按各子群比例 \(q_i\) 与平均体重 \(u_i\) 的加权和计算。为获得更精确的估计，考古学家或研究者可以调整子群比例 \(q_i\) 或其平均体重 \(u_i\)，以更好地反映更具地方性或更新的统计数据。这可以使计算结果更准确，并提高模型的灵活性。
+
+这一调整允许对重力 \(G\) 进行更准确的估计。重力用下式计算：
+\begin{equation}
+G=W\cdot g \tag{3.7}
+\end{equation}
+其中 \(g=9.81\,\mathrm{m/s^2}\) [9] 是重力加速度。
+\end{itemize}
+
+对式 3.2 积分，得到平均磨损 \(d_{avg}\) 的表达式为
+\begin{equation}
+d_{avg}=\frac{1}{A_{ceff}}\int_{A_{ceff}}T\cdot N_d\cdot D(x,y)\cdot G\cdot k_m\,dxdy \tag{3.8}
+\end{equation}
+该式中，\(A_{ceff}\) 表示台阶的俯视面积。
+
+\subsubsection{石阶年龄与频率的计算}
+
+根据上述分析，当 \(D\)、\(G\) 与 \(k_m\) 确定后，石阶的年龄 \(T\) 与使用频率 \(N_d\) 可以相互求解。具体公式如下：
+\begin{equation}
+T=\frac{A_{ceff}\cdot d_{avg}}{N_d\cdot G\cdot k_m} \tag{3.9}
+\end{equation}
+\begin{equation}
+N_d=\frac{A_{ceff}\cdot d_{avg}}{T\cdot G\cdot k_m} \tag{3.10}
+\end{equation}
+至此，石阶的年龄 \(T\) 与使用频率 \(N_d\) 均可求得。
+
+\subsection{磨损分布模型}
+
+台阶上的每一级都可视为服从独立同分布。研究表明踩踏次数与磨损量之间存在线性关系，且只有当累积踩踏次数达到很大规模时，台阶石表面才会产生显著的磨损。根据中心极限定理，当独立随机样本的数量足够大时，即使原始分布不是正态的，样本均值与样本和的分布也会收敛于正态分布。因此，当样本量很大时，踩踏的累积分布趋于正态，累积磨损也将呈正态。
+
+由于石阶上足迹的横向位置与纵向位置之间没有显著的相关性，当踩踏次数足够高时，行人在 \(x\) 与 \(y\) 两个方向上各位置的累积磨损可描述为正态或多正态分布的叠加。这些分布反映了人们在该组楼梯上的人流模式。
+
+\subsubsection{Y 方向的磨损分布——判断方向}
+
+对步态周期的研究表明，上楼梯时第一个峰值出现在脚跟，而下楼梯时第一个峰值出现在前脚掌。如图 4 所示。此外，观察人们日常的楼梯移动行为发现，上楼梯时行人的着力点比下楼梯时更靠近台阶的下边缘[3]。
+
+基于上述结论，我们可以根据 Y 方向的磨损分布判断使用楼梯的人是否偏好某一行进方向。
+
+如图 5(a) 所示，存在两个峰，这意味着 y 方向的边际分布是两个正态分布的叠加。这表明该楼梯通常被双向使用。上下楼梯的人数可根据峰的大小进行比较。类似地，图 5(c) 中的单个峰表明使用楼梯的人偏好某一行进方向。若峰处的 y 值较小，人们偏向上行；若较大，则偏向下行。
+
+我们进一步量化结果，以便考古学家更直观地确定方向以及上下行人数比例。利用概率统计知识，我们构建 Y 方向的磨损分布：
+\begin{equation}
+D_y\sim w_{up}\cdot N_i(\mu_{up},\sigma_{up})+w_{down}\cdot N_i(\mu_{down},\sigma_{down}) \tag{3.11}
+\end{equation}
+\(w_{up}\) 表示上行人数占总人数的比例，而 \(w_{down}\) 表示下行人数占总人数的比例。\(\mu_{up}\) 是上行者踩踏面中心与石阶最外缘之间的距离，\(\mu_{down}\) 是下行者踩踏面中心与石阶最外缘之间的距离。\(\sigma_{up}\) 描述上楼梯者在纵向上的离散程度，而 \(\sigma_{down}\) 描述下楼梯者在纵向上的离散程度。
+
+\subsubsection{X 方向的磨损分布——计算并行人数}
+
+当人们以单步策略在楼梯上行走时，台阶 X 方向正态分布的峰描述了行人的主要集中区域。峰的数量反映了行人在路面上的横向分布特征。我们将该方向的磨损分布描述为：
+\begin{equation}
+D_x\sim w_i\sum_i N_i(\sigma_i,\mu_i) \tag{3.12}
+\end{equation}
+\(n\) 表示石质楼梯同一级台阶上并行通道的数量，\(w_i\) 是第 \(i\) 条通道的人数占总人数的比例，\(\mu_i\) 表示第 \(i\) 条通道中心距石质楼梯最左端的距离，而 \(\sigma_i\) 表示第 \(i\) 条通道的横向离散程度。
+
+该分布描述了有多少人同时使用楼梯。峰的数量即并行的人数。在图 6 中，我们给出一些可能的结果供考古学家参考：
+
+\begin{enumerate}
+\item 当 \(i=1\) 时，x 方向只有一个峰。可以得出结论：使用该楼梯的人偏好单列行进。
+\item 当 X 方向有两个峰时（\(i=2\)），人们成对并排爬楼梯。
+\end{enumerate}
+
+\subsubsection{磨损分布模型}
+
+由于石阶上足迹的横向位置与其纵向位置没有显著的相关性，我们认为磨损分布的协方差矩阵为对角阵。对于一级石阶，我们将磨损分布建模如下：
+\begin{equation}
+D(x,y)=D_X\cdot D_Y \tag{3.13}
+\end{equation}
+我们计算由考古学家测量得到的实际磨损矩阵 \(D^{measure}(x,y)\)。然后，可以得到其边际分布函数：
+\begin{equation}
+D_X^{measure}(x)=\sum_y D^{measure}(x,y) \tag{3.14}
+\end{equation}
+\begin{equation}
+D_Y^{measure}(y)=\sum_x D^{measure}(x,y) \tag{3.15}
+\end{equation}
+借助这两个边缘函数，我们可以拟合 \(D_x\) 与 \(D_y\)，这将帮助考古学家获得相关信息，例如人们的人流模式。
+
+\subsection{楼梯磨损模型}
+
+\subsubsection{需要测量的参数}
+
+需要考古学家开展无损测量并获取信息，以获得准确的信息并实现模型的求解。我们给出必要的参数并建议一些测量方法。如表 3 所示：
+
+我们考虑所有成本最低、所需人员最少、工具最少的方法。
+
+\subsubsection{楼梯磨损模型概述}
+
+基于上述分析，\textbf{楼梯磨损模型}总结如下：
+
+\textbf{磨损体积模型（WVM）：}
+\begin{equation}
+\begin{aligned}
+d_{avg}&=\frac{1}{A_{ceff}}\int_{A_{ceff}}T\cdot N_d\cdot D(x,y)\cdot G\cdot k_m\,dxdy\\
+G&=\sum_i u_i\cdot p_i\\
+k_m&=K\cdot\frac{d}{H}\\
+H(t)&=H_0e^{-pt}\\
+HT&=\int_t H(t)
+\end{aligned}
+\tag{3.16}
+\end{equation}
+
+\textbf{磨损分布模型（WDM）：}
+\begin{equation}
+\begin{aligned}
+D(x,y)&=D_X\cdot D_Y\\
+D_x&\sim w_i\sum_i N_i(\sigma_i,\mu_i)\\
+D_y&\sim w_{up}\cdot N_i(\mu_{up},\sigma_{up})+w_{down}\cdot N_i(\mu_{down},\sigma_{down})\\
+D_X^{measure}(x)&=\sum_y D^{measure}(x,y)\\
+D_Y^{measure}(y)&=\sum_x D^{measure}(x,y)
+\end{aligned}
+\tag{3.17}
+\end{equation}
+
+所有参数已在上文说明。为更清晰地展示我们的模型，并使考古学家更容易理解，我们在图 7 中给出使用流程图：
+
+\subsection{楼梯磨损模型的求解}
+
+本节我们选取了一组俯视表面为矩形的爱丁堡古代砂岩台阶。该矩形长 2 米、宽 0.4 米。基于图像的三维重建，我们得到了测量矩阵。此外，基于资料查询，我们得到了其余所需参数如下：
+
+为求解磨损分布模型，我们设计了一种高斯混合算法（Gauss Mixtual Algorithm）。它可用于由磨损测量矩阵 \(D^{measure}\) 分别求解 X 与 Y 方向上的正态分布累量。算法的具体流程如下：
+
+\noindent\begin{minipage}{\linewidth}\linespread{1.15}\selectfont
+\noindent\rule{\linewidth}{0.5pt}\par\vspace{3pt}
+\noindent\textbf{高斯混合算法（Gauss Mixtual Algorithm）}\par\vspace{2pt}
+\noindent\rule{\linewidth}{0.3pt}\par\vspace{4pt}
+\noindent\textbf{输入：}\quad 磨损测量矩阵 \(D^{measure}\)\par\vspace{3pt}
+\noindent\textbf{输出：}\quad \(P(D_X\mid\theta_k^{epoch})\) 与 \(P(D_Y\mid\theta^{epoch})\)\par\vspace{3pt}
+\noindent \(k=0,\ \varepsilon=1e-3\)\par\vspace{3pt}
+\noindent 当 \(loss>\varepsilon\) 时\par\vspace{2pt}
+\hspace*{1.4em}对 \(t\) 在 \texttt{range(epoch)} 中\par\vspace{2pt}
+\hspace*{2.8em}\(\theta^{t+1}=\theta^{t}-\partial P(D_X\mid\theta^{t})/\partial\theta^{t}\)，其中 \(\theta=[m_i,\mu_i,\sigma_i]\)\par\vspace{2pt}
+\hspace*{2.8em}\(P(D_X\mid\theta^{t+1})=\sum_{i=1}^{k}m_i^{t+1}\cdot N(\mu_i^{t+1},\sigma_i^{t+1})\)\par\vspace{2pt}
+\hspace*{1.4em}\(loss=\|P(D_X\mid\theta_k^{epoch})-D_X\|\)\par\vspace{2pt}
+\hspace*{1.4em}\(k=2\)\par\vspace{2pt}
+\hspace*{1.4em}对 \(t\) 在 \texttt{range(epoch)} 中\par\vspace{2pt}
+\hspace*{2.8em}\(\theta^{t+1}=\theta^{t}-\partial P(D_Y\mid\theta^{t})/\partial\theta^{t}\)\par\vspace{2pt}
+\hspace*{2.8em}\(P(D_Y\mid\theta^{t+1})=m_{up}^{t+1}\cdot N(\mu_{up}{}^{t+1},\sigma_{up}{}^{t+1})+m_{down}^{t+1}\cdot N(\mu_{down}{}^{t+1},\sigma_{down}{}^{t+1})\)\par\vspace{2pt}
+\hspace*{1.4em}结束\par\vspace{3pt}
+\noindent\rule{\linewidth}{0.3pt}\par
+\end{minipage}\par
+
+\vspace{4pt}
+将爱丁堡砂岩台阶的 \(D^{measure}\) 代入高斯混合算法，得到以下正态分布参数。X 与 Y 方向的参数分别列于表 5 与表 6 中。
+
+由表 5 与表 6，我们可以得出以下结论：
+
+\begin{enumerate}
+\item X 方向的磨损分布由三个正态分布累积而成。三个正态分布的均值分别为 0.30m、1.10m 与 1.76m。它们分别位于台阶的左侧、中部与右侧。这表明通常有三个人并排走在这级台阶上。这也可能说明该楼梯的人流量很大。
+\item 在 x 方向的三个正态分布中，第二个概率最高、标准差最小。这表明人们最常走在楼梯的中间。
+\item 两个正态分布构成 Y 方向的磨损分布。该楼梯被双向使用。上行与下行方向的人数概率之比为 \(3:2\)。这意味着上行的人数多于下行的人数。
+\item 上行方向的均值为 0.08m，而下行方向的均值为 0.15m。二者都靠近台阶的边缘侧。而且，上行方向的均值比下行方向更靠近台阶边缘。这与我们的分析一致。
+\end{enumerate}
+
+为更直观地描述这组台阶的结果，我们将台阶的磨损分布可视化，呈现在图 8 中。
+
+该图给出了相同的结论。它直观地呈现了 X 方向的三个峰，表明人们通常并排走在上面。Y 方向有两个峰。对应下行方向的峰小于上行方向的峰。这表明该楼梯被双向使用。
+
+在得到磨损分布后，结合表 4 中的参数，年龄与使用频率可以相互求解。对于这组爱丁堡古代砂岩台阶，确定该组台阶建于一个世纪以前。根据式 3.16，我们可以得到
+\begin{equation}
+N_d=\frac{A_{ceff}\cdot d_{avg}}{T\cdot G\cdot k_m}=261 \tag{3.18}
+\end{equation}
+这意味着过去每天有 261 人在其上行走。相反，当我们考虑每天有 260 人在其上行走时，台阶建于 36492 天之前。
+
+%====================== 4 ======================
+\section{进一步的问题}
+
+本节我们针对进一步的问题提出解决方案与计算模型。
+
+\subsection{磨损结果的一致性}
+
+根据可得信息，我们可以得到更准确的磨损分布矩阵 \(D^{available}\)。判断磨损是否与可得信息一致，即判断 \(D^{available}\) 与 \(D^{measure}\) 的一致性。我们定义如下一致性公式：
+\begin{equation}
+PA=D^{available}(x,y)\sum_x\sum_y\log\left(\frac{d^{ava}(x,y)}{d(x,y)}\right) \tag{4.1}
+\end{equation}
+\(d^{ava}(x,y)\) 是各 COP 所在网格处石阶的磨损深度量，而 \(d(x,y)\) 是实际测得的磨损深度量。\(PA\) 是一个大于或小于 0 的数。\(PA\) 的绝对值越大，两个矩阵之间的相关性越弱。
+
+\subsection{楼梯间的年龄与可靠性}
+
+在第 3 节中，我们给出了估计每级台阶年龄的方法。对于给定的楼梯，我们测量所有台阶的年龄，发现它们各不相同。当差异很小时，主要因为模型存在误差。然而，当差异显著时，则是由于翻新或修理导致个别台阶的年龄不同。在一个楼梯间中，若某级台阶的年龄比最大台阶的年龄 \(T_{lar}\) 小 5\%，则将其剔除。取剩余台阶的平均年龄作为楼梯间的年龄 \(T_{set}\)。这可表示为
+\begin{equation}
+T_{set}=\overline{T_i},\qquad \frac{T_i}{T_{lar}}>0.95 \tag{4.2}
+\end{equation}
+总共有 \(N\) 级台阶。\(T_i\) 是第 \(i\) 级台阶的年龄，\(i=1,2,\cdots,N\)。
+
+年龄可靠性有必要进行评估。我们总共估计 \(n\) 座古代石阶的年龄。若结果与真实年龄的误差在 5\% 以内，则接受 \(RA\) 并计入，否则计入 \(RC\)。年龄可靠性 \(CI\) 定义为：
+\begin{equation}
+CI_{inf}=\left[1+\frac{RC+1}{RA\cdot F_{1-\alpha/2}(2RA,2(RC+1))}\right]^{-1} \tag{4.3}
+\end{equation}
+\begin{equation}
+CI_{sup}=\left[1+\frac{RC}{(RA+1)\cdot F_{1-\alpha/2}(2(RA+1),2(RC))}\right]^{-1} \tag{4.4}
+\end{equation}
+其中 \(\alpha=0.05\)。
+
+我们研究了 6 组存在时间超过一个世纪的爱丁堡砂岩台阶，计算得出其中 5 组的误差在 5\% 以内，这意味着我们可以说年龄可靠性介于 0.359 与 0.996 之间
+
+\subsection{修理或翻修}
+
+我们提出两种方法以找出哪些台阶被修理或翻新过。
+
+\textbf{方法 1：台阶年龄法}
+
+\textbf{简要介绍：}用楼梯磨损模型测量每级台阶的年龄并加以比较。
+
+根据假设 4，每级台阶以相同的频率被踩踏。因此，在没有修理或翻修的情况下，所有台阶的年龄应仅有轻微差异。第 \(i\) 级台阶与整体的相关程度 \(RSA\) 定义为：
+\begin{equation}
+RSA=\min_i\frac{T_i}{T_{set}} \tag{4.5}
+\end{equation}
+\(T_i\) 是第 \(i\) 级台阶的年龄，\(T_{set}\) 是楼梯的年龄。该系数通常取 0 与 1 之间的值，值越高表示相关性越大。当 \(RSA_k\) 小于 0.95 时，表明第 \(k\) 级台阶被修理或翻修过。修理或翻修的时间 \(T_{re}\) 也可由下式确定
+\begin{equation}
+T_{re}=T_n-T_k \tag{4.6}
+\end{equation}
+\(T_n\) 是考古学家开始测量时的年份。由于年龄计算可能存在误差，我们还提供了一种替代方法。
+
+\textbf{方法 2：基于布氏硬度与 KL 散度的改进无损测量}
+
+\textbf{简要介绍：}结合布氏硬度理论与 KL 散度，利用已有的磨损矩阵计算每级台阶材料的硬度。比较其一致性以确定哪级台阶被修理过，并给出时间计算公式。
+
+布氏硬度是衡量材料硬度的一种标度，是材料的性质之一。布氏硬度测量是一种测量材料硬度的方法。典型的试验使用直径为 \(D_p\) mm 的淬硬钢球作为压头。对压头施加力 \(F\) 并保持一定时间。然后测量压头在材料表面所造成的压痕直径。硬度 \(H_B\) 计算如下：
+\begin{equation}
+H_B=0.102\cdot\frac{2F}{\pi D_p\left(D_p-\sqrt{D_p^2-d_p^2}\right)} \tag{4.7}
+\end{equation}
+其中 \(d_p=\) 压痕直径（mm）。
+
+由于没有修理或翻修，人们随时间对楼梯的每级台阶施加相同的持续压力。我们取平均重力 \(G\) 作为 \(F\)，取台阶的平均磨损深度 \(\bar{d}\) 作为压头直径 \(D_p\)，取台阶面积的平方根 \(\sqrt{A_{ceff}}\) 作为压痕直径 \(d_p\)。此时，硬度 \(H_{test}\) 计算如下：
+\begin{equation}
+H_{test}=0.102\cdot\frac{2G}{\pi\bar{d}\left(\bar{d}-\sqrt{\bar{d}^2-A_{ceff}}\right)} \tag{4.8}
+\end{equation}
+当各级台阶的 \(H_{test}\) 差异较大时，\(H_{test}\) 较大的台阶被修理过。我们用方差 \(\sigma_H\) 来描述 \(H_{test}\) 的离散程度。
+
+即使布氏硬度相近且材料一致，也可能存在被修理过的情况。参照 KL 散度，我们提出两个石阶之间相关性的一种定义：
+\begin{equation}
+RS(d_1,d_2)=D_1(x,y)\sum_x\sum_y\log\left(\frac{d_1(x,y)}{d_2(x,y)}\right) \tag{4.9}
+\end{equation}
+\(RS(d_1,d_2)\) 是两个石阶磨损体积之间的相关性，\(D_1\) 表示作为比较的石阶的磨损分布，\(d_1(x,y)\) 表示作为比较的石阶相应栅格的平均磨损深度，\(d_2(x,y)\) 表示被比较石阶的平均磨损深度。相似性阈值设为 \(\varepsilon=0.05\)。当 \(|RS(d_1,d_2)|>\varepsilon\) 时，认为作为比较的石阶被修理过。
+
+结合 \(H_{test}\) 与 \(RA\)，我们可以确定该楼梯中发生了哪种修理或翻修。此外，修理时间可确定为：
+\begin{equation}
+T^{d_1}_{\mathrm{repair}}=T^{d_2}\cdot e^{RS(d_1,d_2)} \tag{4.10}
+\end{equation}
+其中 \(T^{d_1}_{\mathrm{repair}}\) 指从楼梯建成到该台阶被修理所经历的时间长度，而 \(T^{d_2}\) 表示石阶建成的时刻。
+
+对于我们研究的爱丁堡砂岩台阶，我们计算得到
+
+（1）\(RSA=0.02<0.05\)
+
+（2）所有台阶的 \(H_{text}\) 都接近 \(89.45\,\mathrm{N/mm^2}\)，而 \(\sigma_H=1.8\)
+
+（3）\(RS=0.03<0.05\)
+
+\textbf{因此，这组台阶没有被修理或翻修过。}
+
+\subsection{材料来源}
+
+如 4.3 节所分析，我们可以在一定程度上通过布氏硬度确定材料的种类。在我们的模型中，\(H_0\) 表示布氏硬度。因此，根据磨损体积模型（3.16），可以得到 \(H\) 在一个时间尺度上的平均量 \(H_t\)，它可表示为：
+\begin{equation}
+H_t=\frac{N_d\cdot G\cdot T\cdot K\cdot d}{d_{avg}\cdot A_{ceff}} \tag{4.11}
+\end{equation}
+\(N_d\) 表示楼梯的使用频率，\(G\) 表示平均重力，\(T\) 表示楼梯年龄，\(K\) 是材料磨损系数，\(d\) 是平均磨损距离，\(d_{avg}\) 是平均实测磨损深度，而 \(A_{ceff}\) 是台阶的面积。
+
+人们对众多种类的材料已有深入研究。这里我们给出四种常用台阶材料的若干布氏硬度（\(H_0\)）值[4][5]：
+
+我们可以参考可得数据，获得我们认为的来源材料的布氏硬度 \(H_{0A}\)，按 (3.5) 计算其随时间的平均值 \(H_{0At}\)。然后，其与模型理论值 \(H_t\) 的符合程度可由下式得到：
+\begin{equation}
+\eta=\frac{|H_t-H_{0At}|}{H_{0At}}\cdot 100\% \tag{4.12}
+\end{equation}
+若 \(\eta<0.05\)，我们认为成功确定了来源。例如，考虑我们所研究的爱丁堡台阶。据说它由砂岩建造。根据文献，我们知道标准砂岩的布氏硬度 \(H_0\) 为 \(95\,\mathrm{N/mm^2}\)。可以计算出 \(H_t=90.44\,\mathrm{N/mm^2}\)。\(H_{0At}=93.18\)。因此，\(\eta=|H_t-H_{0At}|/H_{0At}=0.030\)。我们可以确认其来源。
+
+参照对岩石的分析，我们给出木材的硬度衰减公式：
+\begin{equation}
+H(t)=H_0\cdot e^{-(0.0015\cdot T+0.02RH)\cdot t} \tag{4.13}
+\end{equation}
+与石材不同，木材用于建造楼梯时其硬度还受其年龄的影响。其年龄有可能从楼梯上可见的年轮确定。
+
+为确定磨损是否与考古学家认为的原始来源采石场的材料一致，我们需要对原材料进行相同的模拟。基于可得信息，例如我们在图 7 中为这四种材料的台阶设定相同的环境。人们的行走模式由图 5 与图 6 中的正态分布参数构建。除 \(H_0\) 之外，引入表 4 中的其他参数。每座楼梯在 100 年内被踩踏 1 亿次。图 9 展示了不同石材与木材的直观磨损状况，供考古专家参考。
+
+从图 9 可以看出，在相同的踩踏量之后，\(H\) 的增大会导致台阶磨损减少。此外，图 9(c) 呈现出与图 8 相似的磨损模式。这为确定台阶材料来源提供了有力的证据。
+
+\subsection{人们在典型一天中对楼梯的使用}
+
+基于对人类楼梯使用行为的观察与分析，我们掌握了一些结论与推测。当若干人在较长时期内使用楼梯时，他们倾向于沿楼梯的中央行走[8]。在这种情况下，X 方向很可能出现方差较小的正态分布。相反，若大量人员在短时间内使用楼梯，其足迹变得更加不规则。这可能导致方差较大的正态分布，甚至多峰正态分布。
+
+为进一步研究，我们模拟了不同的情形。将一天划分为 1000 个时间步。对每个时间步，一人上行的概率为 \(P_o\)，而两人上行的概率为 \((1-P_o)\)。\(P_o\) 反映了当天在楼梯上行走的人数。假设以下各点均为一级台阶的主要着力点。
+
+我们分别设 \(P_o=1,0.8,0.6,0.4,0.2,0\)。可视化的模拟结果呈现在图 10 中，与 \(P_o\) 对应的 \(\sigma\) 列于图 8 中。
+
+从图 10 与表 8 可以观察到，随着 \(P_o\) 增大，\(\sigma\) 减小。这表明当少数人在较长时间内使用楼梯时，其足迹在 X 方向上更集中。相反，当大量人员在短时间内使用楼梯时，\(\sigma\) 增大，足迹更加分散。这与我们的预期很好地吻合。
+
+我们考虑拟合人数 \(Q\)（\(Q=(2-P_o)\times 1000\)）与标准差 \(\sigma\)。基于观察，选择对数函数 \(y=a\ln(bx+c)\) 进行最小二乘拟合。拟合结果如下图所示。
+
+%====================== 5 ======================
+\section{敏感性与稳健性分析}
+
+在我们的模型中，我们还纳入了与现实情景密切相关的参数。在之前的建模阶段，这些参数是使用爱丁堡古代石阶的数据确定的。然而，随着情景演变，它们的取值可能相应变化。通过调整这些参数以评估模型的敏感性与稳健性，我们分析结果并得出以下结论。
+
+\subsection{材料硬度对磨损体积的影响}
+
+在 $30^{\circ}$C 与 70\% 相对湿度（relative humidity, RH）的环境条件下，岩石磨损速率约为 \(p\approx 0.01\)/年。各种材料的初始硬度 \(H_0\) 值如下：
+
+水杉：\(18\,\mathrm{N/mm^2}\)，杨木：\(24\,\mathrm{N/mm^2}\)，砂岩：\(95\,\mathrm{N/mm^2}\)，大理石：\(175\,\mathrm{N/mm^2}\)[10]。
+
+基于分析结果，木材的初始硬度下降 25\%，在 20 年磨损之后又额外增加 48.1\%。同时，岩石的初始硬度下降 45.7\%，在 20 年磨损之后又额外增加 43.6\%。可以得出结论，我们的模型对材料硬度是敏感的。利用硬度进行相关计算是可行的。
+
+\subsection{风化速率常数对磨损体积的影响}
+
+随后，我们考察改变岩石的风化速率常数（\(p\)）如何影响磨损的累积。具体地，我们将 \(p\) 设为 0.0001、0.0005、0.0025 与 0.005，然后模拟 20 个世纪的磨损。
+
+当 \(p\) 从 0.0025 增至 0.005 时，达到饱和的时间减少 64.2\%。这表明磨损过程在某种程度上对影响 \(p\) 的环境因素或材料性质的变化是敏感的。我们可以得出结论：当时间相对较短（约 4 个世纪）时，模型对 \(p\) 不敏感；然而当时间更长时，模型对 \(p\) 变得高度敏感。
+
+\subsection{地区对磨损体积的影响}
+
+最后，我们检验模型在全球不同地区、环境与文化条件下提供更准确结果的能力，以测试其稳健性。我们对四个国家的自然与人文因素建模，并假设石阶由初始硬度 \(H_0=175\,\mathrm{N/mm^2}\) 的花岗岩制成。利用不同的条件，可以检验并改进模型以考虑不同的气候与使用模式，从而提高其整体可靠性。
+
+在一个世纪的跨度内，巴西石阶的磨损比中国石阶多 0.001\%，比美国石阶多 0.005\%，比爱丁堡的石阶多 0.006\%。由于巴西湿度高（RH \(=80\%\)），其高腐蚀速率（\(p=0.012\)）导致磨损最快。尽管中国与美国具有相同的 \(p\) 值，但中国更高的人流量导致更陡的磨损曲线。同时，苏格兰的参数适中，产生中间的趋势。
+
+然而，基于数据，该模型在不同地区表现出很强的稳健性。结合前面两项敏感性分析，可以得出结论：我们的模型在一定的时间范围内表现良好。
+
+%====================== 6 ======================
+\section{优点与不足}
+
+\subsection{优点}
+
+（1）\textbf{因素的全面整合：}模型纳入了机械磨损、人群使用模式与材料性质，更全面地刻画了磨损如何累积。
+
+（2）\textbf{人流足迹的统计处理：}通过使用正态（及多正态）分布刻画 X 与 Y 两个方向上足迹的变异性，它反映了真实的行人移动模式（例如单列与并行使用、上行与下行人流）。
+
+（3）\textbf{无损测量：}所需数据（如磨损深度、初始材料硬度）可通过无损方法获得，这与考古学对遗产保护的关切高度契合。
+
+\subsection{不足}
+
+（1）\textbf{依赖简化假设：}模型假设关键因素在长时期内保持相当一致。真实世界中的使用情况可能显著波动
+
+（2）\textbf{对环境变异性的处理有限：}模型使用单一的腐蚀或磨损速率 \(p\) 来代表不同的湿度或温度条件。现实中，微气候或季节周期可能导致更复杂、随时间变化的磨损速率，而模型可能对此过度简化。
+
+%====================== 7 ======================
+\section{结论}
+
+为向考古学家提供更多帮助，我们建立了楼梯磨损模型。该模型从所研究台阶的磨损测量矩阵出发，建立磨损体积模型（WVM）与磨损分布模型（WDM）。WVM 关注台阶的磨损体积，并识别造成磨损的各因素之间的关系。WDM 则关注磨损分布，研究过去人们如何使用这些台阶。为收集更多信息并评估我们的模型，我们确定了与磨损分布和年龄相关的一致性与可靠性指标。我们还提出了一些方法来确定石阶材料的来源，并评估是否进行过修理。模拟在这一过程中被频繁使用。台阶上的磨损不可避免，它是过去的人们留下的痕迹。未来，我们希望通过引入更详细的环境变量，尽量减少环境因素对石材分析的影响。我们希望我们的模型能帮助考古学家获得他们寻求的信息。
+
+%====================== 参考文献 ======================
+\begin{thebibliography}{99}
+\setlength{\itemsep}{0pt}
+
+\bibitem{1} Li J, Zheng X. Experimental investigation of the stepping dynamics of upstairs walking under time pressure[J]. Physica A: Statistical Mechanics and its Applications, 2023, 622: 128829.
+
+\bibitem{2} Clark G. Learning Predictive Models for Assisted Human Biomechanics[D]. Arizona State University, 2023.
+
+\bibitem{3} Cho Y J, Kyung M G, Lee D Y, et al. The difference of in-shoe plantar pressure between level walking and stair walking in healthy males[J]. Gait Posture, 2022, 97: S93-S94.
+
+\bibitem{4} Pelit H, Yorulmaz R. Influence of Densification on Mechanical Properties of Thermally Pretreated Spruce and Poplar Wood[J]. BioResources, 2019, 14(4).
+
+\bibitem{5} Boutrid A, Bensehamdi S, Chaib R. Investigation into Brinell hardness test applied to rocks[J]. World Journal of Engineering, 2013, 10(4): 367-380.
+
+\bibitem{6} World Health Organization (WHO). Obesity and overweight. 1 March 2024. [Online]. Available: \url{https://www.who.int/news-room/fact-sheets/detail/obesity-and-overweight}.
+
+\bibitem{7} Fuhua, W. Global First Survey Data Results of Obesity Across All Age Groups Released! The Lancet. 2017 Oct 10. [Online]. Available: \url{https://m.medsci.cn/article/show_article.do?id=d98b1161961c}.
+
+\bibitem{8} Semwal, V.B., Gaud, N., Lalwani, P. et al. Pattern identification of different human joints for different human walking styles using inertial measurement unit (IMU) sensor. Artif Intell Rev 55, 1149-1169 (2022).
+
+\bibitem{9} Peters, A., Chung, K. Chu, S. Measurement of gravitational acceleration by dropping atoms. Nature 400, 849-852 (1999).
+
+\bibitem{10} \url{https://en.wikipedia.org/wiki/Hardness}
+
+\end{thebibliography}
+
+\end{document}

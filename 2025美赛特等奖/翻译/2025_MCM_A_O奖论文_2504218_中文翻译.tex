@@ -1,0 +1,856 @@
+% !TEX program = xelatex
+% 2025 MCM A 题 O 奖论文 2504218 中文翻译
+% Where Footsteps Collide: A Spatiotemporal Journey through Staircase Wear
+\documentclass[11pt,a4paper,fontset=windows]{ctexart}
+
+\usepackage{amsmath,amssymb}
+\usepackage{geometry}
+\geometry{left=2.4cm,right=2.4cm,top=2.6cm,bottom=2.4cm}
+\usepackage{fancyhdr}
+\usepackage{enumitem}
+\usepackage{array}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small Team 2504218}
+\fancyhead[R]{\small 第 \thepage\ 页}
+\renewcommand{\headrulewidth}{0.4pt}
+
+\linespread{1.12}
+\setlength{\parskip}{0pt}
+\tolerance=3000
+\emergencystretch=3em
+\hbadness=10000
+\allowdisplaybreaks
+
+\setlist[itemize,1]{label=\textbullet,leftmargin=1.8em,itemsep=1pt,topsep=3pt}
+\setlist[itemize,2]{label=--,leftmargin=1.5em,itemsep=1pt,topsep=2pt}
+\setlist[enumerate,1]{label=\arabic*.,leftmargin=2.2em,itemsep=1pt,topsep=3pt}
+
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\dd}{\mathrm{d}}
+\newcommand{\footup}{\mathrm{foot}_{\mathrm{up}}}
+\newcommand{\footdown}{\mathrm{foot}_{\mathrm{down}}}
+
+% 算法伪代码排版
+\newenvironment{algo}[1]
+ {\par\medskip\noindent\rule{\linewidth}{0.5pt}\par\nobreak\vspace{3pt}%
+  \noindent\textbf{#1}\par\nobreak\vspace{2pt}%
+  \begingroup\small\setlength{\parindent}{0pt}\setlength{\parskip}{2.2pt}\raggedright}
+ {\par\endgroup\vspace{2pt}\noindent\rule{\linewidth}{0.5pt}\par\medskip}
+\newcommand{\algL}[3][0em]{\noindent\hspace*{#1}\makebox[1.7em][r]{\scriptsize #2}\hspace{0.5em}#3\par}
+
+\begin{document}
+
+% ===================== p01 =====================
+\thispagestyle{empty}
+\begin{center}
+{\small 2025 MCM/ICM\quad 摘要页\quad 选题 A\quad 队伍控制号 2504218}\\[1.6em]
+{\LARGE\bfseries 足迹何处交叠：一场穿越阶梯磨损的时空之旅}\\[1.2em]
+{\large\bfseries 摘要}
+\end{center}
+
+历史建筑台阶中的石材及其他材料经历持续、长期的磨损，考古学家通过考察这一过程来发掘有价值的线索。为支撑考古研究与长期维护，我们提出一种台阶磨损模型，并研究测量数据如何反演该过程中的关键参数。
+
+本文建立了若干模型：\textbf{模型一：混合磨损模型}；\textbf{模型二：磨损参数反演模型}等。
+
+在建模之前，我们梳理了考古学家采集数据的方法：使用三维扫描仪生成点云图，这种方式成本低且无损。我们还通过计算收集了数据，并设定了合理的参数。
+
+对于模型一，我们引入三个子模型，共同构成一个混合磨损框架。子模型 $i$ 以 Archard 理论（Archard's theory）与偏微分方程（Partial Differential Equation, PDE）为基础，给出了适用于考古情境的概率方程，为描述阶梯磨损动力学奠定基础。子模型 $ii$ 随后纳入单行—并行混合方法，展示不同的单行/并行使用比例如何通过人流影响最终磨损；通过考察这些比例与人流的关系，我们确定了台阶使用频率对最终磨损的影响。最后，基于人类动力学的子模型 $iii$ 将子模型 $ii$ 加以扩展，生成三维磨损深度分布，并运用高斯模糊与随机偏移生成逼真的足迹。
+
+对于模型二，我们设计了一套综合反演方法，以测量数据估计最优磨损参数，并将模型一中的混合磨损方程作为前向模型。我们在贝叶斯框架（Bayesian framework）中融入台阶材料与考古学洞见，为多个参数赋予先验分布。似然函数由测量值与模拟值之间的残差构成。在粒子群优化（Particle Swarm Optimization, PSO）定位全局最优之后，马尔可夫链蒙特卡洛（Markov Chain Monte Carlo, MCMC）在其邻域内细化后验分布，从而捕捉参数不确定性。
+
+\begin{itemize}
+\item 任务 1、2 和 3 显示上行/下行之间存在 $\pm5\%$ 的差异，人流峰值出现在 30\%--40\%，使用频率的不确定性为 $\pm5\%$--10\%。
+\item 任务 1、2 和 4 使模型磨损预测与考古数据相吻合，深度误差为 $\pm0.015$m，材料磨损不确定性为 $\pm10\%$。
+\end{itemize}
+
+针对进阶任务 3 与 5，我们建立了多层 PDE 模型以及离散事件仿真模型，以处理反复修缮与典型单日阶梯磨损。最后，我们进行了灵敏度分析（sensitivity analysis）。结果表明我们的模型保持稳定。
+
+\vspace{0.6em}
+\noindent\textbf{关键词：}PDE，Archard 理论，PSO，MCMC，贝叶斯框架
+
+\newpage
+
+% ===================== p03 =====================
+\section{引言}
+
+\subsection{问题背景}
+
+古代建筑对考古研究具有重大意义，尤其是其台阶，它们见证了侵蚀与时间的流逝。这些风化台阶的状况提供了宝贵的线索\cite{1}；一方面，它们使我们能够推断过去人群的使用频率与使用模式。另一方面，作为结构的组成部分，台阶的磨损可以告知我们其使用时长、已进行的修缮状态，以及有关所用建筑材料的重要细节。对考古学家而言，开展实地调查并测量建筑台阶，可以作为探索建筑史的关键指引。
+
+如上图所示，图像描绘了因反复踩踏而形成的台阶凹陷状态。台阶的磨损受多种因素影响。\cite{2} 首先，根据工程力学原理，不同材料在受力时表现出不同程度的变形。这种变形的差异又因所施加力的分散效应而进一步加剧。其次，行走速度、人流频率以及个人行走习惯等因素，都会造成台阶所经历的差异性磨损。
+
+\subsection{问题重述}
+
+鉴于上述背景，我们旨在通过实地测量收集有关建筑台阶磨损模式的相关信息。我们的目标是通过研究台阶磨损与使用者行为之间的相关性，帮助考古学家获得历史洞见。为此，我们的研究将聚焦于回答以下问题：
+
+\begin{itemize}
+\item \textbf{任务 1}：建立模型，模拟在一定时间踩踏条件下台阶磨损的分布。
+
+建立合适的函数，通过改变相关系数，模拟不同材料制成的台阶在经历一定磨损后的变形，并获得相应的图像。
+
+\item \textbf{任务 2}：探究台阶的使用状态。
+
+基于所建立的凹陷部分函数，在给定台阶现状的情况下求出相关系数，进而推断人们在台阶上的行走行为：
+\begin{itemize}
+\item 考察台阶上的人流频率。
+\item 探究人们在台阶上习惯行走的方向。
+\item 考察台阶的使用密度，即在相同条件下人们并排行走或单列行走的特征。
+\end{itemize}
+
+\item \textbf{任务 3}：确定需要通过观察与测量获取的必要数据。
+
+探究可在现场考察台阶磨损的条件，并以尽可能简单的方式获取数据，确定需要收集哪些数据。
+
+\item \textbf{任务 4}：分析与实际情况的一致性。
+
+在已知台阶存在年限的估计值与人们对台阶使用的估计值等条件下，外推磨损的深度与类型，分析与实际情况的一致性，包括以下方面：
+\begin{itemize}
+\item 台阶使用年限估计的可靠性。
+\item 对台阶所做修缮与翻修记录的一致性。
+\item 台阶所用材料与其实际来源类型磨损特征的一致性。
+\item 由探查得到的台阶日常使用频率与人群流动模式之间的一致性。
+\end{itemize}
+\end{itemize}
+
+\subsection{本文工作}
+
+\newpage
+
+% ===================== p05 =====================
+\section{模型准备}
+
+\subsection{假设与合理性说明}
+
+\begin{enumerate}
+\item \textbf{假设}：忽略因负重或跳跃等造成的显著行为差异。
+
+\textbf{理由}：假定行走者体重正常且步幅均匀分布。忽略特殊行为所造成的影响——现实中，上楼梯过程之所以产生磨损现象，源于个体间的随机差异，这些差异是偶然的，讨论它们并无意义。
+
+\item \textbf{假设}：台阶被假定为理想水平面，台阶凹陷所引起的任何表面倾斜均可忽略。
+
+\textbf{理由}：在考古背景下，长期踩踏、多样的行走模式以及环境侵蚀都会增加表面的复杂性，使分析不必要地复杂化。因此，理想化水平面假设简化了问题。
+
+\item \textbf{假设}：行人更倾向于在台阶中间行走，而在两侧行走的频率相对较低。
+
+\textbf{理由}：通过假定行人偏好中间位置行走，研究聚焦于最常见的行走模式，避免因边缘位置极少使用而使模型产生不必要的复杂性，从而使模型更具实用性。
+
+\item \textbf{假设}：行人鞋底与台阶之间的滚动摩擦包含固定的微小滑移，因而可等效为滑动摩擦。
+
+\textbf{理由}：在上下台阶或车轮滚动等情形中，表面往往经历“名义滚动接触”，但实际上：a) 由于材料粗糙度会发生微观滑移，从而造成磨损；b) 每一步都会发生局部的卸载—再加载。经分析，将足部接触简化为微滑移磨损在考古学中是可以接受的。
+\end{enumerate}
+
+\subsection{符号说明}
+
+\begin{description}[font=\normalfont,labelwidth=3.4em,leftmargin=4em,itemsep=2pt,topsep=3pt]
+\item[$h$] 磨损高度
+\item[$p$] 平均压力
+\item[$S$] 作用面积
+\item[$\kappa$] 综合系数
+\item[$\beta$] 环境常数
+\item[$N$] 泊松过程到达率
+\item[$\alpha(N)$] 台阶并排使用的概率
+\item[$\delta$] 左右足迹之间的平均横向距离
+\item[$\sigma$] 单足峰值的宽度
+\item[$\Theta$] 参数向量
+\item[$p(\Theta)$] 贝叶斯先验
+\item[$p(\Theta\mid\cdot)$] 贝叶斯后验
+\end{description}
+
+\subsection{数据收集与准备}
+
+为了在数学建模中准确表示楼梯踏面的三维磨损剖面，我们着重测量以下定量指标，并以简洁的数学形式表达。设台阶平面坐标为 $(x,y)\in\Omega\subset\R^2$，并令 $z$ 表示相对于某一参考平面的竖直方向高度（或磨损深度）。
+
+% ===================== p06 =====================
+\noindent\textbf{（1）坐标系与样本点}\quad 设台阶区域为
+\[
+\Omega=[0,W]\times[0,L],
+\]
+其中 $W$ 为横向宽度，$L$ 为纵向总长度（或跨多个台阶展开后的长度）。在实际测量中，我们使用手持三维扫描仪在踏面上采集大量点云
+\[
+\bigl\{(x_i,y_i,z_i)\bigr\}_{i=1}^{n},
+\]
+其中每个 $z_i$ 表示 $(x_i,y_i)$ 处相对于基准面 $z=0$ 的实际高度（或凹陷深度）。
+
+\noindent\textbf{（2）测量量：三维剖面 $h(x,y)$}\quad 为便于后续仿真或插值，我们将采集到的点云转换为离散网格：
+\[
+h_{i,j}=h(x_i,y_j),\qquad x_i=i\cdot\frac{W}{N_x-1},\qquad y_j=j\cdot\frac{L}{N_y-1},
+\]
+其中 $N_x$ 与 $N_y$ 为网格维度。若扫描点足够密集，$h(x,y)$ 能够可靠地捕捉表面上的局部凹陷。
+
+\noindent\textbf{（3）辅助测量：边界与参考标记}
+\begin{itemize}
+\item \textbf{踏面边界}：获取 $(x_b,y_b)$ 以确定有效踏面区域 $\Omega$。
+\item \textbf{参考标记}：在台阶区域周围放置少量标记点 $\{(x_{\text{ref}},y_{\text{ref}},z_{\text{ref}})\}$，用于对齐与拼接多个扫描片段。
+\end{itemize}
+
+\noindent\textbf{（4）数据采集流程}
+\begin{enumerate}
+\item \textbf{标记布置}：在台阶区域的不同部位粘贴或放置若干坐标已知的标记点。
+\item \textbf{表面扫描}：使用手持三维扫描仪从多个角度采集表示台阶表面的点云 $\{(x_i,y_i,z_i)\}$。
+\item \textbf{网格插值}：在后处理软件中对点云进行配准与去噪。然后，为满足仿真需求，建立 $N_x\times N_y$ 的规则网格并定义
+\[
+h_{i,j}=\text{Interpolated}\bigl[(x_i,y_j);\text{PointCloud}\bigr].
+\]
+\end{enumerate}
+
+\noindent\textbf{（5）数学汇总}\quad 最终，所获得的关键数据可表示为
+\[
+\mathcal{D}=\bigl\{(x_i,y_i,z_i)\bigr\}_{i=1}^{n}
+\quad\text{或}\quad
+h_{i,j}=h(x_i,y_j),\quad i=1,\dots,N_x,\ j=1,\dots,N_y.
+\]
+在后续建模中，$h(x,y)$ 将表示磨损后的三维踏面，随后与磨损方程进行对比或拟合，从而便于估计材料参数、并行使用概率以及其他关键因素。
+
+\newpage
+
+% ===================== p07 =====================
+\section{模型一：混合磨损 PDE 模型}
+
+\subsection{子模型 \textit{i}：概率磨损方程（PWE）}
+
+本文关注长期台阶磨损，特别是行人踩踏造成的边缘凹陷。尽管真实磨损机制涉及非线性因素（如黏附、疲劳、温度），但在宏观尺度上、在较长时间跨度内，其平均效应可由 Archard 磨损理论\cite{3}有效刻画。
+
+下面，PWE 直接由 Archard 磨损公式推导而来，经过合理的等价与等效变换，具有坚实的理论基础与实用价值。
+
+为作准备，先给出 Archard 磨损公式：
+\begin{equation}
+V=KFs,
+\end{equation}
+其中 $V$ 表示磨损体积，磨损系数 $K$ 与材料硬度及粗糙度有关，$F$ 为法向载荷，$s$ 为材料的相对滑动距离。
+
+在考古背景下，鞋底上的局部峰值载荷、载荷随时间的波动（支撑腿与自由腿）以及动态运动过程中的附加惯性载荷，都可以被合理地忽略。于是，假设法向载荷 $F$ 恒定、且微体积磨损造成高度均匀下降，令单位面积 $S$ 上的压力为 $p=F/S$。对 (1) 两边取差分并除以 $S$，可得：
+\begin{equation}
+\Delta h=\frac{\Delta V}{S}=Kp\Delta s.
+\end{equation}
+
+接下来，我们分析台阶的磨损。首先考虑一维情形，将台阶视为一维坐标系。考虑点 $x$ 附近在时间 $\dd t$ 内的累积磨损高度 $\dd h$。由假设，单次脚步可等效为固定的微小滑动 $\Delta s$，载荷 $F$ 均匀施加在接触面积 $S$ 上。记平均压力为 $p=F/S$。在时间区间 $\dd t$ 内有 $N\dd t$ 次脚步，则总磨损高度为
+\begin{equation}
+\dd h_{\text{tot}}=\sum_{\dd t}\Delta h=Kp\Delta sN\dd t.
+\end{equation}
+假定磨损位置沿横向按概率分布 $\Phi$ 分布。当人流变得很大并造成拥挤时，人们可用的行走空间必然受到限制，从而导致磨损分布发生变化。因此，我们进一步假定到达强度 $N$ 也会影响磨损分布，于是记 $\Phi=\Phi(x;\,,N)$。由此，局部磨损高度为
+\begin{equation}
+\dd h(x)=\Phi(x;\,,N)\dd h_{\text{tot}}.
+\end{equation}
+
+% ===================== p08 =====================
+然后，联立式 (2)--(4)，立即得到本小节的核心结果 PWE：
+\begin{equation}
+\frac{\dd h(x)}{\dd t}=Kp\Delta sN\Phi(x;\,,N)=\kappa N\Phi(x;\,,N),
+\end{equation}
+其中 $\kappa=Kp\Delta s$ 为综合系数，它与材料硬度成反比，与平均压力成正比。。在式 (5) 中，系数 $\kappa$ 受材料硬度与接触面积（或等价地，压力）的影响。下面我们将说明，概率分布 $\Phi(x;\,,N)$ 主要决定磨损的空间变化，从而突出不同的落脚模式如何沿横向集中或分散磨损。
+
+\subsubsection{广义 PWE}
+
+根据文献，台阶所承受的磨损主要来自人群踩踏（取决于人流速率与脚步分布等因素）以及环境因素（如降雨、风化或颗粒冲击）\cite{4}。这里，我们将台阶简化为横向宽度区间 $[0,W]$，磨损深度 $h$ 沿坐标 $x$ 分布。纵向 $y$ 方向不发生任何变化或扩散耦合。于是，在任意给定时刻，台阶表面水平位置与深度方向磨损量之间的关系可写为：
+\begin{equation}
+\frac{\partial h}{\partial t}(x,t)=
+\underbrace{f_{\text{usage}}(x,t)}_{\substack{\text{人群踩踏}\\[-2pt]\text{造成的磨损}}}
++
+\underbrace{f_{\text{env}}(x,t)}_{\text{环境磨损}},
+\end{equation}
+其中 $x\in[0,W]$，$W$ 表示台阶的有效宽度，$h(x,t)$ 表示位置 $x$ 处随时间累积的磨损。
+
+由于环境因素本质上是随机且不确定的，我们将其视为常数项以简化分析。[?] 这一做法得到更易处理的数学模型，并最终导出如下改进的概率磨损方程（Improved Probabilistic Wear Equation, IPWE）：
+\begin{equation}
+\frac{\partial h}{\partial t}(x,t)=
+\underbrace{\kappa\bigl[N\Phi\bigl(x,N\bigr)\bigr]}_{\substack{\text{人群踩踏}\\[-2pt]\text{造成的磨损}}}
++
+\underbrace{\beta}_{\text{环境常数}},
+\end{equation}
+其中 $\kappa$ 为材料磨损系数（涵盖硬度、摩擦与足部滑移等因素），$\beta$ 表示环境磨损的恒定强度。
+
+类似地，由于前、后（纵向）方向的受力条件不同，踏面可能经历不同深度的磨损。为模拟台阶表面，设其深度为 $D$，以 $y\in[0,D]$ 表示前/后即纵向方向。我们定义
+\[
+\Omega=[0,W]\times[0,D].
+\]
+进一步，令 $h(x,y,t)$ 为该二维区域内点 $(x,y)$ 处相对于初始踏面凹陷的高度。给定初始条件 $h(x,y,0)=0$，我们可以将磨损深度函数推广为：
+\begin{equation}
+\frac{\partial h}{\partial t}(x,y,t)=
+\underbrace{\kappa\bigl[N\Phi(x,y;N)\bigr]}_{\substack{\text{人群踩踏}\\[-2pt]\text{造成的磨损}}}
++
+\underbrace{\beta}_{\text{环境常数}},
+\qquad (x,y)\in\Omega,\ t\in[0,T].
+\end{equation}
+这里，$\Phi(x,y;N)$ 是给定行人密度 $N$ 下，表面 $\Omega$ 上的踩踏概率密度。
+
+\subsubsection{双峰概率磨损模型}
+
+当行人上、下台阶时，每个人的重心可能出现在台阶沿线的不同位置，尽管个体通常有各自的偏好。令 $c\in[0,W]$ 表示身体中心。为简单起见，我们暂时将每个人在给定台阶上的重心固定，使其左右脚的落点关于 $c$ 近似对称。假设落脚位置服从正态分布。由于起步脚（左脚或右脚）的选择是随机的，同一踏面上随时间推移最终可能形成两个不同的
+
+% ===================== p09 =====================
+凹陷。若只考虑台阶延伸的竖直方向，即 $x$ 轴，则得到如下描述左右脚落点的\textbf{双峰磨损概率密度}（Bimodal Wear Probability Density, BWPD）：
+\begin{equation}
+w(x;N,c)=C\Bigl[\exp\Bigl(-\tfrac12\Bigl(\tfrac{x-(c-\delta/2)}{\sigma}\Bigr)^{2}\Bigr)
++\exp\Bigl(-\tfrac12\Bigl(\tfrac{x-(c+\delta/2)}{\sigma}\Bigr)^{2}\Bigr)\Bigr],
+\end{equation}
+其中 $\delta$ 为左右足迹沿 $x$ 方向的平均横向距离，$\sigma$ 为单足峰值的宽度，$C$ 为归一化常数。将 (9) 代入 PWE 的 $\Phi(x;N)$，得到：
+\begin{equation}
+\frac{\partial h}{\partial t}(x,t)=
+\underbrace{\kappa\bigl[Nw(x;N,c)\bigr]}_{\substack{\text{人群踩踏}\\[-2pt]\text{造成的磨损}}}
++
+\underbrace{\beta}_{\text{环境常数}},
+\qquad h(x,0)=0.
+\end{equation}
+随后我们考虑将 $c$ 视为随机变量，以研究任意单个行人在台阶上足迹的分布。
+
+\subsection{子模型 \textit{ii}：考虑单行—并行概率的改进 PWE}
+
+\subsubsection{单列行走磨损概率密度}
+
+为简化模型，假设台阶宽度天然可容纳两人并排行走；当只有一人行走时，身体中心 $c$ 的概率峰值可能位于 $W/4$、$W/2$ 或 $3W/4$。然而，按我们的假设 4，只要单人上台阶，我们便将身体中心 $c$ 的峰值设在 $W/2$，不受台阶宽度影响。
+
+在持续单列行走的情形下，我们希望找到一个概率密度来刻画踏面上“W”形凹陷的形成：最高概率出现在 $x=W/2$，并向两侧递减。注意 Beta(4, 4) 定义在 $[0,1]$ 上，乘以 $W$ 即可映射到 $[0,W]$。由于 Beta(4, 4) 关于 $u=0.5$ 对称并在该处取最大值，它能很好地刻画 $W/2$ 处的中心峰与逐渐衰减的尾部。因此，我们选择 Beta(4, 4) 作为身体中心的概率密度。\cite{6}
+
+% ===================== p10 =====================
+在 $[0,1]$ 上，该分布为：
+\begin{equation}
+p_0(u)=\frac{u^3(1-u)^3}{B(4,4)},\qquad u\in[0,1],
+\end{equation}
+其中 $B(4,4)$ 为 Beta 函数常数。将 $u$ 线性映射到 $c=u\cdot W$，得到
+\begin{equation}
+p(c)=\frac{1}{W}\,p_0\Bigl(\frac{c}{W}\Bigr),\qquad c\in[0,W].
+\end{equation}
+因此，$p(c)$ 在 $c=\frac{W}{2}$ 附近取峰值，并随远离中点而减小，与我们所期望的分布形状相符。
+
+据此，由概率乘法的基本法则，当身体中心位于 $c$ 时，位置 $x$ 处的磨损概率为 $p(c)\,w(x;c)$。对一切可能的 $c$ 积分，得到沿 $x$ 方向的\textbf{单列行走磨损概率密度}：
+\begin{equation}
+\phi_{\text{single}}(x)=\int_{0}^{W}p(c)\,w(x;c)\,\dd c.
+\end{equation}
+
+\subsubsection{并排行走磨损概率密度}
+
+当两人并排行走时，记他们各自的身体中心为 $c_1$ 与 $c_2$。则对于一维横向运动，两人并行行走的概率密度为：
+\begin{equation}
+\phi_{\text{double}}(x)=C\bigl\{w(x;c_1)+w(x;c_2)\bigr\},
+\end{equation}
+其中 $w(x;c)$ 与单列情形所定义的是同一函数，$C$ 为归一化常数，$c_1$、$c_2$ 可固定或作轻微随机化。
+
+\subsubsection{单行—并行磨损模型}
+
+若同时考虑单列与并排两种情形，我们便能更全面地刻画复杂的磨损动力学。令
+\[
+\Phi(x;N)=\alpha(N)\,\phi_{\text{double}}(x)+\bigl(1-\alpha(N)\bigr)\phi_{\text{single}}(x),
+\]
+并代入 PWE，得到单行—并行磨损模型：
+\begin{equation}
+\frac{\partial h}{\partial t}(x,t)=\kappa N\Bigl[\alpha(N)\phi_{\text{double}}(x)+\bigl(1-\alpha(N)\bigr)\phi_{\text{single}}(x)\Bigr]+\beta,
+\qquad h(x,0)=0,
+\end{equation}
+其中 $\alpha(N)$ 表示到达强度 $N$ 下“并排”发生的频率，$1-\alpha(N)$ 表示“单列”发生的频率。
+
+\subsubsection{使用密度问题}
+
+接下来，我们考察台阶使用的频率，即究竟是短期内的高强度使用，还是长期内的稀疏使用。我们的基本假设是：突然出现的大规模人流会因拥挤环境迫使大多数人在台阶上并排行走。因此，一个关键考虑是到达强度 $N$ 如何影响并排行走概率 $\alpha(N)$。
+
+首先，预期 $\alpha$ 随到达强度 $N$ 增大而增大。同时，$\alpha$ 在 $N\to0$ 时既不应消失，在 $N\to\infty$ 时也不应趋于 1。现实中，即使人流极低，仍可能有人并排行走；而在人流极高时，仍有一部分人选择单列行走。此外，我们需要 $\alpha(N)$ 连续可微，以便在 PDE 求解与参数估计中获得稳定的梯度计算，并且它应能以少量变量参数化，从而拟合真实数据。
+
+% ===================== p11 =====================
+这些要求自然提示采用 Logistic 函数：
+\[
+\alpha(N)=\frac{1}{1+\exp\bigl[-a\,(N-b)\bigr]}.
+\]
+Logistic 函数最初用于生物学等领域，用以模拟有限资源下的人口增长；它在输入较小时保持接近零，随输入增大而急剧上升，最终在输入很大时趋于某个上界。这种“平滑 S 形曲线”特别适合为概率或比例建模，因为它自然地映射到区间 $(0,1)$，并具有可微性与可调的陡峭度。它也与数值优化、贝叶斯采样和 PDE 耦合相容，因而非常适合描述依赖于 $N$ 的并排行走概率。
+
+一个小的缺点是，当 $N\to+\infty$ 时 $\alpha$ 趋于 1，当 $N\to-\infty$ 时 $\alpha$ 趋于 0。因此，我们对 Logistic 函数作拉伸与平移变换：
+\begin{equation}
+\alpha(N)=\alpha_{\min}+\frac{\alpha_{\max}-\alpha_{\min}}{1+\exp\bigl[-a\,(N-b)\bigr]},
+\end{equation}
+其中 $\alpha_{\min}\in(0,0.2]$，$\alpha_{\max}\in[0.8,1)$，$a>0$，$b$ 为待定参数。
+
+由 (16) 可见如下性质：在人流极低时，仍存在 $\alpha_{\min}$ 的并排行走概率；在人流极高时，$\alpha(N)$ 只趋于 $\alpha_{\max}<1$；$a>0$ 控制过渡的陡峭程度；当 $N=b$ 时，$\alpha(N)=\frac{\alpha_{\min}+\alpha_{\max}}{2}$，即并排与单列的概率相等。此外，该函数对一切 $N\in\R$ 连续可微，从而保证启发式方法或 MCMC 采样无需担心不可微点。参数 $(\alpha_{\min},\alpha_{\max},a,b)$ 之间不存在内在的耦合约束，可通过数值反演灵活调节：$\Theta=\{\kappa,\alpha_{\min},\alpha_{\max},a,b,N(\dots)\}$。若有足够的数据，还可以估计更现实的上、下界以及临界人流强度。
+
+如前所述，我们定义一个由数据失配、平滑正则化与先验项构成的代价函数。在贝叶斯 MCMC 或最小二乘启发式（PSO/GA）中，有
+\begin{equation}
+E(\Theta)=\sum_{i}\bigl(h_{\text{sim}}(\Theta)-\hat{h}_{\text{obs}}\bigr)^2
++\lambda\sum\bigl(\nabla^2h_{\text{sim}}(\Theta)\bigr)^2-\ln p(\Theta),
+\end{equation}
+其中 $\Theta$ 现在包含 $\{\alpha_{\min},\alpha_{\max},a,b\}$（若选择联合估计），或者我们可以固定 $\alpha_{\min}$ 与 $\alpha_{\max}$ 以减少自由度，只推断 $(a,b)$。一旦在求解中得到最优的 $N$，将其回代到 (16) 即可回答频率问题。为验证结果的合理性与有效性，我们随后在图 6 中给出计算结果，直观展示磨损模式在不同人群密度下如何变化。值得注意的是，此处访问总量是固定的。
+
+从图 6 中我们观察到，在拥挤条件下磨损显得更分散、相对更平坦，这表明人们倾向于并排行走。相反，当人群稀疏时，模式反转。这在一定程度上验证了我们在本小节开头关于到达强度与并排行走概率的假设。
+
+总之，通过引入带上下界的 Logistic 函数，我们将 $\alpha(N)$ 的极端值约束在现实水平，从而在数学意义上得到一条既可微又可调的概率曲线。借助贝叶斯 MCMC，我们可以同时估计 $\alpha(N)$ 并获得最优人流强度 $N$ 的分布。这解决了台阶究竟经历“短期内大流量使用”还是“长期内小流量使用”这一关键问题，并为现实情景提供了更有说服力的定量洞见。
+
+\subsection{子模型 \textit{iii}：考虑上/下行偏好的改进 PWE}
+
+本节提出一种基于足部划分的方法来识别台阶的行走方向。通过区分前三分之二（上行）与后三分之二（下行）不同的力学载荷模式，该框架采用高斯模糊、随机偏移以及基于 PDE 的磨损模型，来刻画真实的足部接触行为及其造成的台阶磨损模式。
+
+% ===================== p12 =====================
+\paragraph*{上、下楼梯时的足部划分}\quad 在本小节中，我们考察上、下楼梯时对足部作不同划分的生物力学与实践理由。
+
+\begin{enumerate}
+\item \textbf{上、下楼梯行走时的生物力学差异：}
+
+为克服重力将身体抬升，上楼时质心通常前移，使足部前部（前 2/3）在蹬离与台阶接触过程中承受更大的竖直反作用力。相反，下楼需要吸收能量并受控下降；质心略微后倾，足跟与足部后部（后 2/3）承担冲击的主要部分，表现为更高的落地频率与后足上的力集中。
+
+\item \textbf{差异性磨损与前/后 2/3 划分：}
+
+使用单一的“整足”接触剖面无法刻画“上楼前足主导、下楼后足主导”之间的显著差异，从而导致对台阶前缘与后缘磨损的模拟不准确。为更好地表征这些生物力学差异，我们采用前 2/3 的二值图像映射为 $\phi_{\text{up}}(x,y)$（上行）与后 2/3 映射为 $\phi_{\text{down}}(x,y)$（下行），二者分别对应各自的主要承重区域。
+
+\item \textbf{高斯模糊与随机偏移：}
+
+为更贴近连续的足底压力分布以及足部落位的变异性，两幅二值图像均经过高斯模糊，以实现足部与台阶之间的平滑过渡。随后在台阶坐标系中施加多次小幅随机偏移，以复现每一步并非完全相同放置的事实，最终得到平滑且更真实的磨损模式。
+\end{enumerate}
+
+\subsubsection{足部分布的构建与小幅偏移}
+
+下面详细说明这些前/后足部划分如何纳入台阶坐标系，以及随机偏移如何施加。
+
+实践中，我们首先获得两个二值掩膜——一个来自足部图像的“前三分之二”，另一个来自“后三分之二”，其中白色表示背景，黑色表示足部区域。将这两个掩膜记为 $\footup(x',y')$ 与 $\footdown(x',y')$，其中 $(x',y')$ 为图像坐标，然后施加高斯模糊、缩放与位置拟合，把它们映射到台阶坐标系 $(x,y)$ 中。可叠加多次小幅随机偏移与噪声，从而得到平滑的接触分布 $\phi_{\text{up}}(x,y)$ 与 $\phi_{\text{down}}(x,y)$。
+
+为获得更平滑的足部分布，对每个二值足部掩膜执行以下步骤：
+
+\begin{enumerate}
+\item \textbf{高斯模糊}：用宽度为 $\sigma_{\text{blur}}$ 的高斯核与掩膜卷积，以平滑足部边缘。
+\item \textbf{缩放与拟合}：将图像坐标映射到台阶区域 $\Omega$ 的一小块区域（例如与底边对齐或居中），如有需要引入随机扰动。
+\item \textbf{重复随机偏移}：多次叠加足部掩膜，每次带一个小偏移 $(\delta_x,\delta_y)$，然后对求和结果归一化，得到最终的 $\phi_{\text{up}}$ 或 $\phi_{\text{down}}$。
+\end{enumerate}
+
+这里，$(\delta_x,\delta_y)$ 可从高斯分布 $\mathcal{N}\bigl((x_0,y_0),\Sigma\bigr)$ 中抽取，以反映每次脚步未必恰好落在同一位置。累积分布经归一化后，给出台阶表面上的足部接触概率图。具体算法如下所示。
+
+\begin{algo}{算法 1：构建足部分布（高斯模糊 + 随机偏移）}
+\textbf{输入}：\texttt{foot\_bin}：二值足部图像（黑＝足部，白＝背景），必要时旋转\\
+\hspace*{3.2em}$(N_x,N_y)$：阶梯网格尺寸\\
+\hspace*{3.2em}$\sigma_{\text{blur}}$：高斯模糊参数\\
+\hspace*{3.2em}\texttt{offset\_base} $=(x_0,y_0)$：在阶梯上的基准偏移\\
+\hspace*{3.2em}\texttt{offset\_std}：随机偏移的标准差\\
+\hspace*{3.2em}\texttt{foot\_scale}：控制足部尺寸的因子\\
+\hspace*{3.2em}\texttt{n\_samples}：随机放置的次数\\
+\textbf{输出}：表示最终足部接触的二维分布 $\text{accum}[j,i]\in[0,1]$。
+\algL{1}{\texttt{footBlur} $\leftarrow$ GaussianFilter(\texttt{foot\_bin}, $\sigma_{\text{blur}}$);}
+\algL{2}{\texttt{footBlur} $\leftarrow$ Normalize(\texttt{footBlur});}
+\algL{3}{\texttt{footSmall} $\leftarrow$ Resize(\texttt{footBlur}, 100, 100);}
+\algL{4}{\texttt{accum} $\leftarrow$ $\mathbf{0}_{(N_y,N_x)}$;}
+\algL{5}{\textbf{for} $s\leftarrow1$ \textbf{to} \texttt{n\_samples} \textbf{do}}
+\algL[1.6em]{6}{$(\delta_x,\delta_y)\leftarrow\text{RandomNormal}(\texttt{offset\_base},\texttt{offset\_std})$;}
+\algL[1.6em]{7}{\texttt{footDist2D} $\leftarrow$ $\mathbf{0}_{(N_y,N_x)}$;}
+\algL[1.6em]{8}{\textbf{foreach} pixel $(i,j)$ \textbf{in} \texttt{footSmall}$[0..99,0..99]$ \textbf{do}}
+\algL[3.2em]{9}{$val\leftarrow\texttt{footSmall}[j,i]$;}
+\algL[3.2em]{10}{$x'\leftarrow\delta_x+(i/99)\times\texttt{foot\_scale}$;}
+\algL[3.2em]{11}{$y'\leftarrow\delta_y+(j/99)\times\texttt{foot\_scale}$;}
+\algL[3.2em]{12}{$(iX,iY)\leftarrow\text{MapToGrid}(x',y')$;}
+\algL[3.2em]{13}{\texttt{footDist2D}$[iY,iX]\leftarrow\max\bigl(\texttt{footDist2D}[iY,iX],val\bigr)$;}
+\algL[1.6em]{14}{\textbf{end}}
+\algL[1.6em]{15}{\texttt{accum} $\leftarrow$ \texttt{accum} $+$ \texttt{footDist2D};}
+\algL{16}{\textbf{end}}
+\algL{17}{\texttt{accum} $\leftarrow$ Normalize(\texttt{accum});}
+\algL{18}{\textbf{输出}：最终分布 $\text{accum}[j,i]\in[0,1]$。}
+\end{algo}
+
+% ===================== p14 =====================
+\paragraph*{基于足部划分的行走方向模型（FPTDM）}\quad 所提出的 FPTDM 基于如下观察：上楼时足部的主要承重与接触区域位于前三分之二，而下楼时主要承重区域转移到后三分之二。通过从这两幅二值图像（一幅表示足部“前三分之二”，另一幅表示“后三分之二”）中提取接触模式，并结合上行与下行的人流速率，我们可以建立一个描述台阶磨损的偏微分方程。
+
+考虑由平面区域 $\Omega\subset\R^2$ 表示的楼梯踏面，坐标为 $(x,y)$。令 $h(x,y,t)$ 为时刻 $t$ 的磨损深度（或高度损失）。设 $N_{\text{up}}(t)$ 与 $N_{\text{down}}(t)$ 分别为上行与下行的人数（它们可随时间变化，也可近似为常数）。则线性磨损方程为
+\begin{equation}
+\begin{cases}
+\dfrac{\partial h}{\partial t}(x,y,t)=\kappa\Bigl[N_{\text{up}}(t)\,\phi_{\text{up}}(x,y)+N_{\text{down}}(t)\,\phi_{\text{down}}(x,y)\Bigr]+\beta,\\[6pt]
+h(x,y,0)=0,
+\end{cases}
+\end{equation}
+其中 $\kappa$ 为材料磨损系数，$\beta$ 为环境常数，用以计入风化或水蚀等因素造成的均匀磨损，$\phi_{\text{up}}(x,y)$、$\phi_{\text{down}}(x,y)$ 分别为足部前三分之二（上行）与后三分之二（下行）的接触分布。
+
+为求解 (18)，我们可以采用显式欧拉格式（假定无扩散或相邻耦合）：
+\begin{equation}
+\begin{cases}
+h^{n+1}[j,i]=h^{n}[j,i]+\Delta t\Bigl(\kappa N_{\text{up}}(t_n)\phi_{\text{up}}(x_i,y_j)
++\kappa N_{\text{down}}(t_n)\phi_{\text{down}}(x_i,y_j)+\beta\Bigr),\\[6pt]
+h^{0}[j,i]=0.
+\end{cases}
+\end{equation}
+迭代至 $n=T$，即得到最终时刻 $T$ 的台阶磨损深度 $h^{T}[j,i]$。为更清楚地说明我们的求解思路，下面给出所采用的算法步骤。
+
+\begin{algo}{算法 2：FPTDM 的显式欧拉格式}
+\textbf{数据}：输入：\\
+\hspace*{3.2em}$\text{accum}[j,i]$：足部接触分布，\\
+\hspace*{3.2em}$(T,N,\beta)$：PDE 参数（时间步数、使用量、环境），\\
+\hspace*{3.2em}$\kappa$：材料磨损系数，$\Delta t$：时间步长。\\
+\textbf{结果}：在 $(N_x\times N_y)$ 网格上的最终磨损深度图 $h(j,i)$。
+\algL{1}{$h\leftarrow\mathbf{0}_{(N_y,N_x)}$;}
+\algL{2}{\textbf{for} $t\leftarrow1$ \textbf{to} $T$ \textbf{do}}
+\algL[1.6em]{3}{\textbf{foreach} cell $(i,j)$ \textbf{in} the grid \textbf{do}}
+\algL[3.2em]{4}{$\text{usage}[j,i]\leftarrow\kappa\times N\times\text{accum}[j,i]$;}
+\algL[3.2em]{5}{$h[j,i]\leftarrow h[j,i]+\Delta t\times\bigl(\text{usage}[j,i]+\beta\bigr)$;}
+\algL[1.6em]{6}{\textbf{end}}
+\algL{7}{\textbf{end}}
+\algL{8}{\textbf{输出}：阶梯上的最终 $h(j,i)$。}
+\end{algo}
+
+% ===================== p15 =====================
+接下来，我们给出求解结果，直观展示上行与下行磨损模式之间的差异，以验证结果的合理性与有效性。比较图 9 与图 10 可见，上行磨损的凹陷中心离台阶边缘更远、覆盖面积更大且更浅，而下行磨损则呈现相反的趋势。
+
+为更清楚地说明上行与下行使用在磨损模式上的差异，下面我们从不同角度给出四幅对比图。
+
+若 $N_{\text{up}}(t)$ 与 $N_{\text{down}}(t)$ 随时间变化，我们只需在每个时间步 $t_n$ 更新其取值。若它们大致恒定，则可直接使用固定的 $N_{\text{up}}$ 与 $N_{\text{down}}$。
+
+简言之，通过将前三分之二足部图像（上行）与后三分之二足部图像（下行）组合以构造 $\phi_{\text{up}}$ 与 $\phi_{\text{down}}$，再在台阶坐标系内施加高斯模糊与多次随机偏移，我们得到平滑的接触分布。求解线性磨损方程（通过显式欧拉方法）即得到随时间演化的磨损深度 $h(x,y,t)$。小幅随机偏移与噪声使脚步模式更真实，并且在长时间仿真中累积
+
+% ===================== p16 =====================
+为与实际人类使用高度吻合的平滑凹陷。
+
+\section{模型二：磨损参数反演}
+
+在无扩散线性磨损方程的框架下，我们旨在反演多个参数并量化不确定性。鉴于测量数据通常含噪，且台阶磨损剖面往往要求平滑过渡，本工作将先验分布与二阶梯度平滑正则化融入贝叶斯推断。随后，它采用一种带有基于启发式初步搜索的改进策略，以加速收敛到全局最优。
+
+\subsection{贝叶斯推断与平滑正则化\cite{7}}
+
+设 $(x,y)\in\Omega\subset\R^2$ 为台阶平面坐标，$t\in[0,T]$。记待估参数为 $\Theta=(\kappa,N,T,\dots)$。无扩散线性磨损方程由式（??）给出。为纳入考古学与材料相关的专家知识，我们在参数空间中指定贝叶斯先验：
+\[
+p(\Theta)=p_{\kappa}(\kappa)\,p_{N}(N)\,p_{T}(T)\cdots,
+\]
+其中 $p_{\kappa}(\kappa)$ 等为各参数的单独先验分布，由文献与经验确定。
+
+假定在时刻 $t=T$，数值或解析方法给出 $h_{\text{sim}}(x,y;\Theta)$，而真实观测仅在一组点 $(x_i,y_i)$ 上可得，从而得到含噪测量 $\hat{h}_{\text{obs}}(x_i,y_i)$（$i=1,2\dots,m$）。在每个观测点 $(x_i,y_i)$ 处，定义观测到的磨损高度为
+\[
+\hat{h}_{\text{obs}}(x_i,y_i)=h_{\text{sim}}(x_i,y_i;\Theta)+\varepsilon_i,
+\qquad \varepsilon_i\sim\mathcal{N}(0,\sigma^2),
+\]
+其中参数 sigma 根据经验或知识给定。
+
+若要求解 $h_{\text{sim}}$ 呈现平滑的凹陷形状，可在目标函数中加入\textbf{平滑惩罚}：
+\begin{equation}
+E_{\text{smooth}}=\lambda\sum_{i,j}\Bigl(\nabla^2h_{\text{sim}}\bigl[i,j;\Theta\bigr]\Bigr)^2,
+\end{equation}
+
+% ===================== p17 =====================
+其中 $\nabla^2$ 表示离散二阶差分（或拉普拉斯算子），$\lambda>0$ 为平滑惩罚权重。该项抑制尖锐凹陷或不连续。
+
+因此，贝叶斯后验满足 $p(\Theta\mid\hat{h})\propto p(\Theta)\,p(\hat{h}_{\text{obs}}\mid\Theta)$，其中似然函数
+\begin{equation}
+p(\hat{h}_{\text{obs}}\mid\Theta)=\exp\bigl[-E(\Theta)\bigr],
+\end{equation}
+能量函数为
+\begin{equation}
+E(\Theta)=\underbrace{\frac{1}{2\sigma^2}\sum_{i=1}^{m}\bigl[h_{\text{sim}}(x_i,y_i;\Theta)-\hat{h}_{\text{obs}}(x_i,y_i)\bigr]^2}_{\text{数据失配}}
++E_{\text{smooth}}.
+\end{equation}
+
+随后，我们在后验（??）下进行 MCMC 采样，寻找与专家知识和实际测量相一致的高后验参数集。
+
+最后，我们使用\textbf{基于分位数的方法}（Quantile-based Method）构造可信区间。具体而言，我们对从后验分布中抽取的参数样本排序，并选取相关分位数处的样本值来确定区间端点。
+
+\subsection{改进策略：基于启发式算法的初步搜索}
+
+MCMC 搜索同时符合先验与平滑约束的最优解。由式（??）--（22）可知，MCMC 的最优解实际上就是优化问题
+\begin{equation}
+\min_{\Theta}\bigl\{-\ln p(\Theta)+E(\Theta)\bigr\}.
+\end{equation}
+的解。然而，在高维参数空间中直接对 $p(\Theta\mid\hat{h})$ 施加全局 MCMC 采样通常代价高昂且收敛缓慢。为快速找到问题 (23) 的全局最优或近全局最优解 $\Theta^{*}$，可采用启发式算法（如 PSO 或 GA）。\cite{8} 因此，我们提出一种组合式的改进方案：
+
+\begin{enumerate}
+\item 采用启发式算法（以\textbf{粒子群优化} PSO 为例）在 $\min_{\Theta}E(\Theta)$ 下进行全局搜索，从而获得近全局最优解 $\Theta^{*}$。
+\end{enumerate}
+
+% ===================== p18 =====================
+\begin{enumerate}\setcounter{enumi}{1}
+\item 在 $\Theta^{*}$ 附近进行局部 MCMC 采样（如 Metropolis-Hastings），以获得后验分布的均值、方差与可信区间，从而量化不确定性。
+\end{enumerate}
+
+我们首先概述这一两步思路，然后给出数学过程与公式。详细算法如下。
+
+\paragraph*{步骤 A：用于全局优化的 PSO}
+\begin{enumerate}
+\item \textit{初始化}：在先验边界内随机生成粒子 $\Theta_j$ 及其速度 $v_j$，$j=1,\dots,P$。
+\item \textit{迭代}：对第 $k$ 代的每个粒子，
+\[
+v_j^{(k+1)}=\omega\,v_j^{(k)}+c_1r_1\bigl[\Theta_j^{(\text{pbest})}-\Theta_j^{(k)}\bigr]
++c_2r_2\bigl[\Theta^{(\text{gbest})}-\Theta_j^{(k)}\bigr],
+\qquad
+\Theta_j^{(k+1)}=\Theta_j^{(k)}+v_j^{(k+1)},
+\]
+其中 $\Theta_j^{(\text{pbest})}$ 为粒子 $j$ 的历史最优位置，$\Theta^{(\text{gbest})}$ 为全局最优，$\omega$、$c_1$、$c_2$ 为惯性因子与加速因子，$r_1$、$r_2$ 为随机数。
+\item \textit{停止准则}：若全局最优 $\Theta^{(\text{gbest})}$ 在若干次迭代后不再改善，则停止并记录 $\Theta^{*}\equiv\Theta^{(\text{gbest})}$。
+\end{enumerate}
+
+\paragraph*{步骤 B：局部 MCMC 采样}
+\begin{enumerate}
+\item \textit{邻域设置}：在 $\Theta^{*}\pm\delta$ 内构造提议分布 $q(\Theta'\mid\Theta)$；例如，
+\[
+\Theta'=\Theta+\eta,\qquad \eta\sim\mathcal{N}(0,\Sigma),
+\]
+其中 $\Sigma$ 为对角或小协方差矩阵。
+\end{enumerate}
+
+% ===================== p19 =====================
+\begin{enumerate}\setcounter{enumi}{1}
+\item \textit{Metropolis-Hastings}：初始化 $\Theta^{(0)}=\Theta^{*}$。对 $s=1,\dots,S$：
+\begin{itemize}
+\item 从 $q(\Theta'\mid\Theta^{(s-1)})$ 中抽取候选 $\Theta'$；
+\item 计算接受率
+\[
+A^{(s)}=\min\Bigl\{1,\ \frac{p(\Theta')\exp[-E(\Theta')]\,q(\Theta^{(s-1)}\mid\Theta')}
+{p(\Theta^{(s-1)})\exp[-E(\Theta^{(s-1)})]\,q(\Theta'\mid\Theta^{(s-1)})}\Bigr\};
+\]
+\item 以概率 $A^{(s)}$ 接受 $\Theta^{(s)}=\Theta'$，否则 $\Theta^{(s)}=\Theta^{(s-1)}$。
+\end{itemize}
+\item \textit{可信区间}：给定后验样本 $\{\Theta^{(s)}\}$，我们可以为每个参数计算各种汇总统计量与可信区间。例如，关注 $\kappa$ 时，我们可以对样本 $\{\kappa^{(s)}\}$ 排序，然后选取相关分位数处的值。具体地，$q\%$ 可信区间由 $\bigl(\frac{100-q}{2}\bigr)\%$ 与 $\bigl(100-\frac{100-q}{2}\bigr)\%$ 分位数给出。对 95\% 可信区间，即排序样本中的 2.5\% 与 97.5\% 分位数：
+\[
+\bigl[\kappa_{0.025},\ \kappa_{0.975}\bigr].
+\]
+\end{enumerate}
+
+对其他参数 $\{a,b,N,t,\dots\}$ 重复此过程，即可直接给出区间并量化其不确定性。
+
+借助这一两步过程，我们在有限计算开销下实现了“全局优化 + 后验不确定性量化”的一体化方案。它使模拟结果与观测一致，保持表面平滑，并利用先验知识确保与物理及材料约束相符。数值证据表明，该方法在考古与工程背景下具有广泛的应用潜力。
+
+\subsection{应用与求解}
+
+本节采用“贝叶斯先验 + 二阶梯度平滑”模型以及两步法（“先 PSO，后 MCMC”）来反演关键台阶磨损参数。我们使用上一节加入噪声的“虚拟观测”，模拟人流与测量精度中的不确定性。随后给出参数设置、反演步骤与最终结果。最后讨论误差分析与内在理由。
+
+\paragraph*{1. 模拟观测数据：真值与噪声处理}
+\begin{enumerate}
+\item \textbf{台阶建造年份 $T^{*}$}：取约 257 年，表示该台阶已使用 257 年。在反演中，我们允许 $T\in[240,280]$，以反映考古记录仅提供大致范围这一事实。
+\item \textbf{材料系数 $\kappa^{*}$}：取 $\kappa^{*}=7.2\times10^{-5}$，先验范围为 $[10^{-5},10^{-4}]$（对数均匀分布，LogUniform）。
+\item \textbf{并排概率参数}：我们分别对上、下行采用两组截断 logistic 函数：
+\[
+\alpha_{\text{up}}(N)=\alpha_{\min}^{(u)}
++\bigl(\alpha_{\max}^{(u)}-\alpha_{\min}^{(u)}\bigr)
+\frac{1}{1+\exp\bigl[-a_u\,(N-b_u)\bigr]},
+\]
+其真值为
+\[
+\alpha_{\min}^{(u)}=0.22,\quad \alpha_{\max}^{(u)}=0.78,\quad a_u=0.13,\quad b_u=55.
+\]
+下行参数类似定义（$\alpha_{\min}^{(d)}=0.12$，$\alpha_{\max}^{(d)}=0.62$，$a_d=0.11$，$b_d=42$），用以刻画人流通量率 $N$ 越大、并排行走概率越高，同时使其远离 0\% 或 100\% 极端值的现象。
+\item \textbf{上/下行人流强度}：我们在三个时间段内设计 $N_{\text{up}}^{*}(t)$ 与 $N_{\text{down}}^{*}(t)$：
+\[
+N_{\text{up}}^{*}(t)=
+\begin{cases}
+120, & 0\le t<90,\\
+85, & 90\le t<180,\\
+60, & 180\le t\le T^{*},
+\end{cases}
+\qquad
+N_{\text{down}}^{*}(t)=
+\begin{cases}
+95, & 0\le t<90,\\
+75, & 90\le t<180,\\
+45, & 180\le t\le T^{*}.
+\end{cases}
+\]
+\end{enumerate}
+
+% ===================== p20 =====================
+其中 $t=0$ 表示台阶使用的开始（与建造同时）。
+
+\begin{enumerate}\setcounter{enumi}{4}
+\item \textbf{前向模拟 + 噪声}：在 $(x_i,y_i)$ 网格上求解三维 PDE 直到 $t=T^{*}=257$，得到 $h_{\text{sim,true}}(x_i,y_i)$。然后加入高斯噪声 $\epsilon_i\sim\mathcal{N}(0,0.012^2)$（标准差 0.012），$\hat{h}_{\text{obs}}(x_i,y_i)=h_{\text{sim,true}}(x_i,y_i)+\epsilon_i$，采样 $m=8000$ 个点作为后续反演测试的观测数据。
+\end{enumerate}
+
+\paragraph*{2. 先验设置与目标函数}
+\noindent（a）先验
+\[
+\kappa\sim\text{LogUniform}\bigl[10^{-5},10^{-4}\bigr],\qquad
+T\sim\text{Uniform}[\,240,280\,],
+\]
+$\alpha_{\min}^{(u)},\alpha_{\max}^{(u)},a_u,b_u$ 均在适当区间内取均匀分布，$\alpha_{\min}^{(d)},\alpha_{\max}^{(d)},a_d,b_d$ 同样取有界均匀分布。$N_{\text{up}}$、$N_{\text{down}}$ 的每一段也类似处理，以反映先验知识。
+
+\noindent（b）目标函数\quad 结合测量匹配、平滑与先验，我们定义
+\[
+E(\Theta)=\sum_{i=1}^{m}\bigl[h_{\text{sim}}(x_i,y_i;\Theta)-\hat{h}_{\text{obs}}(x_i,y_i)\bigr]^2
++\lambda\sum_{i,j}\bigl(\Delta^2h_{\text{sim}}(\Theta)[i,j]\bigr)^2-\ln p(\Theta),
+\]
+其中 $\Delta^2h$ 表示离散二阶拉普拉斯算子，$\lambda=5\times10^{3}$（作为示例），$p(\Theta)$ 为上述联合先验概率。因此，它平衡了数据保真、踏面平滑与考古先验信息。
+
+\paragraph*{3. 数值流程：PSO + MCMC}
+\begin{enumerate}
+\item \textbf{PSO 全局搜索}：我们设粒子数 $P=40$，运行 90 次迭代；该过程约耗时 25 分钟（在 Intel i7 CPU 上使用中等规模网格）。算法在第 60--70 次迭代附近收敛，得到全局最优 $\Theta^{*}$。
+\item \textbf{MCMC 局部采样}：以 $\Theta^{*}$ 为中心，构造正态提议 $q(\Theta'\mid\Theta)$，执行 $1.0\times10^{4}$ 步 Metropolis--Hastings，丢弃前 2000 步作为预烧期（burn-in）。由此得到刻画参数不确定性的后验分布。
+\end{enumerate}
+
+\paragraph*{4. 反演结果：表格与比较}
+
+表 2 汇总了主要参数的后验均值（采用 90\% 置信区间）及其真值。
+
+除少数参数（如 $\alpha_{\min}^{(d)}$）的相对误差达到约 16.7\% 外，大多数都在 10\% 的误差范围内，表明即使在噪声标准差 $\sigma=0.012$ 下，该方法也能成功恢复主要参数。$T$、$\kappa$ 以及并排使用上下界等关键量仍接近其真值。
+
+\paragraph*{5. 误差分布与表面对比}
+
+将后验均值回代到前向模型即得 $h_{\text{sim}}(x,y)$。与 $\hat{h}_{\text{obs}}$ 的逐点比较表明，对大多数网格点，$\bigl|h_{\text{sim}}(x,y)-\hat{h}_{\text{obs}}(x,y)\bigr|<0.015$，且整体踏面平滑、无突跳尖峰。这支持了如下观点：二阶梯度平滑有效抑制了高频噪声，而贝叶斯先验则保证了与考古预期的相符。
+
+\paragraph*{6. 讨论与结论}
+\begin{itemize}
+\item \textbf{实用价值}：尽管本测试使用“虚拟数据”，但该流程——先验设定、平滑以及两阶段优化/采样——可以无缝应用于真实的台阶测量（例如来自激光扫描的数据）。它有望在实际考古环境中给出同样稳健的参数估计与可靠的不确定性量化。
+\end{itemize}
+
+% ===================== p21 =====================
+\begin{itemize}
+\item \textbf{历史/保护意义}：通过定量推断台阶的建造年份 $T$、使用频率 $N(t)$ 与并排概率，我们对某些踏面凹陷的成因获得更深入的认识，有助于未来的维护或保护策略。
+
+\item \textbf{平滑项的作用}：若无 $\nabla^2h$ 正则化，随机噪声会在磨损深度中引起非物理的高频振荡。施加适当的平滑权重可显著减轻此类伪影，得到更符合物理的磨损表面。
+\end{itemize}
+
+总体而言，这些反演结果表明，我们的“贝叶斯 + 平滑 + PSO + MCMC”方法即使在观测数据含有中等噪声时，也能以可接受的精度稳定恢复多个参数（包括 $T$、$\kappa$、并排使用比例以及上/下行人流），既说明了该建模策略的有效性，也展示了其潜在的现实适用性。
+
+\section{模型三：翻修与典型单日磨损}
+
+在实际考古背景下，楼梯常经历多次翻修或更换新踏面，从而形成“多层”结构：旧层的损伤痕迹被新层覆盖，但并未完全清除；当新层再次被磨损后，旧层重新暴露，并再次承受踩踏。
+
+基于上述情况，我们采用\textbf{多层结构 PDE} 对建筑修复进行历史分析。多层结构 PDE 的优点如下：
+
+\begin{itemize}
+\item \textbf{真实的修复过程}：该模型反映了在旧层之上添加新层的典型修复做法，而不是重置磨损痕迹，从而更准确地表示翻修过程。
+\item \textbf{下层的保存}：若新层保持完整，下层不受影响。当顶层被磨损或移除时，下层暴露并继续累积磨损，这与现实中的台阶修复动态相符。
+\item \textbf{考古一致性}：多层结构与实际考古剖面一致，其中每一层具有不同的材料或厚度，确保模型与现实数据的相关性。
+\end{itemize}
+
+% ===================== p22 =====================
+\begin{itemize}
+\item \textbf{处理自由边界与复杂性}：该模型使用具有层级激活机制的多层 PDE，能够准确刻画相变，从而支持对稳定性、唯一性与反问题的深入研究。
+\end{itemize}
+
+\subsection{多层结构 PDE}
+
+设台阶在其使用与翻修历史中共有 $m+1$ 层：$L_0,L_1,\dots,L_m$；其中 $L_0$ 为原始层，$L_m$ 为当前顶层。记号：
+\begin{equation}
+h_i(x,y,t)\quad\text{为第 }i\text{ 层在 }t\text{ 时刻的累积磨损深度}.
+\end{equation}
+每层具有初始厚度 $\delta_i>0$。当 $h_i<\delta_i$ 时，该层尚未磨穿；若 $h_i$ 达到 $\delta_i$，则称该层在点 $(x,y)$ 处被磨穿，其下方层开始暴露。
+
+\subsubsection{磨穿方程}
+
+在没有翻修扰动的情况下，第 $i$ 层材料同时受到人流与环境的作用，其磨损方程为：
+\begin{equation}
+\frac{\partial h_i}{\partial t}(x,y,t)=\kappa_i\bigl[N(t)\,\phi_i(x,y)\bigr]+F_{\text{env}}(x,y,t),
+\end{equation}
+其中 $\kappa_i$ 为该层材料的磨损系数，$N(t)$ 为人流通量，$\phi_i(x,y)$ 表示踏面分布（可与同一层 $i$ 有关，也可保持不变），$F_{\text{env}}$ 为环境风化等附加因素。
+
+然而，该 PDE 仅在“第 $i$ 层位于最上方且暴露”时生效；若其上方还有覆盖着的第 $i+1$ 层，则第 $i$ 层不再累积磨损。
+
+\subsubsection{翻修（添加新层）}
+
+此后，若无新层覆盖，层 $L_{i+1}$ 成为“活动层”，并一直保持到下一层 $L_{i+2}$ 出现或该层被磨穿。
+
+在某些特定时刻 $t_{r1},t_{r2},\dots,t_{rm}$，层从第 1 层到第 $m$ 层被逐层添加。具体而言：当 $t=t_{r(i+1)}$ 时，添加层 $L_{i+1}$，并令该层的磨损深度为 $h_{i+1}(x,y,t_{r(i+1)})=0$，$\delta_{i+1}$ 为该层的初始厚度。此后，若无新层覆盖，层 $L_{i+1}$ 成为“活动层”，并一直保持到下一层 $L_{i+2}$ 出现或该层被磨穿。
+
+\subsubsection{穿透条件}
+
+每一层的表现如下：
+\[
+\begin{cases}
+h_i(x,y,t)<\delta_i \ \Rightarrow\ \text{该层保持完整，仍可被踩踏，除非被其上方层覆盖},\\[2pt]
+h_i(x,y,t)\ge\delta_i \ \Rightarrow\ \text{该层在 }(x,y)\text{ 处已被磨穿，露出下方层}.
+\end{cases}
+\]
+若层 $L_j$ 覆盖在 $L_i$ 之上，则 $L_i$ 在此期间不再累积任何磨损。一旦 $L_j$ 被完全磨穿或移除，$L_i$ 将再次成为“顶层”并继续累积磨损。
+
+在数值模拟中，时间可按惯例离散为 $t^{0}=0<t^{1}<\dots<t^{N}=T$，并在每个时间步执行以下步骤：
+
+\begin{enumerate}
+\item \textbf{判断各层是否被覆盖}：在任意时刻 $t^{n}$，若最上方存在尚未穿透的层 $k$，则其下方所有层 $0,\dots,k-1$ 暂时不受磨损影响：$\Delta h_i^{n}=0\ (i<k)$。
+\item \textbf{显式或隐式迭代更新}：对“活动层” $k$，若 $h_k(x,y,t^{n})<\delta_k(x,y)$，则计算
+\begin{equation}
+h_k^{n+1}(x,y)=h_k^{n}(x,y)+\Delta t\bigl[\kappa_kN(t^{n})\phi_k(x,y)+F_{\text{env}}(x,y,t^{n})\bigr]
+\end{equation}
+\end{enumerate}
+
+% ===================== p23 =====================
+若此步更新后 $h_k^{n+1}\ge\delta_k$，则表明该层在点 $(x,y)$ 处已被穿透，需要标记这一\textit{穿透事件}。
+
+\begin{enumerate}\setcounter{enumi}{2}
+\item \textbf{层切换}：对于被穿透的区域 $(x,y)$，令下层 $k-1$（若存在）在之后的时刻成为“可磨损”的。若无下层（$k=0$ 被穿透），则台阶已完全损坏。
+\item \textbf{翻修时刻的处理}：当到达接近 $t_{r(i+1)}$ 的某个离散时刻时，向系统中添加层 $L_{i+1}$，初始 $h_{i+1}=0$，并使其成为顶层以覆盖下层；随后的时段将在 $L_{i+1}$ 上累积。
+\end{enumerate}
+
+\subsubsection{反问题求解}
+
+基于观测数据，例如台阶剖面测量 $h_{\text{obs}}(x,y)$ 或多时点激光扫描，我们定义一组未知参数 $\Theta=\{R,(t_{r1},\delta_1,\kappa_1),\dots,(t_{rR},\delta_R,\kappa_R)\}$，其中 $R$ 表示翻修次数。这些参数用于前述带有自由边界条件的多层 PDE 模型，构成求解优化问题的基础。将其输入模型二，即可求解该问题。
+
+多层模型对磨损与翻修过程给出了更准确、更真实的描述，有效刻画了层间的动态相互作用。
+
+\subsection{离散时间仿真模型}
+
+台阶的使用模式在一天之中呈现出显著差异。在短时的峰值时段，行人往往集中在同一段台阶上，导致局部区域的快速磨损。当行人在一天中分散时，单位时间内的行人数较少，磨损也更为平滑。诸如“年平均人流”或“分段恒定值 PDE”之类的传统方法难以刻画这些日内差异，也无法准确反映短期峰值与长期低流量之间磨损的对比。
+
+为解决这一问题，我们引入“离散事件仿真”（Discrete Event Simulation, DES）方法，将每位行人的踩踏建模为一个独立的“到达事件”。该方法可以显式模拟一天中每个“到达时刻”以及在台阶上的踩踏轨迹，从而准确模拟短时间内大人群与长时间低密度人群对台阶磨损模式的不同影响。
+
+我们定义一天的时间段为 $t\in[0,24]$（或换算为分钟 $t\in[0,1440]$）。为描述行人的到达过程，我们定义\textbf{到达率}函数 $\lambda(t)\ge0$，它表示时刻 $t$ 的人流到达率（单位：人/小时）。为描述“短时大量到达”或“多峰分布”的情形，$\lambda(t)$ 通常表示为若干分段函数或多个高斯脉冲的叠加，如：
+\begin{equation}
+\lambda(t)=\lambda_{\min}+\sum_{j=1}^{J}A_j\exp\Bigl[-\frac{(t-\mu_j)^2}{2\sigma_j^{2}}\Bigr],
+\end{equation}
+其中 $A_j$、$\mu_j$、$\sigma_j$ 分别为第 $j$ 个峰的幅度、中心时刻与宽度。当 $\sigma_j$ 较小时，意味着“在极短时间内大量到达”；当 $\sigma_j$ 较大时，意味着到达更为分散。它也可以表示为泊松流分段常数等形式，只要能够刻画一天中的峰值或均匀到达即可。
+
+- 若采用泊松假设，则短时间区间 $\Delta t$ 内的事件数 $N_{\Delta t}$ 满足如下分布：
+\begin{equation}
+N_{\Delta t}\sim\text{Poisson}\bigl(\lambda(t)\Delta t\bigr).
+\end{equation}
+- 另一种做法是通过时间融合法或逆置换采样等方式一次性生成所有行人的到达时刻 $\{t_e\}$，并将这些事件按时间排序，得到离散事件序列 $\mathcal{E}=\{e=1,\dots,E\}$，其中每个事件 $e$ 发生在时刻 $t_e$。
+
+在模拟行人踩踏楼梯时，我们需要将每位行人的“足迹”投影到楼梯坐标系 $(x,y)$ 上，以便计算楼梯上的
+
+% ===================== p24 =====================
+增量磨损。我们采用图像化的方法来处理这一问题：
+\begin{itemize}
+\item \textbf{图像加载}：准备一幅二值或灰度“足部图像”，足部区域为 1，背景为 0。
+\item \textbf{高斯模糊处理}：为避免鞋底边缘过于尖锐，我们对鞋底图像施加高斯模糊：
+\begin{equation}
+\text{foot\_blur}(u,v)=\frac{1}{Z}\sum_{(p,q)}\text{foot\_bin}(p,q)
+\exp\Bigl[-\frac{(p-u)^2+(q-v)^2}{2\sigma^{2}}\Bigr],
+\end{equation}
+其中 $\sigma$ 为模糊半径，$Z$ 为归一化因子。经过该处理，得到平滑的足迹分布，鞋底中心数值较高，边缘逐渐衰减。
+\item \textbf{随机偏移}：当每个行人事件 $e$ 发生时，我们对足迹图进行随机旋转和/或平移，以模拟行人在台阶上略有不同的踩踏位置。例如，将足迹图像 $\text{foot\_blur}(u,v)$ 放置在 $(x_e,y_e)$ 处并执行相应的偏移操作：
+\begin{equation}
+\text{foot\_dist}^{e}(x,y)=\text{roll\_and\_place}\bigl[\text{foot\_blur},(x_e,y_e),\Delta_x^{e},\Delta_y^{e},\theta^{e}\bigr],
+\end{equation}
+其中 $\Delta_x^{e}$、$\Delta_y^{e}$ 与 $\theta^{e}$ 分别表示 $x$、$y$ 方向上平移量与旋转角度的随机扰动。
+\end{itemize}
+
+在离散事件仿真中，每个行人事件 $e$ 具有一个\textbf{总磨损因子} $\eta_e>0$，它表示“单个足迹”的平均磨损深度（对某些材料而言，$\eta_e$ 是一个小常数）。足迹图 $\text{foot\_dist}^{e}(x,y)$ 随后乘以 $\eta_e$，得到事件 $e$ 对楼梯各点磨损的贡献：
+\begin{equation}
+\Delta h_e(x,y)=\eta_e\cdot\text{foot\_dist}^{e}(x,y).
+\end{equation}
+在一天结束时，我们可以对全部事件 $e\in\mathcal{E}$ 求和，得到当天的总磨损：
+\begin{equation}
+h_{\text{sim}}(x,y)=\sum_{e\in\mathcal{E}}\Delta h_e(x,y)
+=\sum_{e\in\mathcal{E}}\eta_e\cdot\text{foot\_dist}^{e}(x,y).
+\end{equation}
+这样，借助图像叠加，我们能够准确建模每位行人对楼梯的磨损贡献，并最终获得整段楼梯的总磨损。
+
+基于 DES 的模型为刻画人流引起的磨损动态与空间模式提供了稳健框架。通过引入到达率函数与泊松事件生成，并结合高斯模糊与随机偏移，该模型能够准确模拟集中人流与分散人流如何共同造成台阶磨损。该方法可对日常人流模式进行高分辨率、实时分析，相较传统宏观模型有显著改进。它给出了更精确的磨损分布表示，使其成为学术研究与实际应用中的有价值工具，尤其是在交通、基础设施管理与城市规划等领域。
+
+\section{灵敏度分析}
+
+在本灵敏度分析中，模型固定两种人群模式——“短期大量使用”与“长期少量使用”——同时将材料磨损系数 $\kappa$ 从 $1\times10^{-7}$ 逐步变化到 $3\times10^{-7}$。结果表明，对两种模式而言，最大的凹陷都出现在台阶中心附近，且最终磨损深度整体随 $\kappa$ 增大而增加。在“长期少量使用”模式下，磨损累积更均匀，不同 $\kappa$ 值对应的曲线之间的差异趋于近似按倍数缩放。相比之下，“短期大量使用”涉及一次集中的踩踏爆发，在短时段结束后即停止，产生更离散的磨损区间，使最终曲线无法呈现简单的线性或倍数增长模式。总之，模型
+
+% ===================== p25 =====================
+对 $\kappa$ 仍然高度敏感，表明精确标定该参数对于避免因微小估计偏差引起显著预测误差至关重要。
+
+在本模型中，$\alpha_{\text{short}}$ 表示“短期大量使用”情景下并排行走的概率。在长期少量使用的设定下，人流分散在更长的时间段内，$\alpha_{\text{short}}$ 的变化对最终磨损影响极小，曲线几乎难以区分，表明该参数在此情境下不敏感。相反，若只关注短期大量使用情景，$\alpha_{\text{short}}$ 对决定人流集中程度影响很大：更高的并排概率会导致踏面中心在短时间内出现更明显、更快速的凹陷。因此，短期大量使用下 $\alpha_{\text{short}}$ 的变化会显著影响最终凹陷的形状与深度。
+
+此外，我们还对模型的其他参数进行了灵敏度分析，但它们相互作用的复杂性使此处无法详细讨论；简而言之，我们发现模型对总仿真时间 $T$ 与到达率 $N$ 等参数高度敏感。
+
+\section{优缺点}
+
+\subsection{优点}
+\begin{itemize}
+\item 本文整合了不同的子模型（包括单行/并行使用、多层 PDE 与离散事件仿真），以处理日常与长期台阶磨损情景。
+\item 通过对关键参数赋予先验分布，该方法纳入了考古知识，并细化了磨损速率、使用比例与材料属性的估计。
+\item 粒子群优化给出全局最优，而该最优附近的 MCMC 捕捉参数不确定性并产生后验分布。
+\item 通过施加高斯模糊与随机偏移，最终的三维磨损深度分布更好地模拟了真实足迹与日常修复。
+\end{itemize}
+
+\subsection{缺点}
+\begin{itemize}
+\item 多个子模型与贝叶斯先验的组合使用需要管理大量参数，计算需求可能很高。
+\item 准确的三维台阶表面数据至关重要。稀疏或低质量的测量会限制 PDE 与概率模型的精度。
+\item 施加二阶梯度惩罚会强制全局平滑，但可能忽略突发的磨损异常或材料的突然变化。
+\end{itemize}
+
+% ===================== p25-p26 =====================
+\newpage
+\begingroup
+\small
+\begin{thebibliography}{9}
+\setlength{\itemsep}{2pt}
+\bibitem{1} Jill K. Startzell, D. Alfred Owens, Lorraine M. Mulfinger, and Peter R. Cavanagh. Stair negotiation in older people: a review. \textit{Journal of the American Geriatrics Society}, 48(5): 567--580, 2000.
+\bibitem{2} In-Ju Kim. A study on wear development of floor surfaces: Impact on pedestrian walkway slip-resistance performance. \textit{Tribology International}, 95: 316--323, 2016.
+\bibitem{3} John Frederick Archard and Wallace Hirst. The wear of metals under unlubricated conditions. \textit{Proceedings of the Royal Society of London. Series A. Mathematical and Physical Sciences}, 236(1206): 397--410, 2016.
+\bibitem{4} Michael Steiger, A. Elena Charola, and Katja Sterflinger. Weathering and deterioration. In \textit{Stone in Architecture: Properties, Durability}, pages 227--316, 2011.
+\bibitem{5} Roger Enblom. Deterioration mechanisms in the wheel--rail interface with focus on wear prediction: a literature review. \textit{Vehicle System Dynamics}, 47(6): 661--700, 2007.
+\bibitem{6} John K. Kruschke and Wolf Vanpaemel. Bayesian estimation in hierarchical models. In \textit{The Oxford Handbook of Computational and Mathematical Psychology}, pages 279--299, 2015.
+\bibitem{7} Aur\'elien Hazart, Jean-Fran\c{c}ois Giovanelli, St\'ephanie Dubost, and Laurence Chatellier. Inverse transport problem of estimating point-like source using a bayesian parametric method with mcmc. \textit{Signal Processing}, 96: 346--361, 2014.
+\bibitem{8} Limin Zhang, Yinggan Tang, Changchun Hua, and Xinping Guan. A new particle swarm optimization algorithm with adaptive inertia weight based on bayesian techniques. \textit{Applied Soft Computing}, 28: 138--149, 2015.
+\end{thebibliography}
+\endgroup
+
+\end{document}
