@@ -1,0 +1,584 @@
+\documentclass[11pt,a4paper]{ctexart}
+\usepackage[margin=2.4cm]{geometry}
+\usepackage{amsmath,amssymb,bm}
+\usepackage{amsthm}
+\usepackage{enumitem}
+\usepackage{fancyhdr}
+\usepackage[hidelinks]{hyperref}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{Team 2616026}
+\fancyhead[R]{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+\setlength{\parskip}{0.35em}
+\setlength{\parindent}{2em}
+\linespread{1.15}
+\newtheorem{theorem}{定理}
+\newtheorem{definition}{定义}
+\newtheorem{proposition}{命题}
+\newtheorem{lemma}{引理}
+\renewcommand{\proofname}{证明}
+\title{超越线性耗电：面向智能手机续航预测的分层物理模型}
+\author{}
+\date{}
+\begin{document}
+\maketitle
+
+\section*{摘要}
+
+智能手机续航的不可预测性——源于硬件组件功耗、随机用户行为与电化学非线性三者的耦合——已成为用户体验中的关键痛点。为应对这一挑战，我们构建了\textbf{分层连续时间荷电状态模型（Hierarchical Continuous-time State-of-Charge Model, HCSM）}，该框架遵循“线性基线 $\rightarrow$ 组件叠加 $\rightarrow$ 电化学约束”的三阶段渐进逻辑，将电池系统刻画为由微分方程驱动的动态过程。我们采用\textbf{参数三角测量策略}，将权威拆解数据与文献基准通过交叉验证相结合，完成了 iPhone 13 Pro Max 的系统级参数标定。
+
+定量分析揭示出一种反直觉的能耗层级。将处理器从空闲切换至满载使续航时间（Time-to-Empty）\textbf{缩短 27.9 小时}（超过基线续航的两倍），从而确立其为快速耗电的首要驱动因素；将屏幕亮度从最低调至最高代价为 \textbf{9.8 小时}，而通常被指责的后台应用仅贡献 \textbf{1.1 小时}——这一发现表明，用户频繁“杀应用”的行为会通过反复的启动过程触发 CPU 唤醒周期，反而招致能量损失。更关键的是，该模型捕捉到了\textbf{“低 SOC 雪崩效应”}：当荷电状态降至 20\% 以下时，电压下降迫使电流补偿性增大以维持恒功率负载，形成加速耗电的正反馈回路。该机理解释了“最后 20\% 比最初 80\% 耗电更快”这一普遍现象。在七个代表性场景（从待机到游戏）上的验证表明，多数情况下预测误差保持在 10\% 以内，\textbf{平均绝对误差为 1.8 小时}；蒙特卡洛模拟进一步证实，即便在参数扰动下，90\% 置信区间仍覆盖实测值，验证了模型的统计稳健性。
+
+基于这些机理洞见，我们提出分层优化策略。在用户层面，应启用\textbf{自适应亮度}以避开屏幕的超线性功耗区，应保留常用应用而非激进清理，并应在电量接近 \textbf{25\%} 时切换至低功耗模式以缓冲雪崩效应。在系统层面，应以动态微分方程求解器替代静态开路电压查找表，从而基于瞬时功率抽取实现续航的实时更新，同时实施\textbf{温度感知的 CPU 削峰调度}，以限制处理器进入超线性功率增长的超高频区。得益于其模块化架构，HCSM 框架可通过边界参数重新标定推广至平板电脑、可穿戴设备与电动汽车，为移动能源系统提供从微观机理到宏观策略的完整解决方案。
+
+\noindent\textbf{关键词：}分层连续时间模型；低 SOC 雪崩效应；电压—电流耦合；参数不确定性量化；能源管理策略
+
+\newpage
+\section{引言}
+
+\subsection{问题背景}
+
+智能手机已成为日常生活中不可或缺的工具，而其电池性能直接塑造了整体用户体验。然而，电池耗尽的过程既不稳定一致，也不直观可预测。即便在相近的使用时长下，电池电量下降的速率在不同使用场景之间也可能存在显著差异\cite{carroll2010}。这种变异性不能仅归因于使用时长；相反，它源于多种相互作用的因素的共同影响。
+
+具体而言，屏幕亮度、处理器负载、网络连接与后台应用活动持续影响着功耗。此外，外部与历史因素——包括环境温度与电池老化程度——可能改变电池的有效容量与放电特性。这些影响随时间的累积使电池消耗呈现出动态且非均匀的行为，从而增加了准确评估剩余电量与可用工作时长的难度\cite{djordjevic2006}。
+
+因此，有必要从定量角度刻画电池电量的整体时间行为。这样做能够更清晰地理解不同使用条件下的电池消耗模式，并为后续分析荷电状态（State of Charge, SOC）与剩余可用时间奠定基础。
+
+\subsection{问题重述}
+
+依据题目要求，本研究需完成以下相互关联的目标：
+
+\begin{itemize}[leftmargin=2em]
+\item 构建一个有物理依据的连续时间电池放电模型，刻画智能手机电池行为随时间的演化；该模型从最基础、最合理的能量耗尽机理出发，并逐步扩展框架以纳入组件级非线性与电化学约束等额外的影响因素。
+\item 使用所提模型预测多种现实条件下的剩余电池续航（Time-to-Empty），包括以下方面：
+  \begin{itemize}[leftmargin=1.6em,label=--]
+  \item 估计或近似各种初始荷电水平与使用场景（从待机到密集操作）下的电池耗尽时间。
+  \item 比较各场景的预测结果并解释这些差异的来源，识别驱动电池快速耗电的具体活动或条件，并量化其相对贡献。
+  \end{itemize}
+\item 通过修改建模选择、参数设置与使用模式，系统考察模型对假设与参数值变化的敏感性，并分析这些变化如何影响预测结果，以评估模型的稳健性与适用范围。
+\item 将基于模型的发现转化为现实使用的实用建议，把定量洞见转换为面向智能手机用户或系统设计者的可执行指导，并讨论建模框架在考虑电池老化或推广至平板电脑与可穿戴设备等其他便携电子设备方面的潜在可扩展性。
+\end{itemize}
+
+\subsection{我们的工作}
+
+我们的求解思维导图如下所示。
+
+\section{假设与合理性说明}
+
+在整个建模过程中，我们作出以下全局假设。各建模阶段的具体简化假设将在相应章节中阐明。
+
+\begin{itemize}[leftmargin=2em]
+\item \textbf{假设 1：硬件功耗相互独立且线性可加。}
+
+\textbf{合理性说明：}现实中硬件组件是耦合的；例如高 CPU 负载产生热量，可能略微降低屏幕效率。然而，建模这些二阶交叉耦合效应会导致方程系统难以处理。通过假设独立性，我们将总功率视为各模块需求的线性叠加。这一近似在不损害功耗估计宏观精度的前提下，显著简化了识别高耗能活动的复杂度。
+
+\item \textbf{假设 2：在单个放电循环内电池健康度恒定。}
+
+\textbf{合理性说明：}电池老化是历经数年（数百次循环）的累积过程，而单次放电事件在数小时内即完成。由于 24 小时周期内容量的变化微乎其微，将电池健康视为当前预测任务的静态初始边界条件而非时变变量，在数学上是严谨的。
+
+\item \textbf{假设 3：放电过程近似为准静态。}
+
+\textbf{合理性说明：}我们假设电压与输出对负载变化瞬时响应。现实中电池存在微秒级瞬态响应。然而，考虑到人类以秒或分钟为尺度操作，忽略微瞬态可滤除高频噪声，使我们能够在人类可感知的尺度上定义“续航时间（Time-to-Empty）”。
+
+\item \textbf{假设 4：在活跃使用场景中自放电可忽略。}
+
+\textbf{合理性说明：}锂电池自放电表现为微安级漏电流。相比之下，智能手机常规运行抽取的电流处于毫安至安培量级。由于漏电流幅度显著小于工作电流的噪声基底，纳入它在活跃使用场景下只增加计算成本，而在预测精度上并无统计收益。
+
+\item \textbf{假设 5：环境温度作为简化的环境常数。}
+
+\textbf{合理性说明：}我们区分内部温度（因焦耳发热而动态上升）与外部环境。我们假设环境温度遵循稳定或可平滑预测的趋势，而不呈现随机波动。该方法避免了对复杂环境空气动力学方程（偏微分方程，PDEs）建模的需要，使我们能够聚焦于电池的内部热极限。
+\end{itemize}
+
+\section{符号说明}
+
+本文所用的关键数学符号列于表 1。
+
+\noindent $N$——表示准确使用历史的循环次数（老化因子），单位：次（count）\\
+$P_k(t)$——组件 $k$ 的瞬时功耗，单位：mW\\
+$Q_{eff}(t)$——电池的有效动态容量，单位：mAh\\
+$Q_{nom}$——制造商定义的电池标称（额定）容量，单位：mAh\\
+$SOC(t)$——剩余电量的时间相关函数，单位：/\\
+$t$——连续时间变量，单位：h\\
+$T$——影响电化学效率的工作温度，单位：$^{\circ}$C\\
+$V_{nom}$——制造商定义的电池标称端电压，单位：V\\
+$V(SOC)$——作为 SOC 非线性函数的电池端电压，单位：V\\
+$\gamma_{\chi}$——效率修正因子，其中 $\chi\in\{Temp,Rate,Aging\}$，单位：/\\
+$\eta_{mode}$——不同网络制式（WiFi/4G/5G）的权重系数，单位：/\\
+$\theta$——控制电压曲线凸性的形状因子，单位：/\\
+$\mu,\beta$——屏幕与 CPU 高负载的非线性功率缩放指数，单位：/\\
+$\Psi,\delta$——网络吞吐量与 GPS 状态的工作负载强度，单位：/
+
+\noindent*注：还有一些变量未在此列出，将在下文详细讨论。
+
+\section{分层连续时间 SOC 模型的构建}
+
+本节构建一个连续时间模型，用以描述智能手机电池荷电状态（SOC）随时间的演化。针对现实使用中复杂的功耗来源与频繁的状态切换，我们采用分层建模（Hierarchical Modeling）策略。该方法将理想假设逐步扩展为物理上可实现的演化机制，最终归结为完整的分层连续时间 SOC 模型（HCSM）。图 3 展示了该分层 SOC 模型的整体流程。
+
+构建过程经过三个逻辑递进的阶段：
+
+\begin{itemize}[leftmargin=2em]
+\item 阶段 I（§4.1）：在理想条件下建立线性基线，为后续修正提供参考基准。
+\item 阶段 II（§4.2）：引入现实功耗的具体非线性特征与组件叠加机制。
+\item 阶段 III（§4.3）：耦合电化学约束，实现物理闭环。
+\end{itemize}
+
+\subsection{理想条件下的线性基线}
+
+恒功率线性 SOC 基线（Constant-Power Linear SOC Baseline, CPL-SOC）构成我们整个框架的“理论基准模型”。在完全理想化的稳态待机环境中，智能手机的功耗仅源自维持基带射频心跳与操作系统功能所必需的能量，其数值可视为恒定。该模型旨在探究一个基本物理问题：“在最简单的线性假设下，电池电量以何种速率耗尽？”
+
+\subsubsection{假设}
+
+CPL-SOC 的构建依赖于以下三条关键理想假设：
+
+\begin{itemize}[leftmargin=2em]
+\item \textbf{恒定电负载}
+
+我们假设总输出功率 $P(t)$ 近似为常值 $P_0$。这对应于一种“深度睡眠”状态：手机基本处于非活动静止状态，屏幕长时间锁定，用户抑制了所有后台应用。
+
+\item \textbf{恒定端电压}
+
+我们假设端电压 $V_{nom}$ 始终维持其标称值不变。尽管这在实践中并不成立（电压随 SOC 下降），但它提供了最直观的线性参照，在能耗与电量耗尽之间建立了严格的线性比例关系。
+
+\item \textbf{理想化电池行为}
+
+将电池视为理想组件，我们忽略温度与老化等因素，假设在非极端电流下电池容量保持为固定额定值 $Q$。
+\end{itemize}
+
+\subsubsection{控制方程推导}
+
+基于上述假设，我们从基本的电荷守恒定律出发。支配荷电状态（SOC）变化的基本方程为：
+\[
+\frac{dSOC(t)}{dt} = -\frac{I(t)}{Q}
+\]
+其中 $I(t)$ 表示瞬时放电电流，$Q$ 表示电池标称容量。然而，在系统层面，考虑到功率参数在移动设备中更易获取，我们利用恒压假设下的关系 $P(t)=I(t)\cdot V_{nom}$，将该方程转化为面向工程的表述：
+\begin{equation}
+\frac{dSOC(t)}{dt} = -\frac{P(t)}{V_{nom}\cdot Q}
+\end{equation}
+当 $P(t)$ 等于常值 $P_0$ 时，该方程给出闭式解析解：
+\begin{equation}
+SOC(t) = SOC_0 - \frac{P_0}{V_{nom}\cdot Q}\cdot t
+\end{equation}
+该方程表明，在理想条件下，电池电量随时间呈现严格的线性衰减。
+
+尽管这一简化模型给出了电池性能形态的理论最优值，它本质上无法刻画用户交互的随机性以及非线性电压降落（我们将在 §4.3 中研究）。因此，解决这些局限界定了我们下一层模型精化的方向与目标。
+
+\subsection{组件叠加的非线性动力学}
+
+在现实场景中，智能手机通常同时运行多个耗电组件，且功耗水平随用户行为显著波动。因此，我们不能再将总功率视为常数。在 CPL-SOC 基线之上，我们提出组件可加功率 SOC 扩展（Component-Additive Power SOC Extension, CAP-SOC），以刻画多组件功率动态。
+
+遵循工程建模中的一阶近似原则，我们将系统在时刻 $t$ 的总功耗视为各独立硬件模块功耗的瞬时线性叠加：
+\begin{equation}
+P_{total}(t) = P_{base} + \sum_{k\in\{scr,cpu,net,gps,bg\}} P_k(t)
+\end{equation}
+式中 $P_{base}$ 表示我们在 §4.1 中确定的基线待机功率。$P_k(t)$ 表示各硬件组件随时间变化的动态功耗。
+
+在下文中，我们将详细讨论各不同组件 $k$ 的函数表达式与参数的物理意义。
+
+\noindent\textbf{1. 屏幕}
+
+显示面板是智能手机中的主要能量支出源。其功耗不仅取决于亮度，还显著依赖所显示的内容（尤其对 OLED 屏幕）。理论上，屏幕功率按 $P_{scr}\propto B\cdot\alpha$ 缩放，其中 $B$ 表示亮度，$\alpha$ 表示有效像素比（Active Pixel Ratio）。
+
+为在保持模型精度的同时降低参数复杂度，我们采用平均场近似。我们将内容影响并入功率系数，并专注于刻画亮度的非线性驱动：
+\begin{equation}
+P_{scr}(t) = \delta_{scr}(t)\cdot P_{scr}^{\max}\cdot [B(t)]^{\mu}
+\end{equation}
+其中：
+
+\begin{itemize}[leftmargin=2em]
+\item $\delta_{scr}(t)$ 取值于 $\{0,1\}$，作为屏幕激活状态因子。
+\item $B(t)$ 表示归一化亮度，范围为 0 到 1。
+\item $\mu$ 作为亮度—功率非线性指数（通常取 1.4 至 1.7 之间的经验值\cite{dong2011}），反映背光驱动电路的超线性响应特性。
+\end{itemize}
+
+\noindent\textbf{2. 处理器}
+
+处理器子系统涵盖智能手机内的所有计算单元（CPU、GPU、NPU、DSP）。经验数据表明，在一般使用场景中 CPU 贡献了超过 75\% 的动态功率。因此，我们显式建模占主导的 CPU 动态功率，并将所有非主导单元（如 GPU/NPU/DSP 的空闲电流）的基线静态功率归并至 $P_{cpu}^{idle}$。
+
+CPU 功率—负载关系本质上是非线性的，源于工作频率与核心电压之间的高度耦合：为获得高性能，电压必须随频率超线性增长\cite{greaves2012}。我们推导经典的动态功率幂律模型：
+\begin{equation}
+P_{cpu}(t) = P_{cpu}^{idle} + \left(P_{cpu}^{\max} - P_{cpu}^{idle}\right)\cdot [u_{cpu}(t)]^{\phi}
+\end{equation}
+其中：
+
+\begin{itemize}[leftmargin=2em]
+\item $P_{cpu}^{idle}$ 是整个处理器子系统的基线静态功率，包含 CPU 漏电流与辅助单元的待机消耗。
+\item $P_{cpu}^{\max}$ 表示 CPU 满载时该子系统的最大功率。
+\item $u_{cpu}(t)$ 表示归一化工作负载代理指标，代表 CPU 利用率水平，范围为 0 到 1。
+\item $\phi$ 作为反映高频下功率非线性增长的指数因子\cite{pathak2012}，其中 $\beta>1$。
+\end{itemize}
+
+\noindent\textbf{3. 网络接口}
+
+无线接口的能耗呈现显著的“状态依赖特征”。与简单的线性模型不同，我们严格区分连接维持（尾状态，Tail state）与数据吞吐（吞吐状态，Throughput state），并引入制式系数以区分 WiFi/4G/5G 之间的能效：
+\begin{equation}
+P_{net}(t) = P_{conn} + \eta_{mode}\cdot\Psi_{net}(t)
+\end{equation}
+其中：
+
+\begin{itemize}[leftmargin=2em]
+\item $P_{conn}$ 表示保持基带射频处于激活状态所需的基线功率。
+\item $\Psi_{net}(t)$ 表示归一化数据吞吐强度。
+\item $\eta_{mode}$ 是网络制式有效权重系数\cite{liu2023}。
+\end{itemize}
+
+该方程修正了原始模型无法区分通信制式、或无法反映高负载传输所致瞬态电流冲击的缺陷。
+
+\noindent\textbf{4. GPS}
+
+GPS 模块启用时会持续进行卫星信号接收与定位计算，维持相对稳定的功率水平。相反，显式建模其非激活状态所揭示的消耗可忽略不计。因此，一个简单的二值模型即已足够：
+
+令 $\delta(t)$ 为 GPS 激活状态指示变量（关闭为 0，开启为 1），$P_{gps}^{active}$ 为额定功率。于是：
+\begin{equation}
+P_{gps}(t) = \delta(t)P_{gps}^{active}
+\end{equation}
+该近似有效反映了定位功能对系统功率的间歇性影响，且不引入多余的状态变量。
+
+\noindent\textbf{5. 后台应用}
+
+数值表明，现代操作系统后台机制即便在屏幕关闭或用户交互停止时仍持续消耗能量。为弥合这一“能耗盲区”，我们建立后台任务聚合模型。
+
+类似地，我们将推送通知、云同步与后台进程唤醒等离散事件聚合，利用后台强度系数 $\beta_{bg}(t)$——取值于区间 $[0,1]$——进行宏观表征：
+\begin{equation}
+P_{bg}(t) = \beta_{bg}(t)P_{bg}^{\max}
+\end{equation}
+其中 $P_{bg}^{\max}$ 表示高后台活动（例如大规模数据同步）期间的额定功率。若剔除该项，模型将无法解释“待机一夜电量耗尽”这一物理现象。
+
+综合上述各组件，我们得到 CAP-SOC 框架下完整的系统功率函数。将其代入式 (1) 中的功率项，即建立了设备功耗与 SOC 变化率之间的定量联系：
+\begin{equation}
+\frac{dSOC(t)}{dt} = -\frac{1}{Q\cdot V_{nom}}\left(P_{base} + \sum_{k\in M} P_k(\mathbf{x}_t)\right)
+\end{equation}
+其中 $M=\{scr,cpu,net,gps,bg\}$。
+
+至此，需求侧能耗建模完成。
+
+\subsection{电化学约束集成的 SOC 模型}
+
+§4.2 在设备侧建立了时间维度的能量需求模型；然而该模型仍依赖恒定电压与固定额定容量的理想化假设。现实中，SOC 的演化源于电荷流动与电化学动力学的耦合，而非简单的能量积分。电压降落、内阻发热、Peukert 效应与容量衰减等因素共同决定最终结果。本节将统一这些物理约束，构建最终的分层连续时间 SOC 模型。
+
+\subsubsection{通过电压降落的供需耦合}
+
+我们以 OCV-SOC 关系替代理想电压假设，以刻画非线性端电压衰减。由于现代电源管理系统表现出典型的“恒功率负载”行为，这种电压衰减自然要求放电电流补偿性增大。
+
+为在电压与 SOC 之间定义精确的单调映射，同时保持数学连续性与可解性，我们采用幂函数对端电压演化建模：
+\begin{equation}
+V_{cell}(SOC_t) = V_{\min} + \left(V_{\max} - V_{\min}\right)\cdot [SOC(t)]^{\theta}
+\end{equation}
+其中：
+
+\begin{itemize}[leftmargin=2em]
+\item $V_{\max}$ 与 $V_{\min}$ 分别表示智能手机电池的满充截止电压与放电终止电压（通常为 4.2\,V 与 3.0\,V）\cite{bu303}。
+\item $\theta$ 作为形状因子。当 $\theta<1$ 时，函数呈凸形，有效反映从高电位平台向低电位区的非线性过渡\cite{plett2004}。
+\end{itemize}
+
+将该电压方程代入式 (9)，我们修正 SOC 随时间变化的微分速率：
+\begin{equation}
+\frac{dSOC}{dt} = -\frac{1}{Q_{nom}}\cdot\frac{P_{total}(t)}{V_{\min} + \left(V_{\max} - V_{\min}\right)\cdot [SOC(t)]^{\theta}}
+\end{equation}
+通过在分母中引入 $V(SOC)$ 项，该模型在数学上刻画了系统内部的正反馈失稳回路：
+\[
+SOC\downarrow \;\longrightarrow\; V_{cell}\downarrow \;\longrightarrow\; I_{req}=\frac{P}{V}\uparrow \;\longrightarrow\; \frac{dSOC}{dt}(\text{Rate})\uparrow \;\longrightarrow\; SOC\downarrow\downarrow
+\]
+该机制验证了普遍的用户体验：智能手机从 100\% 到 20\% 时耐用且下降缓慢，但最后 20\% 似乎迅速消失。电池不仅储存的电量更少，而且在负载下变得更不耐用。
+
+\subsubsection{多物理修正的有效容量}
+
+上一节揭示了电压跌落所触发的广泛瞬时动态反馈。本节将处理状态依赖的容量约束：额定容量 $Q_{nom}$ 代表理想实验室条件下测得的基线；然而在现实运行中，电池的“总可用电荷”受温度、放电倍率与老化的调制。我们引入三个无量纲修正因子 $\gamma$，以定义时刻 $t$ 的动态有效容量 $Q_{eff}$：
+\begin{equation}
+Q_{eff}(t) = Q_{nom}\cdot\gamma_{Temp}(t)\cdot\gamma_{Rate}(t)\cdot\gamma_{Aging}(N)
+\end{equation}
+各主要因子的定义如下：
+
+\begin{itemize}[leftmargin=2em]
+\item \textbf{温度修正因子} $\gamma_{Temp}(t)$：低温环境显著增加电解液黏度并阻碍离子迁移，使活性锂无法参与反应。基于简化的 Arrhenius 工程近似\cite{panasonic2020}：
+\begin{equation}
+\gamma_{Temp}(t) = 1 - \alpha_T\cdot\left(T_{ref} - T(t)\right)^2 \qquad (\text{当 } T<T_{ref})
+\end{equation}
+
+\item \textbf{倍率修正因子} $\gamma_{Rate}(t)$：依据 Peukert 定律\cite{doerffel2006}修正，大电流放电加剧电极极化，从而削弱电池提取总电荷的能力：
+\begin{equation}
+\gamma_{Rate}(t) = \left(\frac{I_{ref}}{I_{dis}(t)}\right)^{\rho-1} \approx \left(\frac{I_{ref}\cdot V(S)}{P_{sys}(t)}\right)^{\epsilon}
+\end{equation}
+其中 $\rho$ 为 Peukert 常数（锂电池通常取 1.05），$I_{ref}$ 为标准测试电流（0.2C），$I_{dis}$ 为实时放电电流。
+
+\item \textbf{老化修正因子} $\gamma_{Aging}(N)$：这代表长时间尺度上的容量衰减，由 SEI 膜增厚与活性物质损失引起。与单次放电事件不同，这是一个状态参数。假设电池已历经 $N$ 个等效循环\cite{wang2011}：
+\begin{equation}
+\gamma_{Aging}(N) = 1 - k_{aging}\cdot\sqrt{N}
+\end{equation}
+其中 $k_{aging}$ 为老化速率系数，确保模型具备全生命周期预测能力。
+\end{itemize}
+
+\subsubsection{SOC 演化的分层耦合 ODE}
+
+综合 §4.2 的组件级功率需求与本节的“电化学约束”，我们推导出最终完整的分层连续时间 SOC 模型。在物理上，该统一方程可简化为：
+\[
+\frac{dSOC(t)}{dt} = -\frac{\text{瞬时放电电流}}{\text{动态修正的有效容量}}
+\]
+通过逐步代入，我们得到适合数值仿真的基础闭式常微分方程（Ordinary Differential Equation, ODE）：
+\begin{equation}
+\frac{dSOC}{dt} = -\underbrace{\frac{1}{Q_{nom}\cdot\gamma_{Aging}(N)}}_{\text{固定物理边界}}\cdot\frac{P_{total}(\text{UserBehav},\,t)}{V(SOC)\cdot\gamma_{Temp}(T)\cdot\gamma_{Rate}(P)}
+\end{equation}
+该模型为后续任务（如预测续航时间（Time-to-Empty, TTE））提供了可靠的计算物理框架。
+\section{数值验证与放电动力学分析}
+
+在 §4 中建立了分层连续时间 SOC 模型（HCSM）的理论框架之后，本章选取 Apple iPhone 13 Pro Max 作为基准设备。我们旨在通过特定“初始荷电水平”与复杂“多种使用场景”下的数值实验，系统评估模型的预测稳健性，并进一步量化模型不确定性、探究驱动功耗的机理。
+
+\subsection{实验设置与参数标定}
+
+鉴于现代智能手机硬件的高度集成与闭源特性，准确获取组件级功耗参数是一项重大挑战。为保证模型输入的物理真实性，我们采用“参数三角测量策略”来界定 HCSM 的边界条件与系统参数。我们优先使用针对目标机型的权威拆解与实测数据。在缺乏实测数据时，我们以同行评审文献中的通用锂离子电池参数补充数据集，并利用交叉验证满足量级上的合理性。
+
+表 2 汇总了求解 HCSM 所需的关键硬件规格。这些数据构成微分方程组的系数，并界定了仿真结果的物理边界。
+
+\subsection{状态依赖性分析与基于场景的 TTE 预测}
+
+本节首先应用 HCSM 解决核心的“续航时间（TTE）”预测问题。我们考察电池内部状态（初始电量）与外部负载（使用场景）在决定续航中所起的关键作用。
+
+\subsubsection{初始荷电水平的影响}
+
+本质上，电池放电过程构成一个状态依赖的动态系统。我们首先定义一个由固定组件活动向量构成的“标准混合负载（Standard Mixed Load, SML）对照组”。在该恒定负载下，我们研究不同初始 SOC（$SOC_{init}$）对放电轨迹的影响。
+
+我们依据 OCV 分量曲线的几何特征构建分层测试集。如下所示，这些采样点准确锚定了放电循环的关键阶段：
+
+\subsubsection{低 SOC 雪崩效应}
+
+考虑到电压截止阈值附近的刚性动力学，我们采用自适应 Runge--Kutta 方法（RK45）求解微分方程组以确保数值稳定性。仿真结果揭示了显著的非线性动态特征：当电池处于低电量阶段时，相同的组件负载会触发更快的 SOC 下降速率（$dSOC/dt$）。
+
+图 4 展示了不同初始荷电水平下电压特性与放电速率之间的这种非线性耦合关系。
+
+我们观察到，HCSM 通过引入开路电压（Open Circuit Voltage, OCV）的非线性衰减项（如式 10），捕捉了低电量区间（SOC $<$ 25\%）的“电压悬崖”效应。在恒功率负载下，电压下降迫使电流上升，从而加速放电。与线性模型相比，HCSM 对低电量续航的预测更为保守和安全，因而体现出更高的物理保真度。
+
+\subsubsection{各种使用场景下的 TTE}
+
+为进一步验证 HCSM 在复杂动态环境中的预测精度，我们将抽象的用户行为映射为具体的\textbf{组件活动向量}。基于“标准场景对齐—参数映射—外部验证”的策略，我们选取 8 类典型场景，覆盖从低功耗睡眠到高功耗运行（见下表）。
+
+值得注意的是，不同场景具有不同的组件功耗指纹。例如，“3D 游戏”（S6）场景的特征是屏幕（高亮度）、GPU（满载）与网络接口的同时高强度激活。相反，“音频播放”（S2）场景尽管因持续信号解码而存在 CPU 利用率，却使最耗电的组件——屏幕——保持关闭。
+
+模型读取上述特征向量并在时域上积分，得到各场景的预测续航时间（TTE）。表 5 汇总了 HCSM 预测与实测数据的比较。
+
+初步统计结果表明，模型在绝大多数场景下的预测相对误差保持在 10\% 以内，验证了 HCSM 捕捉复杂外部负载的强大泛化能力。
+
+\subsection{模型保真度评估与不确定性量化}
+
+仅有点估计无法充分刻画模型的稳健性。本节通过不仅量化预测不确定性，而且识别模型表现优异或欠佳的场景来应对该问题。
+
+\subsubsection{模型精度的边界与误差结构的归因}
+
+为在更细粒度上考察预测性能，图 5 给出了预测值与实测值的对齐分析及相应的误差分布。
+
+结合图形与实测数据，我们将模型的适用性划分为两个不同区域：
+
+\begin{itemize}[leftmargin=2em]
+\item \textbf{高置信区（预测准确）}。对于特性稳定的场景（如本地视频、GPS 导航、音频播放），我们将相对误差保持在 $|e|<5\%$ 以内。我们之所以达到这一精度，是因为能够用时间平均值很好地近似功率结构，并且能够预见 Peukert 效应的影响。
+\item \textbf{低置信区（偏差较大）}。对于具有瞬态随机性的场景（如网页浏览、3D 游戏），误差增至 10\%–16\%。
+  \begin{itemize}[leftmargin=1.6em,label=--]
+  \item \textbf{负偏驱动（网页浏览；HCSM $<$ 观测值）}。高度异质的网页内容导致长尾的网络与渲染功率，因此简单均值无法代表工作负载。
+  \item \textbf{高动态驱动（3D 游戏）}。在我们的测量中，iOS 施加了激进的温度节流与动态频率缩放。当设备过热时，它降低性能以节能；然而我们当前的 HCSM 假设全性能运行，因此低估了电池续航。
+  \end{itemize}
+\end{itemize}
+
+\subsubsection{通过蒙特卡洛进行不确定性传播}
+
+为考虑基准数据与个体设备之间的内在差异，我们采用蒙特卡洛方法量化参数扰动如何影响 TTE。我们将关键输入置于概率分布中（例如电池容量 $Q\sim\mathcal{N}(\mu,\sigma)$，以及环境温度 $T$），随后运行 2000 次随机采样仿真。图 6 展示了“混合日常使用”场景下 TTE 概率分布的直方图。
+
+我们的结果表明，即便参数随机变化，输出仍服从稳定的、近似正态（钟形）的分布。变异系数（Coefficient of Variation, CV）保持在 7.6\%–12.0\% 以内，且绝大多数实测真值落入我们预测的 90\% 置信区间内。这些结果验证了：尽管 HCSM 是确定性的，它在随机输入下仍表现出足够的工程级统计一致性。
+
+\subsection{驱动因素归因与敏感性洞见}
+
+为探究造成各场景间续航差距的机理，并量化快速耗电的关键驱动因素，我们引入功率分解进行因果分析。
+
+\subsubsection{分解快速耗电的驱动因素}
+
+通过提取模型积分过程中各组件消耗的累积能量，我们识别出所观察到的耗电差异背后的主导机理。图 7 按能量贡献降序堆叠了各场景的主要负载。
+
+我们的分析揭示了三种代表性的电池耗电驱动模式：
+
+\begin{itemize}[leftmargin=2em]
+\item \textbf{屏幕主导型}。在 S7 GPS 导航中，显示屏消耗 650\,mW，占总功率的 32\%，是单一最大的能量来源。在户外导航中，高亮度渲染使屏幕成为主要驱动因素。
+\item \textbf{射频主导型}。在 S7 GPS 导航中，网络（持续的 4G 通信）贡献 400\,mW，GPS 模块贡献 160\,mW。二者合计抽取约 560\,mW，占总功率的 28\%。在弱信号区域或持续定位任务中，非线性射频功率成为关键驱动因素。
+\item \textbf{计算主导型}。在 S6 3D 游戏中，处理器（CPU+GPU）抽取高达 1450\,mW，占 1879\,mW 总量的 77\%。因此该工作负载呈现出压倒性的以计算为中心的功率结构。在重负载下，A15 Bionic 表现出强烈的动态功率波动，升高的 C 率还触发显著的 Peukert 效应，进一步缩短续航。
+\end{itemize}
+
+\subsubsection{识别最大与最小影响}
+
+\begin{enumerate}[leftmargin=2.6em,label=（\alph*）]
+\item \textbf{对电池续航影响最大的因素}
+
+为识别电池耗电的主导驱动因素，我们对模型参数进行全范围敏感性扫描，并按 $\Delta$TTE 排序。结果表明处理器负载的影响最强：从空闲到满载使 TTE 缩短 27.9\,h，超过基线续航（13.5\,h）的两倍。屏幕亮度位列第二（9.8\,h），且一旦亮度超过 70\%，损失急剧增加。第三因素是电化学初始 SOC：将 SOC 从 100\% 降至 50\% 使 TTE 缩短 7.4\,h。这一非线性差距反映了 OCV--SOC 耦合，也解释了低电量时“最后几个百分点掉得更快”的原因。
+
+\item \textbf{影响出乎意料地小的因素}
+
+在确认主导项之后，我们进一步量化“期望—现实”差距（图 9(a)），并按影响从小到大对因素排序。电池老化影响最小（600 次循环后仅 0.4\,h）。后台任务次之：禁用它们使续航增加 1.1\,h。GPS 紧随其后，持续开启使其 TTE 缩短约 1.6\,h。图 9(b) 进一步以单位功率节省的能量（h/W）给出干预效率：后台任务优化表现最佳（11.0\,h/W），而网络优化表现较差（7.9\,h/W）。总体而言，最大与最小影响相差约 70 倍，前三大因素贡献了总效应的约 74.7\%。
+\end{enumerate}
+
+因此，我们应优先在一组紧凑的关键驱动因素上进行优化。
+\section{敏感性分析}
+
+在上一章中，我们使用蒙特卡洛模拟系统地量化了规定置信区间内随机参数扰动对预测续航时间（TTE）的统计影响。我们也确认了当内部参数带有固有不确定性时 HCSM 模型仍保持稳健。本章聚焦于对建模假设与使用模式变化的敏感性，并进一步验证模型在这两类偏差来源下的稳健性。
+
+\subsection{建模假设的敏感性分析}
+
+如图 10 所示，我们检验结果对模型中各项关键结构性假设的敏感性。
+
+\begin{enumerate}[leftmargin=2.6em,label=（\alph*）]
+\item \textbf{对 OCV--SOC 形状参数 $\theta$ 的敏感性。}
+
+我们改变 $\theta$ 以表征非线性 OCV--SOC 关系的曲率，并考察这一变化如何影响预测 TTE。结果表明由 $\theta$ 驱动的 TTE 变化适中，且敏感性随功率需求增加而增强。这一模式意味着 OCV 非线性误差在重负载下更易累积与放大。
+
+\item \textbf{线性模型与非线性 OCV 耦合。}
+
+我们将带非线性 OCV 耦合的 HCSM 与假设恒定端电压的简化线性模型进行比较。线性模型在所有负载下都一致地高估续航约 1 小时。该结果表明，纳入非线性 OCV--SOC 耦合对于准确预测 TTE 是必要的。
+
+\item \textbf{对功率—负载指数 $\gamma$ 与 $\beta$ 的敏感性。}
+
+我们扰动 $\gamma$（屏幕亮度—功率指数）与 $\beta$（CPU 负载—功率指数），并评估它们对 TTE 的影响。结果表明 $\gamma$ 的影响远强于 $\beta$。这一发现表明功率侧的不确定性主要来自我们对显示子系统的建模。因此，亮度—功率建模的准确性在续航预测中起着更为关键的作用。
+
+\item \textbf{对 Peukert 常数 $\rho$ 的敏感性。}
+
+当改变 $\rho$ 时，我们观察到对功率水平的强烈依赖。$\rho$ 的变化在低功率下对 TTE 几乎没有影响，但在高功率下敏感性迅速上升。这一模式表明大放电电流下的效率损失成为重负载下续航误差的主要来源。
+
+\item \textbf{含与不含 Peukert 效应。}
+
+在高负载场景下，纳入 Peukert 效应使 TTE 改变约 10\%–15\%，相当于数小时。该结果表明 Peukert 效应对游戏与导航等耗电应用具有决定性，而在轻度使用条件下可视为可忽略。
+
+\item \textbf{线性叠加假设的检验。}
+
+我们假设总功率等于各组件功率的线性和，并引入约 10\% 的交互增益以评估由此产生的误差。TTE 下降约 5\%，表明线性叠加给出了可接受的一阶近似。该发现还表明，未来可通过建模热耦合等交互机理来进一步提高高负载稳健性与上界精度。
+\end{enumerate}
+
+\subsection{使用模式波动的敏感性分析}
+
+采用逐一（one-at-a-time, OAT）敏感性分析，我们将用户行为的变化映射为组件活动水平，并量化其对续航时间（TTE）的边际影响，如图 11 所示：
+
+\begin{enumerate}[leftmargin=2.6em,label=（\alph*）]
+\item \textbf{屏幕亮度。}
+
+当我们将屏幕亮度从 0\% 变化到 100\% 时，TTE 缩短约 10.0\,h。亮度—TTE 关系呈强非线性，高亮度区段的边际能量代价更大。这一模式将亮度识别为具有高节能回报的可控杠杆。
+
+\item \textbf{处理器负载。}
+
+当我们将 CPU 负载从 0\% 提高到 100\% 时，TTE 下降约 17.3\,h，这是所有因素中变化最大的。该结果表明处理器活动是续航不确定性的首要驱动因素。它还表明续航管理应优先限制持续的高负载计算，例如通过约束后台任务与改进调度。
+
+\item \textbf{网络活动。}
+
+当我们将网络活动从 0\% 变化到 100\% 时，TTE 变化约 5.8\,h，处于中等区间。网络功率并非主导，但在大数据传输或恶劣通信条件下仍可能造成可观的续航损失。
+
+\item \textbf{使用场景比较。}
+
+当我们将组件活动水平组合为代表性场景时，TTE 从空闲（105.8\,h）降至轻度（24.9\,h）、中度（12.9\,h）与重度（7.2\,h），并在游戏（5.7\,h）与导航（6.9\,h）等高需求场景下达到最低值。因此场景差异带来数量级的变化，场景识别对于有效的剩余时间估计变得至关重要。
+
+\item \textbf{初始 SOC 效应。}
+
+初始荷电状态（SOC）与 TTE 呈现系统性非线性关系。相同的 SOC 递减量在低 SOC 区域产生更少的可用时间。该行为意味着续航随 SOC 的线性缩放会在放电末段引入偏差。
+
+\item \textbf{低 SOC 雪崩效应。}
+
+放电速率在 SOC $\approx$ 20\% 附近急剧上升，反映出低 SOC 下的“雪崩”特征。该机理在放电临近结束时加速耗尽。它解释了为何模型在低电量区域更易高估 TTE，并支持在电池接近该阈值时触发早期节能或限载策略。
+\end{enumerate}
+
+\section{策略分析与系统启示}
+
+HCSM 仿真量化了驱动电池耗电的微观机理。敏感性分析与多物理耦合进而将这些机理转化为对用户行为、操作系统级电源管理以及更广泛部署的实际启示。
+
+\subsection{用户侧策略}
+
+许多日常“省电”习惯假设使用与能量之间是近似线性关系。我们的 HCSM 结果反而显示组件功率抽取与电化学响应中存在强非线性。因此，用户策略需要瞄准具有高边际能量代价的状态区间。
+
+屏幕亮度提供了一个直接的杠杆。我们此前发现，高亮度下的小幅降低可释放可观的能量余量。因此，用户在明亮环境中\textbf{启用自适应亮度}，比将显示锁定在最大亮度获益更多。
+
+敏感性分析还挑战了一种常见做法。后台进程在总功率中所占份额比前台 CPU 工作负载更小、更平滑。反复终止与重启会把 CPU 推入频繁的“唤醒—加载”循环，并产生瞬态电流尖峰。一旦纳入 Peukert 效应修正，脉冲式大电流放电会进一步降低有效容量。因此，更可取的是\textbf{避免频繁清理并保留常用应用的驻留}。
+
+低 SOC 通过电压—SOC 耦合引入额外风险。当 SOC 降至约 20\% 以下时，CPL 行为会抬高放电电流并强化正反馈回路。因此标称电量的最后 20\% 提供的可用时间少于最初 20\%。一种保守策略是在 SOC 约 25\% 时\textbf{切换至低功耗使用并停止高功耗活动}（例如视频通话或游戏），以降低突然关机风险并保留通信余量。
+
+\subsection{系统侧优化}
+
+许多操作系统依据静态开路电压查找表（OCV 表）估计剩余电量。这种方法往往遗漏波动负载下的实时容量调制。我们的 HCSM 框架支持一种基于动态微分方程的更稳健的预测器。
+
+一个轻量级实时预测引擎可以监测总功率的瞬时变化率。它随后可在线估计耗电梯度并持续更新运行时间。当预测的剩余运行时间低于安全阈值时，操作系统应实施\textbf{组件级干预}而非统一限流。
+
+CPU 控制提供了即时的杠杆，因为处理器功率随工作负载非线性上升。调度器可以对后台任务削峰填谷，以避免低效的超高频状态，同时保持交互响应性。温度感知的标定还可补偿内阻驱动的容量损失。系统随后可在低 SOC 下\textbf{限制峰值功率}，以延缓过早的电压崩溃。
+
+\subsection{模型推广}
+
+HCSM 的分层架构可超越智能手机，扩展至其他电池供电平台与生命周期管理。
+
+对于平板电脑、可穿戴设备与电动汽车，相同的微分方程结构可以表示极端电流或低温下的非线性容量损失。这种有物理依据的建模提升了压力条件下剩余里程或剩余运行时间估计的稳健性。
+
+对于长期健康管理，该模型量化老化、放电深度与累积损伤如何侵蚀有效容量。这些结果推动了容量感知的保护策略：学习用户作息，避免长时间满充或深度放电状态。将运行维持在中电位区间附近可减缓不可逆的容量衰减并延长使用寿命。
+
+\section{优势与不足}
+
+分层连续时间 SOC 模型（HCSM）从经验拟合转向机理框架。在此，我们评估其在数学建模与物理一致性方面的稳健性与局限。
+
+\subsection{优势}
+
+\begin{itemize}[leftmargin=2em]
+\item \textbf{分层机理完整性}。与“黑箱”模型不同，HCSM 采用分层架构，将线性基线与多物理约束解耦。这确保每个参数都代表一个物理实体，为不同场景下的 SOC 波动提供清晰的因果解释。
+
+\item \textbf{动态有效容量的高保真捕捉}。通过将 $Q_{eff}$ 定义为温度与放电历史的泛函，模型弥合了额定能量与可用能量之间的差距。这种动态标定将非线性低 SOC 区间的误差降至最低，显著提升预测精度。
+
+\item \textbf{出色的可扩展性}。HCSM 的模块化可作为通用估计内核。仅通过重新标定边界参数（如 $Q_{nom}$），模型即可从智能手机无缝迁移至电动汽车（Electric Vehicles, EVs）等高功率系统，展现出强大的泛化能力。
+\end{itemize}
+
+\subsection{不足}
+
+\begin{itemize}[leftmargin=2em]
+\item \textbf{热电耦合的简化}。尽管 HCSM 包含温度敏感性因子，但它将热状态视为外生，忽略了内部焦耳发热的双向反馈。这可能略微低估高强度、长时间任务中的容量衰减。
+
+\item \textbf{高频瞬态的平滑}。模型的连续时间微分方程起到低通滤波器的作用，平滑掉微秒级的瞬态电流冲击。这在增强稳定性的同时，可能掩盖在接近零 SOC 时触发关机的“瞬时电压崩溃”点。
+
+\item \textbf{确定性假设与随机老化}。我们将老化视为确定性过程，忽略了电芯制造差异带来的不确定性。要量化预测的置信区间，需要转向概率贝叶斯框架。
+\end{itemize}
+
+\begin{thebibliography}{99}
+\bibitem{carroll2010} Aaron Carroll and Gernot Heiser. An analysis of power consumption in a smartphone. In \emph{2010 USENIX Annual Technical Conference (USENIX ATC 10)}, 2010.
+
+\bibitem{djordjevic2006} Aleksandar B. Djordjevic and Dusan M. Karanovic. Battery testing by calculated discharge-curve method---constant resistive load algorithm. \emph{Journal of Power Sources}, 162(2):920--926, 2006. Special issue including selected papers from the International Power Sources Symposium 2005 together with regular papers.
+
+\bibitem{dong2011} Mian Dong and Lin Zhong. Self-constructive high-rate system energy modeling for battery-powered mobile systems. In \emph{Proceedings of the 9th international conference on Mobile systems, applications, and services}, pages 335--348, 2011.
+
+\bibitem{greaves2012} D. J. Greaves. The voltage and frequency relationship. ACS P35-17/18 SoC D/M Slide Pack 4.2 (Silicon Technology and Power). Copyright (C) 2012--2018.
+
+\bibitem{pathak2012} Abhinav Pathak, Y Charlie Hu, and Ming Zhang. Where is the energy spent inside my app? fine grained energy accounting on smartphones with eprof. In \emph{Proceedings of the 7th ACM european conference on Computer Systems}, pages 29--42, 2012.
+
+\bibitem{liu2023} Yanbing Liu and Chunyi Peng. A close look at 5g in the wild: Unrealized potentials and implications. In \emph{IEEE INFOCOM 2023-IEEE Conference on Computer Communications}, pages 1--10. IEEE, 2023.
+
+\bibitem{bu303} Battery University. Bu-303: Confusion with voltages. Last updated: 25-Oct-2021.
+
+\bibitem{plett2004} Gregory L Plett. Extended kalman filtering for battery management systems of lipb-based hev battery packs: Part 3. state and parameter estimation. \emph{Journal of Power sources}, 134(2):277--292, 2004.
+
+\bibitem{panasonic2020} Panasonic Industry Europe GmbH. \emph{Batteries Panasonic Lithium: Handbook for Professionals}, March 2020. PDF handbook. Accessed 2026-01-31.
+
+\bibitem{doerffel2006} Dennis Doerffel and Suleiman Abu Sharkh. A critical review of using the peukert equation for determining the remaining capacity of lead-acid and lithium-ion batteries. \emph{Journal of power sources}, 155(2):395--400, 2006.
+
+\bibitem{wang2011} John Wang, Ping Liu, Jocelyn Hicks-Garner, Elena Sherman, Souren Soukiazian, Mark Verbrugge, Harshad Tataria, James Musser, and Peter Finamore. Cycle-life model for graphite-lifepo4 cells. \emph{Journal of power sources}, 196(8):3942--3948, 2011.
+
+\bibitem{chen2015} Xiaomeng Chen, Abhilash Jindal, Ning Ding, Yu Charlie Hu, Maruti Gupta, and Rath Vannithamby. Smartphone background activities in the wild: Origin, energy drain, and optimization. In \emph{Proceedings of the 21st Annual International Conference on Mobile Computing and Networking}, pages 40--52, 2015.
+\end{thebibliography}
+
+\section*{AI 使用报告}
+
+\noindent\textbf{队伍控制号：}2616026
+
+依据 COMAP MCM/ICM 政策，我们在此记录我们对生成式 AI 与辅助技术的使用情况。这些工具用于加速代码实现、润色语言表达，并就文档结构提供反馈。所有概念建模、数学推导、物理解释与最终决策仍完全属于本团队。
+
+\subsection*{1. Google Gemini（2026 年 2 月 3 日版本，Gemini 2.5 Pro）}
+
+\noindent\textbf{用途：语言润色与 LaTeX 排版}
+
+我们使用 Gemini 提升描述性章节的语气，确保文本达到专业学术报告的文体标准，并协助处理复杂的 LaTeX 编码。
+
+\noindent\textbf{提示词：}“润色 LaTeX 中的‘优势与不足’章节。强调 HCSM 的机理完整性以及关于单向热力学耦合的局限。确保语言达到特等奖（Outstanding Winner）标准。”
+
+\noindent\textbf{采取的行动：}AI 生成了一个带有高级词汇（如“外生变量”、“随机老化”）的润色 LaTeX 模板。我们采纳了这些词汇，但重写了定义，以严格匹配我们模型中所用的具体微分方程，防止任何臆造特征出现在最终报告中。
+
+\subsection*{2. DeepL Translator（2026 年 2 月 1 日版本）}
+
+\noindent\textbf{用途：术语精确性与交叉核对}
+
+DeepL 用于在我们最初的头脑风暴笔记转换为正式英文时，确保电池物理领域专业概念的语义准确性。
+
+\noindent\textbf{查询：}“将‘电压与 SOC 之间的单调映射关系’和‘恒功率负载特性’翻译为学术英语语境。”
+
+\noindent\textbf{输出与验证：}该工具建议使用 “Monotonic mapping relationship” 与 “Constant Power Load (CPL) characteristic”。我们在将其整合进论文之前，对照 IEEE 学报论文核验了这些术语，以确保它们是电化学领域的标准命名。
+
+\end{document}

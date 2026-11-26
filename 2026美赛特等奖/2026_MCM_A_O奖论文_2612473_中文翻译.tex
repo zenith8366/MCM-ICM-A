@@ -1,0 +1,594 @@
+\documentclass[11pt,a4paper]{ctexart}
+\usepackage[margin=2.4cm]{geometry}
+\usepackage{amsmath,amssymb,bm}
+\usepackage{amsthm}
+\usepackage{enumitem}
+\usepackage{fancyhdr}
+\usepackage[hidelinks]{hyperref}
+\usepackage{url}
+\pagestyle{fancy}
+\fancyhf{}
+\setlength{\headheight}{14pt}
+\fancyhead[L]{Team 2612473}
+\fancyhead[R]{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+\setlength{\parskip}{0.35em}
+\setlength{\parindent}{2em}
+\setlength{\emergencystretch}{3em}
+\tolerance=3000
+\linespread{1.15}
+\allowdisplaybreaks
+\newtheorem{theorem}{定理}
+\newtheorem{definition}{定义}
+\newtheorem{proposition}{命题}
+\newtheorem{lemma}{引理}
+\renewcommand{\proofname}{证明}
+\title{建模智能手机电池耗电：一个热增强双时间尺度框架及跨多设备的实证验证}
+\author{}
+\date{}
+\begin{document}
+\maketitle
+
+\begin{center}
+\small 选题：A \quad 2026 MCM/ICM 摘要页 \quad 队伍控制号：2612473
+\end{center}
+\vspace{0.5em}
+
+\section*{摘要}
+\addcontentsline{toc}{section}{摘要}
+
+\textbf{问题背景。}尽管锂离子供电的移动设备已无处不在，智能手机电池耗尽预测仍是一项重大挑战。当前的电池管理系统采用假设放电速率恒定的线性外推算法，然而锂离子电池表现出复杂的、依赖历史的电化学行为。当用户在设备上看到“剩余 3 小时”时，该估计源自对近期功耗的平均——通常是最新的 5--15 分钟。然而，在变化的用能模式下，实际续航可能偏离预测达 40--60\%，使当前估计在规划关键活动时不可靠。采用电化学模型的现有方法需要大量计算，而数据驱动方法难以泛化到新的用能模式。
+
+\textbf{方法。}我们提出 TEDT-BM（热增强双时间尺度电池模型），一个基于物理的微分方程模型，用以刻画锂离子电池放电的基本电化学与热动力学。该模型集成三个耦合子系统：(1) \textbf{电气子系统}——一个二阶 Thevenin 等效电路，通过关于荷电状态与极化电压的四个耦合常微分方程，捕捉快（$\tau_1 \approx 5$ s）与慢（$\tau_2 \approx 100$ s）极化动力学；(2) \textbf{热子系统}——一个集总热模型，具有双向耦合：内阻经由 Arrhenius 方程随温度指数变化，而焦耳发热抬升电池温度；(3) \textbf{行为子系统}——一个 5 状态马尔可夫链（空闲、网页浏览、视频流播、游戏、语音通话），以经验导出的转移概率建模随机用户活动转移。模型纳入题目陈述中的六个关键因素：屏幕亮度、CPU 负载、网络活动、后台应用、环境温度与电池历史。
+
+\textbf{结果与建议。}我们针对四款旗舰智能手机（iPhone 15 Pro Max、Galaxy S24 Ultra、OnePlus 12、Pixel 8 Pro）在三种用能场景（网页浏览、视频流播、游戏）下的 PhoneArena 续航数据验证了 TEDT-BM。预测值与实测值的平均绝对百分比误差在 3.2\% 以内（RMSE = 0.48 小时，$R^2 = 0.971$），表明跨厂商与电池化学体系的一致精度。Sobol 全局敏感性分析揭示，电池容量（$S_1 = 0.62 \pm 0.04$）与总功耗（$S_1 = 0.21 \pm 0.03$）主导耗尽时间预测，解释了 83\% 的输出方差。这些发现转化为可操作的建议：将屏幕亮度减半可将续航延长约 1.3 小时；在 OLED 显示屏上启用深色模式可节省 0.5--1.0 小时；关闭五个未使用的后台应用可将续航延长 0.8--2.4 小时。对厂商而言，采用热管与均热板可将峰值温度降低 8--12\,$^{\circ}$C，将电池寿命延长 25--35\%。该模型借助 RKF45 数值积分实现每次预测计算延迟小于 5 ms 的实时可行性，使设备端 BMS 集成成为可能。
+
+\noindent\textbf{关键词：}TEDT-BM，热增强双时间尺度电池模型，锂离子电池建模，Thevenin 等效电路，荷电状态（SOC）预测，耗尽时间（TTE），热电耦合，Markov 行为模型，敏感性分析，智能手机功耗
+
+\newpage
+
+\section{引言}
+
+\subsection{背景与动机}
+
+尽管锂离子供电的移动设备已无处不在，智能手机电池耗尽预测仍是一项重大挑战。根本的脱节在于预测方法：多数电池管理系统（Battery Management System, BMS）采用假设放电速率恒定的线性外推算法，而锂离子电池表现出复杂的、依赖历史的电化学行为。当用户在设备上看到“剩余 3 小时”时，该估计源自对近期功耗的平均——通常是最新的 5--15 分钟。然而，在变化的用能模式下（例如由空闲转为游戏），实际续航可能偏离预测达 40--60\%，使当前估计在规划关键活动时不可靠。
+
+这一预测差距源于线性模型无法捕捉的两种电化学现象：(1) 极化效应引起依赖于放电历史的电压跌落；(2) 内阻随温度按 Arrhenius 关系非线性变化 [4]。现有的预测方法依赖线性外推或是在历史用能模式上训练的机器学习模型 [2]。两类方法都错失了底层物理。锂离子电池表现出极化效应——依赖于放电历史的电压跌落——且电阻随温度变化。基于物理的建模在保持可解释性的同时捕捉了上述机制。
+
+这些观察促使我们开发一个综合性的建模框架，既应对智能手机电池预测的多方面性质，又保持面向实时应用的计算效率。
+
+\subsection{问题重述}
+
+2026 年 MCM A 题要求我们建立一个连续时间数学模型，以描述智能手机电池在各种使用条件下的耗电行为。具体而言，我们必须：
+
+\textbf{主要目标：}
+\begin{enumerate}[leftmargin=2em,itemsep=0.15em]
+\item 建立用于电池荷电状态（State of Charge, SOC）预测的连续时间数学模型；
+\item 纳入影响电池耗电的六个关键因素：(1) 屏幕尺寸与亮度；(2) 处理器负载（CPU 利用率）；(3) 网络活动（4G/5G/WiFi/GPS）；(4) 后台应用；(5) 环境条件（温度）；(6) 电池历史与充电习惯；
+\item 预测多种使用场景下的耗尽时间（Time-to-Empty, TTE）；
+\item 进行敏感性分析以识别最具影响的参数；
+\item 提供可操作的延长续航建议。
+\end{enumerate}
+
+\textbf{关键交付物：}
+\begin{itemize}[leftmargin=2em,itemsep=0.15em]
+\item 一个经过验证、在多款智能手机上展示出精度的数学模型；
+\item 识别主导因素的定量敏感性分析；
+\item 面向用户与厂商的循证建议。
+\end{itemize}
+
+本文提出 TEDT-BM（热增强双时间尺度电池模型），它通过融合电化学动力学、热效应与随机用户行为建模的基于物理的方法，满足上述全部要求。
+
+现有方法分为三类：电化学模型（精度高但计算昂贵的偏微分方程 [5]）、等效电路模型（精度与效率均衡，尤以二阶 Thevenin 电路为代表 [3]）以及数据驱动方法（需要大量训练数据、泛化能力有限 [2]）。温度效应至关重要却常被忽视——内阻经由 Arrhenius 方程指数变化 [4]，而热电耦合在高放电倍率下变得显著 [6]。
+
+\textbf{研究空白：}尚无现有模型能在统一框架内同时处理电化学动力学、热电耦合与随机用户行为，同时保持实时计算（$<$ 10 ms）与跨设备泛化能力（MAPE $<$ 5\%）。
+
+\subsection{建模方法：TEDT-BM}
+
+我们提出 TEDT-BM（热增强双时间尺度电池模型），它集成三个耦合子系统：(1) \textbf{电气}——二阶 Thevenin 电路，捕捉快（$\tau_1 \approx 5$ s）与慢（$\tau_2 \approx 100$ s）极化动力学；(2) \textbf{热学}——集总模型，其电阻基于 Arrhenius 关系随温度变化；(3) \textbf{行为}——描述随机用户活动的 5 状态马尔可夫链。与 BMS 的线性外推不同，TEDT-BM 以双向热电耦合捕捉真实的电化学过程，并实现实时计算（$<$ 5 ms）、跨设备验证（MAPE = 3.2\%）与潜在的设备端集成。
+
+本文所用主要符号列示如下。
+
+\begin{description}[leftmargin=7.2em,itemsep=0.12em,parsep=0.05em]
+\item[$SOC$] 荷电状态（无量纲，0--1）
+\item[$TTE$] 耗尽时间，单位 h
+\item[$V_{oc}$] 开路电压，单位 V
+\item[$R_0,\ R_1,\ R_2$] 欧姆电阻与极化电阻，单位 $\Omega$
+\item[$C_1,\ C_2$] 极化电容，单位 F
+\item[$\tau_1,\ \tau_2$] 时间常数（$\tau = RC$），单位 s
+\item[$T$] 电池温度，单位 $^{\circ}$C
+\item[$T_{amb}$] 环境温度，单位 $^{\circ}$C
+\item[$I(t)$] 放电电流，单位 A
+\item[$Q_{nom}$] 电池额定容量，单位 Ah
+\end{description}
+
+\section{模型构建}
+
+在引言中确立了建模框架与研究目标之后，我们现在给出 TEDT-BM 的完整数学表述。本节呈现电化学—热—行为耦合模型，包括控制方程、假设、参数与物理依据。
+
+\subsection{问题分析与建模框架}
+
+\textbf{建模目标：}我们建立一个连续时间数学模型，用于预测智能手机锂离子电池的荷电状态（SOC）并估计各种使用条件下的耗尽时间（TTE）。模型必须捕捉三种基本现象：(1) \textbf{电化学动力学}——锂离子电池因极化效应而表现出非线性放电行为，该效应取决于放电历史与电流大小；(2) \textbf{热电耦合}——电池内阻随温度指数变化（Arrhenius 关系），而放电电流产生的焦耳发热抬升电池温度（双向耦合）；(3) \textbf{随机用户行为}——智能手机使用模式在不同功率状态（空闲、浏览、游戏等）之间表现出随机切换，需要概率建模。
+
+\textbf{系统架构：}图 3 展示了 TEDT-BM 框架，它集成三个耦合子系统：\textbf{电气子系统}（二阶 Thevenin 等效电路，捕捉快（$\tau_1 \approx 5$ s）与慢（$\tau_2 \approx 100$ s）极化动力学）、\textbf{热子系统}（集总热模型，其电阻基于 Arrhenius 关系随温度变化）与\textbf{行为子系统}（建模随机用户活动模式的 5 状态马尔可夫链）。
+
+\textbf{控制方程：}完整模型由四个耦合非线性常微分方程构成：
+\begin{equation*}
+\begin{aligned}
+\frac{d(SOC)}{dt} &= -\frac{I(t)}{Q_{nom}} &&\text{（电气）}\\[4pt]
+\frac{dV_1}{dt} &= -\frac{V_1}{R_1C_1} + \frac{I(t)}{C_1} &&\text{（快极化）}\\[4pt]
+\frac{dV_2}{dt} &= -\frac{V_2}{R_2C_2} + \frac{I(t)}{C_2} &&\text{（慢极化）}\\[4pt]
+mc\frac{dT}{dt} &= I^2(t)R(T) - h\left(T - T_{amb}\right) &&\text{（热学）}
+\end{aligned}
+\end{equation*}
+
+这些方程构成一个完整的初值问题（Initial Value Problem, IVP），其状态向量为 $\mathbf{x}(t) = [SOC(t), V_1(t), V_2(t), T(t)]^{T}$，初始条件在第 3.1 节中给出。放电电流 $I(t)$ 由总功耗 $P_{total}(t)$ 导出，而后者按马尔可夫行为模型随机变化。
+
+\subsection{假设与论证}
+
+为在物理真实性与数学可解性之间取得平衡，我们按物理现象分类提出如下假设。
+
+\begin{itemize}[leftmargin=1.6em,itemsep=0.45em]
+\item \textbf{A1：Thevenin 2RC 电路。}\emph{论证：}该拓扑经广泛验证，可在无需计算昂贵偏微分方程的前提下，捕捉瞬时电压跌落与双时间尺度极化瞬态 [3, 5]。\emph{建模影响：}使电气模型可由 4 个 ODE 构成，$\tau_1 \approx 5$ s、$\tau_2 \approx 100$ s。
+
+\item \textbf{A2：8 阶 OCV--SOC 多项式。}\emph{论证：}NMC 化学体系表现出高度非线性的 OCV--SOC 特性，在低 SOC 处有陡峭跌落、在中段有平台；该多项式在 $[0,1]$ 上的拟合误差小于 5 mV。\emph{建模影响：}为电压预测准确表征非线性 OCV--SOC 曲线。
+
+\item \textbf{A3：自放电可忽略。}\emph{论证：}自放电速率（每月 2--3\%）相对于智能手机日常使用可忽略；在单次充电的 TTE 中贡献的误差小于 0.1\%。\emph{建模影响：}通过消去衰减项简化 ODE 表述。
+
+\item \textbf{A4：集总热模型。}\emph{论证：}智能手机电池采用薄软包电芯几何（约 5 mm），其热时间常数（约 15 min）远长于电时间常数（5 s、100 s）[6]。\emph{建模影响：}单一温度状态变量即已足够。
+
+\item \textbf{A5：Arrhenius 温度依赖性。}\emph{论证：}这一成熟关系可捕捉低温下电阻的指数上升 [4]。\emph{建模影响：}使随温度变化的电阻建模成为可能。
+
+\item \textbf{A6：环境条件恒定。}\emph{论证：}智能手机的使用发生在很窄的海拔范围内（95\% 的用户低于 1000 m）；气压引起的传热变化可忽略。\emph{建模影响：}简化对流散热项。
+
+\item \textbf{A7：时间齐次马尔可夫链。}\emph{论证：}时间齐次性在捕捉总体统计量的同时使解析处理成为可能；稳态分布 $\pi = [0.35, 0.25, 0.20, 0.15, 0.05]$ 表征长期行为。\emph{建模影响：}以可处理的参数实现随机行为建模。
+
+\item \textbf{A8：功率分量独立。}\emph{论证：}尽管存在弱热耦合，强验证相关性（$R^2 = 0.971$）支持将线性叠加作为一阶近似。\emph{建模影响：}总功率等于各分量功率之和。
+
+\item \textbf{A9：时间步内功率恒定。}\emph{论证：}使用状态转移发生在 10--100 秒的时间尺度上；这为 $\Delta t = 1$ s 的分段常数近似提供了依据。\emph{建模影响：}使数值积分可采用可管理的步长。
+
+\item \textbf{A10：新电池（SOH = 100\%）。}\emph{论证：}对单次充电的 TTE 预测有效；容量衰减模型可纳入长期预测 [7]。\emph{建模影响：}仅关注放电动力学，不涉及老化。
+\end{itemize}
+
+\subsection{符号与系统参数}
+
+下表汇总了数学模型中所用的全部符号。
+
+\begin{description}[leftmargin=7.6em,itemsep=0.1em,parsep=0.02em]
+\item[\textit{状态变量}]
+\item[$SOC(t)$] 荷电状态——$[0,1]$——无量纲
+\item[$V_1(t)$] 快极化电压变量——可变——V
+\item[$V_2(t)$] 慢极化电压变量——可变——V
+\item[$T(t)$] 电池温度变量——可变——$^{\circ}$C
+\item[\textit{电气参数}]
+\item[$Q_{nom}$] 额定容量——4.422——Ah
+\item[$V_{oc}(SOC)$] 开路电压——式 (2)——V
+\item[$R_0$] 欧姆电阻——0.050——$\Omega$
+\item[$R_1,\ C_1$] 快极化 RC——0.010 $\Omega$，500——$\Omega$，F
+\item[$R_2,\ C_2$] 慢极化 RC——0.025 $\Omega$，4000——$\Omega$，F
+\item[$\tau_1,\ \tau_2$] 时间常数——5，100——s
+\item[\textit{热参数}]
+\item[$m$] 电池质量——0.048——kg
+\item[$c$] 比热容——1000——J/(kg$\cdot$K)
+\item[$h$] 换热系数——2.8——W/K
+\item[$E_a$] 活化能（NMC）——35,000——J/mol
+\item[$R_g$] 通用气体常数——8.314——J/(mol$\cdot$K)
+\item[\textit{输入参数}]
+\item[$P_{screen}$] 屏幕功率——0.5--0.8——W
+\item[$P_{cpu}$] CPU 功率——0.5--2.0——W
+\item[$P_{net}$] 网络功率——0.3--1.0——W
+\item[$T_{amb}$] 环境温度——$-20$--45——$^{\circ}$C
+\item[$I(t)$] 放电电流——计算得到——A
+\end{description}
+
+\subsubsection{Thevenin 2RC 等效电路模型}
+
+\textbf{物理原理：}锂离子电池放电涉及发生在多个时间尺度上的电化学过程。当电流流过时，会出现三种不同的电压跌落：(1) \textbf{欧姆压降（$IR_0$）}——由电解质电阻与接触电阻引起的瞬时电压损失（时间尺度：$<$ 1 ms）；(2) \textbf{快极化（$V_1$）}——由电极—电解质界面处的电荷转移动力学引起的电压瞬变（时间常数：$\tau_1 \approx 5$ s）；(3) \textbf{慢极化（$V_2$）}——由电极颗粒内固态锂扩散引起的电压瞬变（时间常数：$\tau_2 \approx 100$ s）。二阶 Thevenin 拓扑通过两条具有不同时间常数的并联 RC 支路捕捉上述现象，在物理保真度与计算效率之间取得平衡 [3]。
+
+二阶 Thevenin 模型将电池端电压 $V(t)$ 描述为：
+\begin{equation}
+V(t) = V_{oc}\left(SOC(t)\right) - I(t)\cdot R_0 - V_1(t) - V_2(t) \tag{1}
+\end{equation}
+
+端电压等于开路电压减去欧姆压降以及来自快、慢电化学过程的极化压降。
+
+其中 $V_{oc}(SOC)$ 为开路电压，将其建模为 8 阶多项式，以捕捉荷电状态与平衡电位之间的非线性关系：
+\begin{equation}
+V_{oc}(SOC) = \sum_{i=0}^{8} a_i \cdot SOC^{i} \tag{2}
+\end{equation}
+
+开路电压随荷电状态非线性变化；8 阶多项式捕捉了 NMC 化学体系特有的低 SOC 处陡降与中段平台。
+
+动力学由三个一阶常微分方程（ODE）支配。首先，荷电状态按放电电流成比例下降：
+\begin{equation}
+\frac{d(SOC)}{dt} = -\frac{I(t)}{Q_{nom}} \tag{3a}
+\end{equation}
+
+电荷耗尽速率等于放电电流除以总容量。
+
+\begin{equation}
+\frac{dV_1}{dt} = -\frac{V_1}{R_1C_1} + \frac{I(t)}{C_1} \tag{3b}
+\end{equation}
+
+快极化动力学的 RC 电路方程（$\tau_1 = R_1C_1 \approx 5$ s）。
+
+\begin{equation}
+\frac{dV_2}{dt} = -\frac{V_2}{R_2C_2} + \frac{I(t)}{C_2} \tag{3c}
+\end{equation}
+
+慢极化过程的 RC 电路方程（$\tau_2 = R_2C_2 \approx 100$ s）。
+
+其中时间常数 $\tau_1 = R_1C_1 \approx 5$ 秒与 $\tau_2 = R_2C_2 \approx 100$ 秒，分别代表快速的表面反应与缓慢的体相扩散。
+
+\subsubsection{热电耦合模型}
+
+\textbf{物理原理：}电池内阻因两种电化学机制而表现出强烈的温度依赖性：(1) \textbf{离子电导率}——较高温度提高锂离子在电解质中的迁移率，降低离子电阻；(2) \textbf{电荷转移动力学}——升高的温度加速电极界面处的电化学反应速率，降低电荷转移电阻。这一温度—电阻关系遵循化学动力学中的 Arrhenius 方程，捕捉电阻随温度升高而指数下降的行为。反之，低温显著阻碍离子输运，使电阻在 $-20\,^{\circ}$C 时相较室温上升 200--300\% [4]。电池温度通过 Arrhenius 方程影响内阻：
+\begin{equation}
+R(T) = R_{25}\exp\left[\frac{E_a}{R_g}\left(\frac{1}{T+273.15} - \frac{1}{298.15}\right)\right] \tag{4}
+\end{equation}
+
+电阻随温度指数下降；在 $-20\,^{\circ}$C 时，电阻比 25\,$^{\circ}$C 时高 2--3 倍。
+
+温度演化遵循集总热模型：
+\begin{equation}
+mc\frac{dT}{dt} = I^2(t)R(T) - h\left(T - T_{amb}\right) \tag{5}
+\end{equation}
+
+能量平衡：焦耳发热（$I^2R$）使温度升高；对流散热（$h\Delta T$）使温度降低。
+
+其中 $m$ 为电池质量，$c$ 为比热容，$h$ 为换热系数。
+
+\subsubsection{电流计算}
+
+放电电流由总功耗导出：
+\begin{equation}
+I(t) = \frac{P_{total}(t)}{V(t)} \tag{6}
+\end{equation}
+
+放电电流等于总功耗除以端电压；这捕捉了电池供电系统中功率抽取的电压依赖性。
+
+总功率 $P_{total}(t)$ 包括屏幕、CPU、网络、GPS 及其他分量。
+
+\subsubsection{Markov 行为模型}
+
+用户行为切换被建模为离散时间马尔可夫链，以捕捉智能手机使用模式的随机性质。这使 TEDT-BM 能够模拟真实的时变功耗剖面，而不是假设恒定的耗电速率。
+
+\textbf{状态空间定义：}该马尔可夫链包含五个不同的使用状态：$S_1$：\emph{空闲}（屏幕关闭，后台活动极少）；$S_2$：\emph{网页浏览}（中等 CPU，间歇网络）；$S_3$：\emph{视频流播}（中等 CPU，持续网络）；$S_4$：\emph{3D 游戏}（高 CPU/GPU，可变网络）；$S_5$：\emph{语音通话}（低 CPU，持续蜂窝网络）。
+
+\textbf{转移概率矩阵}
+
+转移概率矩阵 $P$ 由经验性的智能手机使用研究导出：
+\begin{equation}
+P = \begin{pmatrix}
+p_{11} & p_{12} & p_{13} & p_{14} & p_{15}\\
+p_{21} & p_{22} & p_{23} & p_{24} & p_{25}\\
+p_{31} & p_{32} & p_{33} & p_{34} & p_{35}\\
+p_{41} & p_{42} & p_{43} & p_{44} & p_{45}\\
+p_{51} & p_{52} & p_{53} & p_{54} & p_{55}
+\end{pmatrix}
+= \begin{pmatrix}
+0.85 & 0.08 & 0.04 & 0.02 & 0.01\\
+0.20 & 0.50 & 0.15 & 0.10 & 0.05\\
+0.15 & 0.10 & 0.55 & 0.15 & 0.05\\
+0.10 & 0.10 & 0.10 & 0.65 & 0.05\\
+0.30 & 0.20 & 0.10 & 0.10 & 0.30
+\end{pmatrix} \tag{7}
+\end{equation}
+
+其中 $p_{ij} = \Pr\left(X_{t+1} = S_j \mid X_t = S_i\right)$ 表示在一个时间步内由状态 $S_i$ 转移到状态 $S_j$ 的概率。
+
+\textbf{稳态分布}
+
+稳态分布 $\pi = [\pi_1, \pi_2, \pi_3, \pi_4, \pi_5]$ 满足平衡方程 $\pi P = \pi$ 且 $\sum_{i=1}^{5}\pi_i = 1$：
+\begin{equation}
+\pi = [0.35,\ 0.25,\ 0.20,\ 0.15,\ 0.05] \tag{8}
+\end{equation}
+
+这表明，在长时间尺度上，典型智能手机约有 35\% 的时间处于空闲、25\% 用于浏览、20\% 用于流播视频、15\% 用于游戏、5\% 用于语音通话。
+
+\textbf{各状态功耗}
+
+每个使用状态 $S_i$ 对应一个平均功耗 $P_i$：
+\begin{equation}
+\mathbf{P} = [P_1, P_2, P_3, P_4, P_5] = [0.5,\ 1.2,\ 1.5,\ 2.5,\ 0.8]\ \mathrm{W} \tag{9}
+\end{equation}
+
+\textbf{期望平均功率}
+
+长期期望平均功耗按下式计算：
+\begin{equation}
+E[P_{avg}] = \sum_{i=1}^{5}\pi_iP_i = 0.35(0.5) + 0.25(1.2) + 0.20(1.5) + 0.15(2.5) + 0.05(0.8) = 1.1725\ \mathrm{W} \tag{10}
+\end{equation}
+
+当具体使用模式未知时，该期望功率值作为 TTE 计算的基线；而完整的马尔可夫模型则支持针对具体场景的仿真。
+
+\subsection{参数估计}
+
+所有模型参数均由物理第一性原理与已发表文献导出，而非经验曲线拟合。这确保了模型在不同使用场景与不同机型上的预测能力。
+
+\subsubsection{电路参数}
+
+二阶 Thevenin 等效电路参数取自对锂聚合物电池的电化学阻抗谱（Electrochemical Impedance Spectroscopy, EIS）测量，如 [3] 所述。EIS 在 1 mHz--1 kHz 的频率范围内施加小幅正弦电流扰动，并测量由此产生的电压响应，以辨识不同电化学过程对阻抗的贡献。表 5 汇总了 TEDT-BM 所用的电路参数。
+
+时间尺度分离比 $\tau_2/\tau_1 = 20 > 10$ 验证了双时间尺度近似的合理性。参数值代表 NMC 锂聚合物电池的典型制造规格；由于制造公差，单个电池的 $R_0$、$R_1$ 与 $R_2$ 可能存在 $\pm 15\%$ 的偏差。
+
+\subsubsection{热参数}
+
+热参数由 NMC 锂聚合物材料属性与自然对流的牛顿冷却定律导出 [1, 6]。比热容表示使电池温度升高 1 K 所需的能量，而换热系数表征向环境的对流散热。
+
+活化能 $E_a = 35{,}000$ J/mol 由在多个温度（$-10\,^{\circ}$C 至 45\,$^{\circ}$C）下测量的电池电阻的 Arrhenius 图获得 [4]。换热系数 $h = 2.8$ W/K 基于矩形表面的自然对流估算。
+
+\subsubsection{开路电压表征}
+
+开路电压 $V_{oc}(SOC)$ 关系被建模为 8 阶多项式：$V_{oc}(SOC) = \sum_{i=0}^{8}a_i\cdot SOC^{i}$，其中多项式系数由对 NMC 锂离子电池实验放电数据的最小二乘拟合获得：$a_0 = -330.2741$，$a_1 = 1507.8350$，$a_2 = -2869.7023$，$a_3 = 2949.8632$，$a_4 = -1773.9467$，$a_5 = 632.0383$，$a_6 = -128.9882$，$a_7 = 13.8940$，$a_8 = 2.6371$。该多项式在整个 SOC 范围 $[0,1]$ 内达到 RMSE $<$ 5 mV（电压预测误差 $<$ 0.2\%），足以用于 TTE 预测。
+
+\subsubsection{机型相关参数}
+
+表 7 列出了验证中所用四款机型电池的规格，数据取自厂商技术文档与 PhoneArena 的独立测试 [8]。
+
+\textbf{参数变异性：}额定容量数值代表出厂条件下的标称规格。由于电极涂布厚度的制造公差、初始化成循环的差异以及额定容量测量时的环境温度，实际可用容量可能存在 $\pm 5\%$ 的偏差。TEDT-BM 以额定容量值作为基线参数，并通过敏感性分析量化容量变化对 TTE 预测的影响。
+
+\subsection{模型一致性与量纲分析}
+
+\textbf{量纲齐次性：}所有控制方程 (3)--(5) 均表现量纲一致性：SOC 方程：$[SOC]/[t] = [I]/[Q] \rightarrow 1/\mathrm{s} = \mathrm{A}/(\mathrm{A}\cdot\mathrm{h})$；极化方程：$[V]/[t] = [V]/[RC] + [I]/[C] \rightarrow \mathrm{V}/\mathrm{s} = \mathrm{V}/\mathrm{s}$；热方程：$[m][c][T]/[t] = [I]^2[R] - [h][T] \rightarrow \mathrm{J}/\mathrm{s} = \mathrm{W}$。
+
+\textbf{边界条件：}模型满足物理边界条件：\textbf{SOC 边界：}由构造方式，$SOC \in [0,1]$，且由于 $I(t) > 0$（仅放电）与 $SOC(0) = 1$，方程 (3) 保持该范围。\textbf{温度边界：}当 $dT/dt \rightarrow 0$ 时，热方程 (5) 收敛至稳态 $T_{ss} = T_{amb} + I^2R/h$；在典型工作条件下（$I < 3$ A，$R < 0.1\,\Omega$，$h = 2.8$ W/K），温升有界为 $\Delta T < 3$ K。\textbf{电压非负性：}由 OCV 多项式的构造方式，对所有 $SOC(t) \geq 0$ 有 $V(t) \geq 0$，该多项式拟合实验数据，确保在 $SOC \in [0,1]$ 时 $V_{oc}(SOC) > 0$。
+
+\textbf{能量守恒：}热子系统遵守能量守恒。对式 (5) 关于时间积分可得：
+\begin{equation}
+\underbrace{mc\left[T(t_f) - T(t_0)\right]}_{\Delta E_{thermal}} = \underbrace{\int_{t_0}^{t_f}I^2(\tau)R(T)\,d\tau}_{E_{Joule}} - \underbrace{\int_{t_0}^{t_f}h\left[T(\tau) - T_{amb}\right]d\tau}_{E_{convection}} \tag{11}
+\end{equation}
+
+即热能的改变量等于焦耳发热减去对流散热。该能量平衡由 ODE 表述自动满足。
+
+\textbf{渐近行为：}
+
+当 $t \rightarrow \infty$ 且电流 $I$ 恒定时，极化电压趋近稳态值：
+\begin{equation*}
+V_1(\infty) = IR_1,\qquad V_2(\infty) = IR_2
+\end{equation*}
+
+且端电压收敛于 $V(\infty) = V_{oc}(SOC) - I(R_0 + R_1 + R_2)$。该渐近行为与负载变化后电池电压弛豫的实验观测一致。
+
+\section{耗尽时间预测}
+
+在第 2 节所建立并经检验的数学模型基础上，我们现在讨论 TEDT-BM 的计算实现与实证验证。本节描述数值求解方法，给出针对真实智能手机电池数据的验证结果，并量化模型在多种使用场景下的预测精度。
+
+\subsection{模型求解}
+
+耦合非线性 ODE 系统 (3)--(5) 采用具有自适应时间步长的 Runge--Kutta--Fehlberg 方法（RKF45）数值求解。这一五阶方法对刚性系统兼具精度与效率。自适应步长控制将相对误差保持在 $10^{-6}$ 以下；依据放电倍率的不同，典型步长范围为 0.1--10 秒。在标准硬件上，每次预测的计算延迟小于 5 ms。
+
+\subsection{验证结果}
+
+我们使用 PhoneArena [8] 提供的四款旗舰智能手机的机型规格验证模型，将 TEDT-BM 的预测值与所报告的多种使用场景下的续航测量值进行比较。
+
+\subsubsection{验证方法}
+
+为确立模型的可靠性与泛化能力，我们采用多维验证框架。\textbf{多设备验证：}测试四款分属不同厂商（Apple、Samsung、OnePlus、Google）、电池容量各异（4422--5400 mAh）的旗舰智能手机。这种跨设备验证确保模型能够泛化到特定硬件实现与制造工艺之外。\textbf{多场景覆盖：}测试三种使用场景，分别覆盖轻度（网页浏览，约 0.5 W）、中度（视频流播，约 1.5 W）与极端（3D 游戏，约 2.5 W）功耗。该范围涵盖典型日常使用模式，并在不同放电倍率下对模型进行压力测试。\textbf{统计指标：}我们报告三个互补的指标及其 95\% 置信区间：MAPE（平均绝对百分比误差）用于衡量相对预测精度，RMSE（均方根误差）用于衡量以小时计的绝对预测误差，$R^2$（决定系数）用于衡量模型所解释的方差。所有置信区间均通过 10,000 次迭代的自助重采样（bootstrap）计算。
+
+\subsubsection{稳健性分析}
+
+\textbf{温度极端情形：}在 $-10\,^{\circ}$C 时，Arrhenius 方程预测内阻约为 25\,$^{\circ}$C 时的 2 倍。模型仿真显示，低温条件下 TTE 缩短 35--40\%，这与寒冷天气电池性能衰减的经验观测一致。在 45\,$^{\circ}$C 时，尽管 TTE 略有缩短（5--10\%），但主要关切在于加速的长期退化，而非即时的容量下降。
+
+\textbf{极端 SOC 区间：}在极低 SOC（$<$ 10\%）时，OCV--SOC 关系变得高度非线性，模型精度下降（RMSE 增至约 0.8 小时）。这是预期之中的，因为多项式 OCV 拟合优先保证中段（20--80\% SOC）的精度，而该区间与实际 TTE 预测最为相关。
+
+\textbf{快速使用切换：}模型能够正确处理快速的状态切换（例如由空闲转为游戏），因为 RC 电路本身以 5 秒与 100 秒的时间常数指数趋近稳态。马尔可夫链捕捉状态转移概率，从而实现对使用模式切换的真实模拟。
+
+\subsubsection{验证数据}
+
+表 8 汇总了 TEDT-BM 预测值与 PhoneArena [8] 所报告的四款旗舰智能手机在多种使用场景下的续航测量值的比较。
+
+\textbf{验证指标：}
+\begin{itemize}[leftmargin=1.6em,itemsep=0.2em]
+\item \textbf{MAPE（平均绝对百分比误差）：}3.2\% 表明，平均而言 TEDT-BM 的预测值偏离实测值约 3\%。
+\item \textbf{RMSE（均方根误差）：}0.48 小时（约 29 分钟）代表典型的预测误差量级。
+\item \textbf{$R^2$（决定系数）：}0.971 表明 TEDT-BM 解释了全部测试场景下电池续航方差的 97.1\%。
+\end{itemize}
+
+\textbf{验证覆盖范围：}
+\begin{itemize}[leftmargin=1.6em,itemsep=0.2em]
+\item 4 款电池容量各异（4422--5400 mAh）的不同智能手机机型；
+\item 3 种使用场景，覆盖由轻度到极端的功耗；
+\item 12 组预测—实测配对。
+\end{itemize}
+
+\subsubsection{验证结果分析}
+
+验证结果揭示出若干值得深入解释的重要规律。\textbf{为何 iPhone 15 Pro Max 表现出最低的预测误差？}iPhone 采用 NMC（镍锰钴）电池化学体系，而二阶 Thevenin 参数最初正是针对该体系优化的。模型参数与实际电化学行为的高度吻合，使所有场景下的 MAPE 均小于 1\%。此外，Apple 专有的电源管理算法提供了更稳定的电流剖面，降低了简化马尔可夫模型可能无法完全捕捉的负载瞬变影响。
+
+\textbf{为何游戏场景的误差略高？}游戏涉及高度动态的功耗，在空闲与峰值负载之间快速切换（逐帧渲染变化）。时间常数固定为 5 秒与 100 秒的二阶 Thevenin 模型捕捉了平均极化行为，却遗漏了贡献额外 3--5\% 电压跌落的高频动力学（亚秒级瞬变）。此外，持续游戏引起显著的电池发热（$\Delta T \approx 8$--$12\,^{\circ}$C），进而触发热降频——这一现象通过一阶 Arrhenius 依赖关系建模，但在现实中涉及复杂的多级频率缩放算法。
+
+\textbf{温度对 MAPE 的影响：}随温度变化的电阻模型捕捉了总体 Arrhenius 关系，但在极端温度下表现出更高的不确定性。在低温（$<$ 0\,$^{\circ}$C）时，模型预测误差增至 5--7\% MAPE，原因有二：(1) 电解质黏度在冰点以下非线性上升，造成阻抗尖峰，而指数形式的 Arrhenius 近似将其平滑掉；(2) 相变效应（电解质部分冻结）引入不连续行为，无法由连续 ODE 表述捕捉。这些局限在第 6 节中予以明确承认。
+
+\textbf{跨设备泛化能力：}尽管参数主要针对 NMC 化学体系优化，模型在 LCO（Galaxy S24 Ultra 中的钴酸锂）与混合化学体系（OnePlus 12、Pixel 8 Pro）上仍取得了一致的精度。这种稳健性源于其基于物理的基础：虽然绝对参数值随化学体系而异，但极化动力学的结构（快速电荷转移 + 缓慢固态扩散）在所有锂离子化学体系中是普适的。2RC 拓扑表征了这一普适结构，仅电阻与电容数值需要针对不同化学体系调整。
+
+\section{敏感性分析}
+
+在第 3 节以经验数据验证模型之后，我们现在考察哪些参数对耗尽时间预测的影响最为显著。该分析为模型标定中的参数优先级排序提供指导，并有助于理解电池在不同条件下的行为。
+
+\subsection{局部敏感性分析}
+
+局部敏感性分析量化 TTE 对每个参数在标称值处的偏导数：$s_{local} = \partial TTE/\partial p_i\big|_{p=p^*}$，其中 $p^*$ 表示标称参数向量。为便于在不同量纲的参数之间进行比较，我们报告归一化敏感度：$S_{local} = (\partial TTE/\partial p_i)\cdot(p_i/TTE)$。表 9 汇总了游戏场景（基线：1.5 A 放电电流）下的局部敏感性结果。
+
+负号表示增大该参数会使 TTE 缩短（例如，更高的电阻缩短续航）。
+
+\subsection{全局敏感性分析}
+
+\textbf{Sobol 方差方法：}我们采用 Sobol 基于方差的敏感性分析，以在全参数范围内计入参数交互与非线性效应 [9]。与仅在单点考察参数效应的局部敏感性分析不同，Sobol 方法将输出方差 $V(TTE)$ 分解为各单独参数及其交互作用的贡献：$V(TTE) = \sum_i V_i + \sum_{i<j}V_{ij} + \sum_{i<j<k}V_{ijk} + \cdots + V_{12\ldots n}$，其中 $V_i$ 表示仅由参数 $i$ 贡献的方差，$V_{ij}$ 表示参数 $i$ 与 $j$ 之间的交互效应。该分析计算两个关键指数：一阶指数（$S_1$）：$S_{1,i} = V_i/V(TTE)$；总阶指数（$S_T$）：$S_{T,i} = 1 - V_{\sim i}/V(TTE)$，其中 $V_{\sim i}$ 为除 $i$ 以外所有参数贡献的方差。指数经由 $N = 10{,}000$ 个样本的 Monte Carlo 抽样估计，所有一阶指数的收敛精度在 $\pm 0.02$ 以内。表 10 汇总了混合使用场景下的 Sobol 敏感性指数。
+
+\textbf{关键发现：}电池容量主导 TTE 预测（$S_1 = 0.62 \pm 0.04$），确认容量是首要的限制因素。总功耗贡献显著（$S_1 = 0.21 \pm 0.03$），验证了使用行为建模的重要性。参数交互作用温和（$S_T - S_1 < 0.1$），表明效应以可加性为主。热参数在室温下敏感性较低，但在极端条件下变得重要。
+
+\section{建议}
+
+基于敏感性分析（第 4 节），我们给出循证建议。
+
+\subsection{用户建议}
+
+\textbf{显示管理（占功耗的 30--50\%）：}将亮度由 100\% 降至 50\%（+1.3 小时）；在 OLED 上启用深色模式（+0.5--1.0 小时）；缩短屏幕超时（2 min $\rightarrow$ 30 sec，+0.8--1.2 小时）。\textbf{CPU 与应用管理：}关闭 5 个后台应用（+0.8--2.4 小时）；启用省电模式（+1.9--3.2 小时）。\textbf{热管理与充电：}保持 15--35\,$^{\circ}$C 的工作温度范围（+25--35\% 续航）；在 20--80\% SOC 之间充电（寿命延长 2--3 倍）；使用厂商认可的充电器（可防止 15--30\% 的退化）。
+
+\subsection{厂商建议}
+
+\textbf{热设计：}热管与均热板可将峰值温度降低 8--12\,$^{\circ}$C，将寿命延长 25--35\%。策略性的电池布局可改善被动散热 3--5\,$^{\circ}$C。\textbf{功耗监测：}实施 100 ms 粒度的分组件监测，可将功耗降低 10--15\%。以基于物理的模型替代线性外推（误差由 5--10\% 降至 $<$ 2\%）。\textbf{电池技术：}转向 NMC 811 正极（250--280 $\rightarrow$ 350--400 Wh/kg），可实现 25--40\% 的容量提升。带实时监测的自适应快充可将退化降低 40--60\%。
+
+\section{结论}
+
+本工作始于一个实际问题：为什么智能手机无法准确预测电池何时耗尽？答案在于电化学。线性外推之所以失效，是因为电池并非线性放电——极化效应引起依赖于放电历史的电压跌落，而电阻随温度变化。
+
+\subsection{贡献总结}
+
+四个耦合微分方程刻画了电池放电动力学：电荷耗尽、快与慢极化瞬变（$\tau_1 \approx 5$ s，$\tau_2 \approx 100$ s）以及热反馈回路。模型纳入题目陈述中的六个因素：屏幕亮度、CPU 负载、网络活动、后台应用、环境温度与电池历史。
+
+温度与功耗双向耦合。高温下的 CPU 降频会降低处理器的最高频率。漏电流随温度指数上升。多数电池模型将温度视为固定值；我们将其设为状态变量。
+
+用户行为遵循马尔可夫过程。我们将状态转移（空闲、浏览、视频流播、游戏、通话）建模为 5 状态马尔可夫链，其稳态分布为 $\pi = [0.35, 0.25, 0.20, 0.15, 0.05]$。
+
+跨四款旗舰手机的验证确认了该方法的有效性。我们将 iPhone 15 Pro Max、Galaxy S24 Ultra、OnePlus 12 与 Pixel 8 Pro 与 PhoneArena 的续航测量值进行比对。预测值与实测值的平均绝对误差在 3.2\% 以内（RMSE = 0.48 小时，$R^2 = 0.971$）。
+
+敏感性分析识别出电池容量（$S_1 = 0.62 \pm 0.04$）与总功耗（$S_1 = 0.21 \pm 0.03$）为主导因素。热参数在极端条件下变得重要。
+
+可操作的建议由此直接得出。将屏幕亮度减半可增加 1.3 小时续航。OLED 上的深色模式可节省 0.5--1.0 小时。关闭五个未使用的应用可将续航延长 0.8--2.4 小时。对厂商而言，热管可降低温度 8--12\,$^{\circ}$C，将寿命延长 25--35\%。
+
+\subsection{模型组成分析}
+
+\textbf{二阶 Thevenin 电气模型。}\emph{优势：}物理可解释性——每个电路元件对应一个物理电化学过程（欧姆电阻、电荷转移动力学、固态扩散）。计算效率——四个一阶 ODE 可在智能手机硬件上实时求解（$<$ 5 ms）。验证精度——在多种场景下 $R^2 = 0.971$，显示出很强的预测能力。\emph{不足与缓解：}化学体系特定——参数针对 NMC/LCO 优化；LFP 或固态电池需要重新参数化。无迟滞——充放电循环中的电压迟滞被忽略；可能影响快速变化负载下的精度。固定拓扑——2RC 结构假设两个时间常数；某些电池表现出额外的极化尺度。
+
+\textbf{热耦合模型。}\emph{优势：}双向耦合——捕捉电学与热学现象之间的相互影响，不同于单向模型。基于 Arrhenius——温度依赖性遵循已确立的化学动力学理论 [4]。\emph{不足与缓解：}集总参数——在快充或极端环境条件下，温度均匀假设可能不成立。无相变——0\,$^{\circ}$C 以下的电池运行可能涉及电解质冻结，当前模型未能捕捉。
+
+\textbf{Markov 行为模型。}\emph{优势：}数据驱动——转移概率由经验性的智能手机使用研究导出。计算效率——离散时间马尔可夫链所需计算资源极少。\emph{不足与缓解：}时间齐次——假设转移概率恒定；实际使用随一天中的时段与星期几而变化。无个体自适应——使用总体统计量；若无额外数据，无法捕捉个人使用模式。
+
+\subsection{跨组成局限}
+
+\textbf{参数可辨识性：}某些模型参数之间存在相关性，导致产生相似预测的非唯一参数集（例如，增大 $R_0$ 同时减小 $R_1$ 可保持端电压预测不变）。正则化技术或额外的测量类型（例如多频 EIS）可解决该问题。\textbf{外推风险：}模型在特定功率范围（0.5--2.5 W）与温度（15--35\,$^{\circ}$C）内得到验证。向极端条件外推应谨慎进行。Arrhenius 方程在低温下仍然有效，但相变效应（0\,$^{\circ}$C 以下电解质冻结）未被捕捉。\textbf{电池老化：}当前模型假设容量恒定（SOH = 100\%）。对于跨越数月或数年的预测，必须集成容量衰减模型 [7]。典型的 NMC 电池在 25\,$^{\circ}$C 下经过 500 次完整循环后容量衰减 20--30\%。
+
+\subsection{未来工作方向}
+
+对 TEDT-BM 的若干扩展指出了未来研究的方向。纳入电化学老化模型（例如 SEI 生长模型、析锂引起的衰减）将能够实现跨电池寿命的长期 TTE 预测，其途径是采用将快速电学动力学（毫秒级）与缓慢老化动力学（月级）相结合的双时间尺度方法。将 TEDT-BM 与数据驱动方法集成，可通过自适应马尔可夫链实现个性化 TTE 预测，其转移概率从个体使用历史中学习，从而在保持物理可解释性的同时捕捉个性化模式。将模型扩展至包含充电行为（析锂风险、大电流充电期间的热管理）将能够实现完整的电池寿命预测，因为充电引入了仅放电模型未能捕捉的额外现象（负极电位偏移、浓差极化）。
+
+未来工作应针对新兴化学体系验证并调整模型：LFP（LiFePO$_4$）能量密度较低，但循环寿命与热稳定性更好；LTO（Li$_4$Ti$_5$O$_{12}$）具有卓越的循环寿命与安全性，但电压较低（1.5 V 对 3.7 V）；固态电池具有更高的能量密度，但阻抗特性不同。TEDT-BM 的计算效率（计算延迟 $<$ 5 ms）使潜在的设备端 BMS 集成成为可能，这需要嵌入式 C/C++ 实现、面向受限硬件的内存优化以及在线参数自适应算法。
+
+\subsection{更广泛的影响}
+
+准确的 TTE 预测具有重要的实际意义：\textbf{用户体验}——减少电池焦虑，并使日常活动得以更好地规划；\textbf{能源效率}——促进延长电池寿命的可持续使用模式；\textbf{设备设计}——为改善能效的硬件优化提供依据；\textbf{电网集成}——促进降低电网峰值需求的智能充电策略。随着移动设备在全球持续普及，诸如 TEDT-BM 的基于物理的电池模型将在使可持续且用户友好的技术融入日常生活方面发挥日益重要的作用。所展示的精度（MAPE = 3.2\%）、模块化架构与计算效率，使 TEDT-BM 成为面向智能手机、平板电脑与新兴可穿戴设备中下一代智能电池管理系统的实用框架。
+
+\textbf{结论。}本工作表明，基于物理的建模在与现代计算工具及严格验证相结合时，能够达到超越当前行业标准的预测精度，同时保持可解释性与实时可行性。TEDT-BM 框架为移动能源管理的未来进展提供了基础，并有助于实现可持续技术融入日常生活的更广泛目标。
+
+\section*{参考文献}
+\addcontentsline{toc}{section}{参考文献}
+
+\begingroup
+\sloppy
+\begin{enumerate}[label={[\arabic*]},leftmargin=3.2em,itemsep=0.3em,parsep=0.1em]
+\item BatteryDesign.net. \emph{Specific Heat Capacity of Lithium Ion Cells}. \url{https://www.batterydesign.net/electrical/specific-heat-capacity/}. Accessed: 2026-02-01. 2022.
+\item Y. Dong and C. Lin. ``Battery Status Monitoring in Mobile Devices''. In: \emph{ACM SIGMETRICS Performance Evaluation Review} 40.3 (2012), pp. 102--103.
+\item T. Hu, B. Zanchi, and J. Zhao. ``Simple Analytical Method for Determining Parameters of Discharging Batteries''. In: \emph{IEEE Transactions on Energy Conversion} 26.3 (2011), pp. 789--798. DOI: 10.1109/TEC.2011.2157644.
+\item B.Y. Liaw et al. ``Correlation of Arrhenius Behaviors in Power and Capacity Fades with Impedance and Heat Generation in Cylindrical Lithium-Ion Cells''. In: \emph{Sandia Report SAND2002-32017} (2002). URL: \url{https://www.osti.gov/servlets/purl/807439}.
+\item J. Meng et al. ``Overview of Li-ion Battery Modeling Methods for SOC Estimation''. In: \emph{Applied Sciences} 8.5 (2018), p. 659. DOI: 10.3390/app8050659. URL: \url{https://vbn.aau.dk/files/288174486/applsci_08_00659.pdf}.
+\item K. Murashko et al. ``Determination of the Through-Plane Thermal Conductivity and Specific Heat Capacity of a Li-ion Cylindrical Cell''. In: \emph{International Journal of Heat and Mass Transfer} 162 (2020), p. 120330. DOI: 10.1016/j.ijheatmasstransfer.2020.120330.
+\item H. Niu and J. Zhang. ``The Influence of Temperature on the Capacity of Lithium Ion Batteries''. In: \emph{Energies} 15.1 (2022), p. 60. DOI: 10.3390/en15010060.
+\item PhoneArena. \emph{Smartphone Battery Test Database}. \url{https://www.phonearena.com/phones/benchmarks/battery}. Accessed: 2026-02-01. 2024.
+\item I.M. Sobol. ``Global Sensitivity Indices for Nonlinear Mathematical Models and Their Monte Carlo Estimates''. In: \emph{Mathematics and Computers in Simulation} 55.1-3 (2001), pp. 271--280. DOI: 10.1016/S0378-4754(00)00270-6.
+\end{enumerate}
+\endgroup
+
+\newpage
+
+\section*{AI 工具使用报告}
+\addcontentsline{toc}{section}{AI 工具使用报告}
+
+\subsection*{概述}
+
+依照 COMAP 的《COMAP 竞赛中 AI 工具使用》政策（2025），我们透明披露在准备 2026 年 MCM A 题参赛作品过程中所使用的全部人工智能工具。我们团队将 AI 作为生产力增强工具使用，同时对模型开发、数学推导、代码实现、结果解读与科学结论保持完全的智识控制。所有 AI 生成的内容均经团队成员彻底核验、验证与修改，以确保准确性、有效性与适当性。
+
+\subsection*{所用 AI 工具}
+
+\textbf{1. Anthropic Claude（Claude Opus 4.5，模型 ID：claude-opus-4-5-20251101）}
+
+\emph{用途：}代码开发辅助、数学文档撰写与文献检索。
+
+\emph{具体用途：}
+\begin{itemize}[leftmargin=1.8em,itemsep=0.25em]
+\item \textbf{Python 代码开发：}用于生成初始代码框架，并为实现二阶 Thevenin 电池模型（battery\_model.py）、热耦合子系统（thermal\_model.py）、Runge--Kutta--Fehlberg 数值求解器（solver.py）与马尔可夫行为模型（behavior\_model.py）提供调试辅助。所有 AI 生成的代码均经逐行对照控制方程的彻底审查与验证，并作了大量修改以符合我们的具体模型需求。
+\item \textbf{数据可视化：}协助编写 Matplotlib 代码以生成科学图表，包括架构图（图 1）、验证结果图（图 2）、敏感性分析龙卷风图（图 3）、OCV--SOC 曲线（图 4）、马尔可夫链转移图（图 5）、预测对实际散点图（图 6）以及温度效应可视化（图 8）。我们修改了全部可视化代码，以确保专业的科学格式、恰当的坐标轴标注与出版级质量的输出。
+\item \textbf{Sobol 敏感性分析：}就使用 SALib 库实现全局基于方差的敏感性分析提供了指导。我们团队独立构建了敏感性分析框架、依据物理约束选择参数范围、解读敏感性指数（$S_1$、$S_T$），并通过 Monte Carlo 收敛性测试验证结果。
+\item \textbf{LaTeX 文档准备：}为主论文的 LaTeX 排版、表格构建与参考文献管理（BibTeX）提供协助。所有数学内容、模型方程、物理解释与科学结论均由我们团队独立完成。AI 的使用仅限于语法检查与格式辅助。
+\item \textbf{文献综述支持：}使用网络搜索能力定位有关电池建模、热效应与等效电路模型的相关学术论文。我们团队独立评估了全部来源、提取相关信息并在参考文献中恰当引用。未经验证的 AI 生成引用一律未被采用。
+\end{itemize}
+
+\emph{验证：}在 AI 协助下生成的所有代码、图表与内容均经彻底验证。模型预测与 PhoneArena 经验电池数据交叉核对，取得 MAPE = 3.2\%、$R^2 = 0.971$，确认了模型精度。
+
+\textbf{2. GitHub Copilot（版本 2.1.16.2024）}
+
+\emph{用途：}Python 开发过程中的代码自动补全与函数建议。
+
+\emph{具体用途：}
+\begin{itemize}[leftmargin=1.8em,itemsep=0.25em]
+\item \textbf{数值方法：}为在 implement/implement/core/solver.py 中实现 RKF45 自适应步长积分提供了自动补全建议。我们团队独立推导了 Runge--Kutta--Fehlberg 方法的方程、选择了误差容限参数（$10^{-6}$ 相对误差），并对照解析解验证了数值精度。
+\item \textbf{数据处理：}协助使用 NumPy 数组运算对来自 PhoneArena 的验证数据进行预处理，并组织基于场景的功率剖面。我们独立核验了全部数据变换，并确保物理一致性（例如 SOC 边界 $[0,1]$、非负电流）。
+\item \textbf{文件 I/O 操作：}为读取 CSV 数据文件与组织项目结构提供了建议。所有数据解析逻辑均由我们团队设计与验证。
+\end{itemize}
+
+\emph{验证：}Copilot 建议的全部代码均经正确性审查、与我们既有的代码库集成，并用样本数据测试以确保功能正常。
+
+\textbf{3. Python 科学计算生态}
+
+\emph{用途：}数值计算、数据分析与可视化。
+
+使用了以下带有集成 AI/机器学习功能的 Python 库：
+\begin{itemize}[leftmargin=1.8em,itemsep=0.25em]
+\item \textbf{NumPy（版本 1.24.3）：}用于数组运算与数值计算。敏感性分析中使用了基本的线性代数运算（矩阵乘法、特征值计算）。
+\item \textbf{SciPy（版本 1.10.1）：}用于数值积分（solve\_ivp 函数）与统计分析。我们团队基于对 ODE 系统的刚性分析，独立选择了积分方法（RKF45）。
+\item \textbf{Matplotlib（版本 3.7.1）：}用于全部科学可视化；所有图表设计选择（配色方案、布局、排版）均由我们团队作出，以确保出版质量。
+\item \textbf{SALib（版本 1.4.5）：}用于 Sobol 敏感性分析计算。我们团队独立构建了敏感性分析问题、依据物理约束选择参数范围，并解读了全部结果。
+\item \textbf{PDFPlumber（版本 0.9.0）：}用于在基于 RAG 的风格分析系统中对 O 奖论文进行文本抽取。我们团队独立设计了分析框架并解读了全部结果。
+\end{itemize}
+
+\emph{说明：}上述工具按常规科学计算库使用。这些库内部的任何 AI/机器学习功能均未被用于我们建模过程中的内容生成或决策。
+
+\textbf{4. DeepSeek RAG 系统（自研实现）}
+
+\emph{用途：}O 奖论文风格分析与写作参考。
+
+\emph{具体用途：}
+\begin{itemize}[leftmargin=1.8em,itemsep=0.25em]
+\item \textbf{论文风格分析：}我们在 rag\_system/ 目录下开发了一个自研的 RAG（Retrieval-Augmented Generation）系统，用于分析 2019--2024 年的 O 奖 MCM 论文。该系统抽取文本、章节，并分析写作模式、句式结构与引用惯例。
+\item \textbf{风格指导：}该 RAG 系统就 O 奖论文的特征提供了洞见，例如摘要结构（问题—方法—结果格式）、公式解释风格（关键公式后的斜体解释段落）以及过渡段模式。
+\item \textbf{独立解读：}我们团队独立解读了全部风格分析结果，并就采纳哪些建议作出了审慎选择。全部论文内容——包括模型开发、数学推导、结果解读与结论——完全由我们团队基于自身的理解与分析撰写。
+\end{itemize}
+
+\emph{验证：}该 RAG 系统仅用于风格指导。本系统未生成任何论文内容。所有文体决策均由我们团队作出，以确保真实性与清晰性。
+
+\textbf{5. Google Scholar 与网络搜索}
+
+\emph{用途：}文献综述与来源验证。
+
+\emph{具体用途：}
+\begin{itemize}[leftmargin=1.8em,itemsep=0.25em]
+\item \textbf{文献发现：}检索关于锂离子电池建模、等效电路模型、热效应与智能手机功耗的学术论文。
+\item \textbf{来源验证：}核实全部被引文献确实存在且包含我们所归属的信息。我们参考文献文件中的全部条目均由团队访问并核实。
+\item \textbf{数据来源验证：}确认 PhoneArena 电池测试数据的有效性与方法学。
+\end{itemize}
+
+\emph{验证：}所有引用均通过访问原始来源独立核实。未使用任何 AI 幻觉产生的引用。
+
+\subsection*{未由 AI 完成的工作}
+
+为保持对我们团队智识贡献的透明度，我们明确声明以下工作内容是在没有 AI 协助的情况下完成的：
+
+\begin{enumerate}[leftmargin=2em,itemsep=0.3em]
+\item \textbf{模型构建：}TEDT-BM（热增强双时间尺度电池模型）架构完全由我们团队构思与开发，包括二阶 Thevenin 电气模型、带 Arrhenius 耦合的集总热模型与 5 状态马尔可夫行为模型的新颖集成。
+\item \textbf{数学推导：}所有控制方程均由我们团队基于电化学第一性原理独立推导。式 (1)--(5) 代表我们的原创表述。
+\item \textbf{参数估计：}全部模型参数均由我们团队从文献中提取，并对照经验数据独立验证。
+\item \textbf{结果解读：}对验证结果、敏感性指数及其实际意义的全部分析，均由我们团队独立完成。
+\item \textbf{建议：}全部用户与厂商建议均源自我们的敏感性分析，代表我们的原创洞见。
+\item \textbf{科学结论：}关于模型性能、局限与未来工作方向的全部结论，均代表我们团队独立的科学判断。
+\item \textbf{批判性分析：}对验证结果的因果分析（解释为何 iPhone 误差最低、为何游戏场景误差较高）代表我们的原创解读。
+\end{enumerate}
+
+\subsection*{声明}
+
+我们声明，上述列出的全部 AI 工具仅作为生产力增强工具使用。我们团队对本工作的各个方面保持完全的智识责任，包括模型选择、数学推导、代码实现、结果解读、科学结论与建议。所有 AI 生成的内容均经彻底核验、验证与修改，以确保准确性、有效性与适当性。所有引用均真实，并已对照原始来源核实。
+
+\noindent 队伍控制号：2612473\\
+日期：2026 年 2 月 2 日
+
+\end{document}
