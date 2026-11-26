@@ -1,0 +1,618 @@
+\documentclass[11pt,a4paper]{ctexart}
+\usepackage[margin=2.4cm]{geometry}
+\usepackage{amsmath,amssymb,bm}
+\usepackage{amsthm}
+\usepackage{enumitem}
+\usepackage{fancyhdr}
+\usepackage[hidelinks]{hyperref}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{Team 2608346}
+\fancyhead[R]{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+\setlength{\parskip}{0.35em}
+\setlength{\parindent}{2em}
+\linespread{1.15}
+\newtheorem{theorem}{定理}
+\newtheorem{definition}{定义}
+\newtheorem{proposition}{命题}
+\newtheorem{lemma}{引理}
+\renewcommand{\proofname}{证明}
+\title{功能性耗尽：面向电池优化的热电功率框架}
+\author{}
+\date{}
+\begin{document}
+\setlength{\emergencystretch}{3em}
+\maketitle
+
+\begin{center}
+\small 选题：A \quad 2026 MCM/ICM 摘要页 \quad 队伍控制号：2608346
+\end{center}
+\vspace{0.5em}
+
+\section*{摘要}
+
+由于用户工作负载的随机性以及电池复杂的电热动力学特性，准确的耗尽时间（Time-to-Empty, TTE）预测仍然是一项挑战。本文建立了一个综合的热—电—功率模型，该模型集成了二阶 Thevenin 模型、Arrhenius 定律、组件级功率模型与热模型，用以分析影响 TTE 的各项因素。
+
+针对任务 1：我们采用二阶 Thevenin 模型构建高保真电池模型以刻画极化动力学，并纳入基于 Arrhenius 定律的热修正与健康状态（State-of-Health）退化因子。热力学反馈回路将温度视为经由产热与散热而演化的动态状态。负载需求由组件级功率分解导出，驱动一个考虑热节流的非线性“功率—电流”逆求解器。由此形成的系统由一组耦合的四阶微分方程支配。
+
+该耦合微分方程经由代数耦合求解器求解。针对 SherLock [8] 数据集的验证显示出很高的精度：均方根误差（Root Mean Square Error, RMSE）约为 $\mathbf{0.022\ V}$，且 $R^2$ 超过 $\mathbf{0.98}$。这些结果表明模型在多样化运行包线内具有稳健性。为模拟现代手机电池参数，我们基于已有文献数据 [5] 合成了一个 4500 mAh 的虚拟电池。
+
+针对任务 2：仿真识别出一个关键的“功能性耗尽”机制：在约 $-20\,^{\circ}\mathrm{C}$ 附近，大电流诱发阻抗突增，从而触发即时的电压截止，而低负载则仍可持续。敏感性分析揭示出彼此不同的区制：重负载是计算受限的（CPU/GPU 主导），而轻负载是显示受限的。与直觉相反，在协同作用的高负载情景中，热节流被发现在潜在意义上可延长放电时间。
+
+针对任务 3：结构分析验证了二阶 Thevenin 模型在刻画电压松弛方面的有效性，避免了 Rint 模型中所出现的显著 TTE 误差。参数敏感性分析确认电池容量是 TTE 的首要决定因素，其次是 CPU 与 GPU 的能量效率。该分析借助 Monte Carlo 仿真强化了情景依赖性，确认主导性的功率驱动因素在计算频率与屏幕亮度之间动态迁移。
+
+针对任务 4：我们提出情景自适应策略：对轻负载优先降低亮度，在寒冷条件下对计算工作负载施加节流以防止电压崩溃，并为老化电池预留 40\% 的缓冲。系统级优化包括用于主动热管理的“抗崩溃调度器”（Anti-Collapse Scheduler）。此外，该框架具有高度可适配性；通过重新配置功率需求向量，它可无缝推广至无人机或笔记本电脑等系统。
+
+\noindent\textbf{关键词：}二阶 Thevenin 模型；Arrhenius 定律；功率解耦；Monte Carlo 仿真
+
+\newpage
+
+\section{引言}
+
+\subsection{背景}
+
+智能手机已演化为功能强大的多用途设备，然而锂离子电池的进步已显著滞后于计算能力的指数级增长。这一不断扩大的“能量鸿沟”（Energy Gap）使电池续航成为用户体验的主要瓶颈。
+
+使该问题更为复杂的是，由于动态电压频率调节（Dynamic Voltage and Frequency Scaling, DVFS）与环境热波动，能量消耗具有高度的非线性与随机性。因此，稳健的电池建模对于使系统资源与能量可用性相匹配、并优化用户的电源管理策略而言至关重要。
+
+\subsection{问题陈述}
+
+本文着眼于建立一个综合框架来刻画智能手机的电池动力学。我们处理以下四项具体任务：
+
+\begin{itemize}[leftmargin=1.6em,itemsep=0.2em]
+\item \textbf{任务 1：连续时间建模。}建立一个基于微分方程的荷电状态（State of Charge, SOC）模型。该模型必须在连续时间域内集成组件级负载（屏幕、CPU、网络），并刻画锂离子电池的电化学特性（内阻、极化）。
+\item \textbf{任务 2：耗尽时间（Time-to-Empty, TTE）预测与驱动因素分析。}利用该模型在随机使用模式与环境条件下预测 TTE。我们必须量化不确定性，并识别导致电池快速耗尽的特定驱动因素。
+\item \textbf{任务 3：敏感性与可靠性分析。}通过扰动内在参数（例如老化因子）与外在条件（例如温度波动）来考察模型的稳健性。这包括以数据为依据论证建模假设的合理性。
+\item \textbf{任务 4：策略性优化。}将理论洞见转化为面向用户的可操作建议（例如使用习惯），并提出操作系统层面的功率调度策略以延长有效电池续航。
+\end{itemize}
+
+\subsection{文献综述}
+
+已有的电池建模方法可归为三大类别，每一类对于本问题都有其特定的局限：
+
+\textbf{电化学模型（例如 Doyle-Fuller-Newman（DFN）模型 [1]）：}此类模型虽然具有高保真度，却受困于参数不可辨识性。关键的微观性质（例如电解液扩散系数）无法通过标准智能手机传感器观测，这使得反问题呈病态且易于过拟合 [2]。
+
+\textbf{纯数据驱动方法（例如 PINNs）[3]：}物理信息神经网络（Physics-Informed Neural Networks, PINNs）虽然具有高保真度，却面临一个关键的部署悖论。其高昂的计算成本（FLOPs）消耗的正是它们试图节省的能量，与轻量级解析模型相比，这使其不适用于实时的端侧执行。
+
+\textbf{等效电路模型（Equivalent Circuit Models, ECMs）：}ECM 在效率与物理意义之间提供了最优的平衡。然而，传统 ECM 常将内部参数（容量、电阻）视为静态或仅依赖 SOC 的数值，忽略了与温度变化之间的关键热力学耦合。此外，已有文献广泛讨论了模型复杂度与精度之间的权衡。Hu 等 [4] 比较了十二种等效电路模型，并得出结论：对于锂离子电池，二阶 Thevenin 电路模型在稳健性与复杂度之间取得了最佳平衡。
+
+遵循这一洞见，我们采用二阶 Thevenin 结构作为基线，但通过集成热力学耦合（Arrhenius 定律）对其加以显著增强，以处理标准 ECM 中常被忽略的环境敏感性。
+
+\subsection{本文工作}
+
+\section{模型准备}
+
+\subsection{假设与论证}
+
+\begin{itemize}[leftmargin=1.6em,itemsep=0.4em]
+\item \textbf{假设 1：集总热系统。}电池被视为具有均匀的内部温度。
+
+\textbf{论证：}由于智能手机组件具有高导热性（$Bi \ll 1$），内部热量扩散迅速，因此单一状态 $T(t)$ 已足够。
+
+\item \textbf{假设 2：简化热平衡。}温度仅由焦耳热、熵热与对流驱动。
+
+\textbf{论证：}辐射传热与次要外部热源可相对视为可忽略的因素。
+
+\item \textbf{假设 3：线性欧姆近似。}忽略 Butler-Volmer 动力学。
+
+\textbf{论证：}遵循 Hu 等 [4]，宏观电压动力学由欧姆/极化效应主导；线性化在精度损失极小的前提下降低了计算负荷。
+
+\item \textbf{假设 4：均匀热敏感性。}我们假设所有内部阻抗分量（$R_0$、$R_1$、$R_2$）共享相同的活化能（Arrhenius 系数 $\beta$）。
+
+\textbf{论证：}尽管微观活化能可能略有差异，但假设统一的 $\beta$ 可显著降低过拟合风险，同时有效刻画低温下阻抗的宏观指数上升。
+\end{itemize}
+
+\subsection{符号说明}
+
+主要符号在表 1 中定义。
+
+\begin{description}[leftmargin=3.2em,style=nextline,itemsep=0.1em]
+\item[$\mathrm{SOC}$] 荷电状态（State of Charge）—— \%
+\item[$I(t)$] 负载电流—— A
+\item[$V_O$] 端电压—— V
+\item[$T$] 内部温度—— K
+\item[$t$] 时间变量—— s
+\item[$V_{OC}$] 开路电压（Open Circuit Voltage）—— V
+\item[$Q(T)$] 动态容量—— Ah
+\item[$\eta$] 库仑效率—— --
+\item[$C_{th}$] 热容—— J/K
+\item[$R_0$] 内部欧姆电阻—— $\Omega$
+\item[$R_{1,2}$] 极化电阻—— $\Omega$
+\item[$C_{1,2}$] 极化电容—— F
+\item[$V_{1,2}$] RC 电压降—— V
+\item[$\tau_{1,2}$] 时间常数—— s
+\item[$\lambda_T$] 熵系数—— V/K
+\item[$\beta$] Arrhenius 系数—— K
+\item[$P_{heat}$] 产热率—— W
+\item[$R_{th}$] 热阻—— K/W
+\end{description}
+
+\subsection{数据处理与 SOC 标定}
+
+为确保模型的独立性与物理真实性，我们放弃了直接依赖移动设备离散的系统上报 SOC（System-reported SOC）的做法。系统读数往往经过过度平滑，并受到非线性专有算法固有偏差的影响。作为替代，我们采用基于库仑积分的状态演化方程：
+\begin{equation}
+\mathrm{SOC}(t) = V_{OC}^{-1}(V_{init}) - \frac{1}{Q_{usable}(T)}\int_{t_0}^{t}\eta\cdot I_{measured}(\tau)\,\mathrm{d}\tau,
+\end{equation}
+其中：
+
+\begin{itemize}[leftmargin=1.6em,itemsep=0.2em]
+\item $V_{OC}^{-1}(V_{init})$：逆 OCV 函数，将初始端电压 $V_{init}$ 映射为初始 SOC。
+\item $Q_{usable}(T)$：表示作为温度函数的动态容量（详见 3.1.3 节）。
+\item $\eta$：库仑效率，对于锂离子电池通常在 0.98 至 1.0 之间取值。
+\item $I_{measured}(\tau)$：来自 SherLock 数据集的原始电流传感器读数。
+\end{itemize}
+
+最后，SOC 结果被约束在 $[0,1]$ 区间内，以确保物理有效性。
+
+\section{模型的建立}
+
+\subsection{等效电路模型：二阶 RC 等效电路}
+
+锂离子电池的二阶 RC 等效电路模型（作为 Thevenin 等效电路的一种复杂化版本）如图 2 所示。该模型由欧姆电阻（$R_0$）与两个并联 RC 网络（$R_1//C_1$ 与 $R_2//C_2$）串联构成，能够同时刻画瞬时电压降与瞬态极化效应。
+
+根据基尔霍夫电压定律（Kirchhoff's Voltage Law, KVL），该模型的数学状态方程如下：
+\begin{equation}
+\left\{
+\begin{aligned}
+V_O(t) &= \underbrace{V_{OC}(\mathrm{SOC},T)}_{\text{热力学电位}} - \underbrace{V_1(t)-V_2(t)}_{\text{极化损失}} - \underbrace{I(t)R_0(T)}_{\text{欧姆压降}},\\[4pt]
+\dot{V}_1 &= -\frac{1}{R_1C_1}V_1 + \frac{1}{C_1}I,\\[4pt]
+\dot{V}_2 &= -\frac{1}{R_2C_2}V_2 + \frac{1}{C_2}I.
+\end{aligned}
+\right.
+\end{equation}
+
+此外，为反映电池的特性，我们引入了热效应对关键参数的影响。
+
+\subsection{多因素参数修正机制}
+
+\subsubsection{开路电压的温度修正}
+
+我们引入熵系数 $\lambda_T$，以如下方式刻画平衡电位对温度的线性依赖：
+\begin{equation}
+V_{OC}(\mathrm{SOC},T) = V_{298.15\mathrm{K}}(\mathrm{SOC}) + \lambda_T\cdot(T-298.15).
+\end{equation}
+
+\subsubsection{内阻的 Arrhenius 依赖}
+
+内阻 $R_0$、$R_1$、$R_2$ 依照 Arrhenius 方程随温度变化，反映了电化学反应速率与温度之间的关系：
+\begin{equation}
+R_x(T_K) = R_{x,ref}\cdot\exp\left[\beta\cdot\left(\frac{1}{T_K}-\frac{1}{T_{ref}}\right)\right],
+\end{equation}
+其中 $T_K$ 为绝对温度（开尔文），$T_{ref} = 298.15\ \mathrm{K}$（$25\,^{\circ}\mathrm{C}$），$\beta$ 为 Arrhenius 系数，反映电阻对温度的敏感性。
+
+\subsubsection{可用容量的温度修正}
+
+标准的 SOC 估计方法常假设电池容量（$Q_{capacity}$）恒定。然而，电解液与活性材料内部的扩散过程是严重依赖温度的限速步骤。依照 Arrhenius 定律，离子扩散速率在低温下显著下降，从而导致在达到截止电压之前可提取的电荷量减少。
+
+为修正这一现象，我们推导了一个温度相关的容量模型。假设可用容量 $Q(T)$ 与扩散系数 $k(T)$（其遵循 Arrhenius 行为）成正比，则该关系表述为：
+\begin{equation}
+Q(T) = Q_{ref}\cdot\exp\left[-\frac{E_{a,Q}}{R}\cdot\left(\frac{1}{T}-\frac{1}{T_{ref}}\right)\right],
+\end{equation}
+其中：
+
+\begin{itemize}[leftmargin=1.6em,itemsep=0.2em]
+\item $Q(T)$ 为温度 $T$ 下的最大可用容量（Ah）；
+\item $Q_{ref}$ 为参考温度 $T_{ref} = 298.15\ \mathrm{K}$ 下的额定容量；
+\item $E_{a,Q}$ 为容量衰减过程的活化能（J/mol）；
+\item $R$ 为通用气体常数（$8.314\ \mathrm{J/(mol\cdot K)}$）。
+\end{itemize}
+
+该修正对我们模型的精度至关重要，因为忽略低温下的容量收缩将导致对剩余运行时间的过高估计。
+
+\subsubsection{电池历史的建模：老化因子}
+
+为超越“新鲜电芯”假设，我们引入健康状态（State of Health, SOH）因子，其定义为当前最大容量与额定容量之比（$SOH\in[0,1]$）。
+
+电池老化主要表现为两种物理退化：\textbf{容量衰减}（活性锂的损失）与\textbf{电阻增长}（SEI 层增厚）。我们基于半经验退化定律，将这些量建模为循环次数 $N_{cyc}$ 的函数：
+\begin{equation}
+\left\{
+\begin{aligned}
+Q_{max}(T,N_{cyc}) &= Q_{ref}(T)\cdot\underbrace{\left(1-\xi_Q\cdot N_{cyc}\right)}_{\text{容量衰减}},\\[6pt]
+R_0(T,N_{cyc}) &= R_{0,ref}(T)\cdot\underbrace{\left(1+\xi_R\cdot\sqrt{N_{cyc}}\right)}_{\text{阻抗增长}}.
+\end{aligned}
+\right.
+\end{equation}
+其中：
+
+\begin{itemize}[leftmargin=1.6em,itemsep=0.2em]
+\item $N_{cyc}$：等效的完整充放电循环次数，代表电池的使用历史。
+\item $\xi_Q\approx 2.5\times 10^{-4}$：每次循环的容量衰减率（约 800 次循环后损失 20\%）。
+\item $\xi_R\approx 0.05$：由 SEI 生长理论导出的电阻退化系数。
+\end{itemize}
+
+通过引入 $N_{cyc}$，我们的框架不仅能预测新手机的 TTE，还能预测老化设备的退化性能——其中增大的 $R_0$ 会加剧冷环境下的“电压崩溃”（如第 6 节所分析）。
+
+\subsection{功耗建模：组件级负载分析}
+
+为准确量化由用户活动驱动的瞬时功率需求 $P(t)$，我们建立了一个细粒度的组件级回归模型。与简化的线性方法不同，我们的模型显式考虑了现代处理器的非线性功率标定律。总功耗被分解为五个不同的组件：显示、CPU（小核/中核/大核）、GPU、WiFi 与基础系统。其数学表述为：
+\begin{equation}
+\begin{aligned}
+P_{total} = {} & \underbrace{\left(P_{disp,base}+\alpha_{disp}\cdot\mathcal{B}\right)}_{\text{显示}}
++ \underbrace{\left[\beta_L\left(\frac{f_{L,CPU}}{1000}\right)^3+\beta_M\left(\frac{f_{M,CPU}}{1000}\right)^3+\beta_B\left(\frac{f_{B,CPU}}{1000}\right)^3\right]}_{\text{CPU 动态}}\\
+& + \underbrace{\gamma_{GPU}\left(\frac{f_{GPU}}{1000}\right)^3}_{\text{GPU 动态}}
++ \underbrace{\left(\delta_{state}\cdot I_{wifi}+\delta_{th}\cdot Net_{MBps}\right)}_{\text{WiFi（状态 + 吞吐量）}}
++ \underbrace{P_{base}}_{\text{基础}} ,
+\end{aligned}
+\end{equation}
+其中：
+
+\begin{itemize}[leftmargin=1.6em,itemsep=0.2em]
+\item \textbf{显示：}建模为亮度 $\mathcal{B}$（0--255）的仿射函数。它由静态驱动开销（$P_{disp,base}$）与由系数 $\alpha_{disp}$ 支配的可变背光功率构成。
+\item \textbf{CPU/GPU 动态：}验证 CMOS 动态功率定律 $P\propto V^2f\propto f^3$，我们将该项成本建模为频率的立方函数（$f$ 以 MHz 计，并由 1000 归一化）。系数 $\beta_L$、$\beta_M$、$\beta_B$ 分别对应小核、中核与大核簇的特定功率特性，而 $\gamma_{GPU}$ 表示 GPU 的功率标定因子。
+\item \textbf{WiFi：}由带系数 $\delta_{state}$ 的静态成本（$I_{wifi}\in\{0,1\}$）与带系数 $\delta_{th}$ 的、正比于数据吞吐量（$Net_{MBps}$）的动态成本构成。
+\item \textbf{基础：}$P_{base}$ 表示后台操作系统服务、空闲电路耗散与基本活动功耗的恒定基线功耗。
+\end{itemize}
+
+为准确刻画待机动力学，标准线性回归往往不够充分，因为它将活动系统开销聚合进常数截距。因此，我们将基线功耗 $P_{base}$ 分解为两个不同的状态：\textbf{深度睡眠}与\textbf{活动}。
+\begin{equation}
+P_{base}(t) = P_{sleep} + \delta_{active}(t)\cdot P_{active},
+\end{equation}
+其中：
+
+\begin{itemize}[leftmargin=1.6em,itemsep=0.2em]
+\item $P_{sleep}\approx 45\ \mathrm{mW}$：表示高性能 SOC 在挂起模式下的最小保活功率。
+\item $P_{active}\approx 505\ \mathrm{mW}$：刻画在设备唤醒时（无论计算负载如何）激活高速系统总线、内存控制器，特别是\textbf{显示驱动开销}（$P_{disp,base}$）的静态能量成本。
+\item $\delta_{active}(t)$：为二值指示函数。我们定义：若屏幕点亮（$\mathcal{B}>0$）或 CPU 未处于空闲状态，则 $\delta_{active}(t)=1$；否则为 0。
+\end{itemize}
+
+这一分解确保我们的模型在保持活动使用所特有的高基线功耗的同时，准确预测长时间待机能力。
+
+尽管式 (8) 与式 (9) 定义了硬件的\emph{功率需求}，但它们假设电池可以在无热约束的情况下提供无限能量。为刻画现代操作系统所用的主动保护机制（DVFS），我们区分\textbf{请求功率}（Requested Power，$P_{req}$，由式 8 导出）与\textbf{实际允许功率}（Actual Permitted Power，$P_{actual}$）。我们引入热节流系数 $\alpha(T)$：
+\begin{equation}
+P_{actual}(t) = P_{req}(t)\cdot\alpha(T(t)),
+\end{equation}
+其中反馈因子 $\alpha(T)$ 遵循一条 logistic 保护曲线：
+\begin{equation}
+\alpha(T)=
+\begin{cases}
+1, & T<318.15\mathrm{K}\quad\text{（安全区）}\\[3pt]
+1-k_{th}(T-318.15), & T\geq 318.15\mathrm{K}\quad\text{（节流区）}
+\end{cases}
+\end{equation}
+
+此处 $k_{th}\approx 0.05$ 表示每超出 1 摄氏度带来 5\% 的性能惩罚。该机制有效抑制了简化模型中出现的“失控”焦耳热，确保仿真遵循现实的安全协议。
+
+\subsection{机电耦合：负载电流参数的推导}
+
+在现实情景中，应用请求特定的功率。然而最终输出受上述热约束支配。因此我们使用经节流的功率 $P_{actual}$（来自式 9）作为耦合求解器的输入。
+
+为弥合应用层与电化学层之间的鸿沟，我们推导了一个代数耦合方程。由于输出功率定义为 $P_{actual}(t)=V_O(t)\cdot I(t)$，代入端电压方程后，可得离散时间步 $k$ 上未知电流 $I[k]$ 的二次关系：
+\begin{equation}
+P_{actual}[k] = \left[V_{OC}-V_1[k]-V_2[k]-I[k]\cdot R_0(T[k])\right]\cdot I[k].
+\end{equation}
+
+将其整理为标准二次型 $R_0I^2-V_{eff}I+P_{actual}=0$，我们求解维持负载功率所需的瞬时电流：
+\begin{equation}
+I[k] = \frac{V_{eff}-\sqrt{V_{eff}^2-4R_0(T[k])P_{actual}[k]}}{2R_0(T[k])},
+\end{equation}
+其中 $V_{eff}=V_{OC}(\mathrm{SOC}[k],T[k])-V_1[k]-V_2[k]$ 表示排除欧姆压降后的有效电压。该推导确保我们的模型在热约束下以解析方式求解非线性的“功率—电流”逆问题。
+
+我们选取较小的根（负号）作为物理上稳定的工作点，而较大的根对应于不稳定的低电压状态。
+
+式 (12) 揭示了一个关键的物理约束：判别式必须非负：
+\begin{equation}
+\Delta = V_{eff}^2-4R_0(T[k])P_{actual}[k]\geq 0.
+\end{equation}
+
+该不等式定义了电池状态的理论\textbf{瞬时最大功率能力}（Instantaneous Maximum Power Capability，$P_{max}$）：
+\begin{equation}
+P_{load}(t)\leq P_{max}(\mathrm{SOC},T)=\frac{\left(V_{OC}(\mathrm{SOC},T)-V_1-V_2\right)^2}{4R_0(T)}.
+\end{equation}
+
+尽管 $\Delta<0$ 代表着数学意义上的电压崩溃，现实中的电池管理系统（Battery Management Systems, BMS）会强制实施严格的电压下限以防止损坏。因此，我们将真正的\textbf{关机条件}定义为两个事件的并集：
+
+\begin{enumerate}[leftmargin=1.8em,itemsep=0.2em]
+\item \textbf{欠压锁定：}端电压降至安全截止值以下（$V_O<3.2\ \mathrm{V}$）。
+\item \textbf{功率极限违背：}请求功率超过理论极限（$P_{req}>P_{max}$），导致瞬时电压崩溃。
+\end{enumerate}
+
+这一严格的判据解释了为何老化设备或处于冷环境中的设备可能由于电压降 $IR_0$ 而意外关机，即使化学能量仍有剩余。
+
+\subsection{热电耦合动力学}
+
+为完整刻画电负载与温度之间的递归反馈，我们不把电池温度 $T(t)$ 仅当作外部输入，而是当作经由产热与散热而演化的内部状态。
+
+\noindent\textbf{产热率（$P_{heat}$）}\quad 总产热率由两个不同的分量构成：不可逆的焦耳热（$P_{irr}$）与可逆的熵热（$P_{rev}$）。
+\begin{equation}
+P_{heat}(t)=\underbrace{I(t)^2R_0(T)+\frac{V_1(t)^2}{R_1(T)}+\frac{V_2(t)^2}{R_2(T)}}_{\text{不可逆焦耳热}}+\underbrace{I(t)\cdot T(t)\cdot\lambda_T}_{\text{可逆熵热}},
+\end{equation}
+其中 $\lambda_T=\frac{\partial V_{OC}}{\partial T}$ 为熵系数。纳入熵热至关重要，因为它在充电过程中可导致电池降温（吸热反应）——这一现象在简化模型中常被忽略。
+
+\noindent\textbf{热平衡方程}\quad 将电池视为集总热质量，温度的演化由产热与对流耗散（$P_{diss}$）之间的能量平衡支配：
+\begin{equation}
+C_{th}\frac{\mathrm{d}T}{\mathrm{d}t}=P_{heat}(t)-\frac{T(t)-T_{amb}}{R_{th}},
+\end{equation}
+其中 $C_{th}$（J/K）为电池包的热容，$R_{th}$（K/W）为对环境的热阻，$T_{amb}$ 为环境温度。因此，我们模型中的所有参数均基于这一自洽的温度状态在每个时间步上被动态更新。
+
+\subsection{综合：集成的热电功率框架}
+
+为可视化上述复杂交互，图 3 展示了我们框架的闭环反馈机制。
+
+集成电化学、热学与功率耦合模块后，我们将完整模型表述为一个非线性状态空间系统。定义状态向量 $\mathbf{x}=[\mathrm{SOC},V_1,V_2,T]^{\mathrm{T}}$，系统演化由以下耦合微分方程支配：
+\begin{equation}
+\left\{
+\begin{aligned}
+\frac{\mathrm{d}\mathrm{SOC}}{\mathrm{d}t} &= -\frac{I(\mathbf{x},P)}{3600\cdot Q_{usable}(T)}\cdot\eta,\\[6pt]
+\frac{\mathrm{d}V_1}{\mathrm{d}t} &= \frac{I(\mathbf{x},P)}{C_1}-\frac{V_1}{R_1(T)C_1},\\[6pt]
+\frac{\mathrm{d}V_2}{\mathrm{d}t} &= \frac{I(\mathbf{x},P)}{C_2}-\frac{V_2}{R_2(T)C_2},\\[6pt]
+\frac{\mathrm{d}T}{\mathrm{d}t} &= \frac{1}{C_{th}}\left[I(\mathbf{x},P)^2R_0(T)+\sum_{j=1}^{2}\frac{V_j^2}{R_j(T)}+I(\mathbf{x},P)T\lambda_T-\frac{T-T_{amb}}{R_{th}}\right].
+\end{aligned}
+\right.
+\end{equation}
+\section{模型验证}
+
+\subsection{基于 PCHIP 的 OCV 曲线建模}
+
+开路电压（$V_{OC}$）的建模采用了固定节点的 PCHIP（Piecewise Cubic Hermite Interpolating Polynomial，分段三次 Hermite 插值多项式）算法。
+
+\begin{itemize}[leftmargin=1.6em,itemsep=0.3em]
+\item \textbf{固定节点策略：}我们扫描整个 SherLock 数据集以拟合 OCV--SOC 曲线。为建立完整的电池模型，算法依据数据分布固定了 6 个 SOC 节点。具体而言，我们从数据集中提取了点 $(0.2,3.742)$、$(0.4,3.84)$、$(0.6,3.94)$、$(0.8,4.16)$ 与 $(1.0,4.40)$。由于实验数据集因截止电压限制而缺少完全放电状态（0\% SOC）的测量值，我们引入来自 [7] 的数值 $(0.0,3.30)$ 作为下边界条件。
+\item \textbf{光滑性与单调性：}PCHIP 确保通过这些节点的曲线分段光滑且单调递增，这与电池 OCV 的物理特性相符。优化器只需调整这 6 个节点处的电压值，而插值算法负责生成全范围内的连续曲线。
+\end{itemize}
+
+\subsection{参数辨识与计算策略}
+
+\subsubsection{离散时间解（变参数）}
+
+由于电阻 $R_i(T)$ 随时间（温度）变化，系统时间常数 $\tau_i(t)=R_i(t)C_i$ 也是时变的。在采样间隔 $\Delta t$ 内，假设温度与电流恒定，则电压递推公式为：
+\begin{equation}
+V_i[k+1]=V_i[k]\cdot\exp\left(-\frac{\Delta t}{\tau_i[k]}\right)+I[k]\cdot R_i[k]\cdot\left[1-\exp\left(-\frac{\Delta t}{\tau_i[k]}\right)\right].
+\end{equation}
+其中 $R_i[k]$ 是依据当前温度 $T[k]$、使用 Arrhenius 方程计算得到的实时电阻值。
+
+\subsubsection{优化目标与物理约束}
+
+参数优化被表述为一个带约束的非线性最小二乘问题。我们寻求使轨迹误差最小的最优参数向量 $\bm{\theta}$：
+\begin{equation}
+\min_{\bm{\theta}} J(\bm{\theta})=\sum_{k=1}^{N}\left(V_{model}[k]-V_{meas}[k]\right)^2,
+\end{equation}
+其中 $\bm{\theta}=[R_0,R_1,C_1,R_2,C_2,\dots]^{\mathrm{T}}$ 表示参数向量。
+
+\subsection{数据驱动的参数估计}
+
+利用式 (19) 中推导的最小二乘表述，我们通过将模型拟合至 SherLock 数据集内的大部分放电段来估计电池参数。关于热动力学，由于电池包的热容（$C_{th}$）与热阻（$R_{th}$）保持相对稳定，它们在后续离线仿真中被视为时不变常数。
+
+我们辨识了组件级功率模型与二阶 Thevenin 模型的关键参数，详见表 2 与表 3。
+
+\noindent\textbf{功率模型参数}\quad 利用对功耗数据集的多变量回归，我们辨识出组件级功率模型的各项系数，详见表 2。
+
+值得注意的是，所辨识出的 Arrhenius 系数 $\beta\approx 4160\ \mathrm{K}$（等效于活化能 $E_a\approx 0.36\ \mathrm{eV}$）在物理上与电化学原理相一致。它恰好落在 Schmidt 等 [6] 所报告的区间之内，介于纯欧姆电解液输运的活化能（$\approx 3000\ \mathrm{K}$ 或 $0.26\ \mathrm{eV}$）与电荷转移主导过程的活化能（$\approx 4600\ \mathrm{K}$ 或 $0.4\ \mathrm{eV}$）之间，从而证实我们的模型正确刻画了内部阻抗的混合动态本质。
+
+\subsection{模型验证}
+
+为严格评估模型的泛化能力，我们在 SherLock 数据集 [8] 上采用了\textbf{基于序列的数据划分策略}，而非随机打乱。我们使用碎片化的短时段片段进行训练，以迫使优化器学习局部瞬态动力学（例如 RC 时间常数），同时保留单条最长的连续放电轨迹（100\% 至 0\% SOC）作为留出测试集。这严格检验了模型在长时程上对累积积分漂移的稳定性。
+
+我们使用两项标准统计指标评估了模型在这一未见测试轨迹上的拟合优度：决定系数（Coefficient of Determination，$R^2$）与均方根误差（RMSE）。
+
+通过将模型输出与真实测试轨迹相比较，我们得到以下结果：
+
+\begin{itemize}[leftmargin=1.6em,itemsep=0.3em]
+\item \textbf{$R^2$ 得分：0.988}——这表明在未见过的长轨迹中，超过 98.8\% 的电压方差可由我们的物理信息模型解释。
+\item \textbf{RMSE：0.022 V}——考虑到电池的额定电压（约 3.8 V），这代表着小于 1\% 的相对误差。
+\end{itemize}
+
+极小的 RMSE 证实我们的模型同时成功刻画了宏观放电趋势与微观瞬态响应。
+
+为进一步验证模型的无偏性，我们分析了图 6 所示的残差。误差围绕零轴（0 V）随机振荡，并被限制在狭窄范围内（大部分位于 $\pm 0.04\ \mathrm{V}$ 内），未表现出显著的长期漂移。这种零均值特性表明，电池的大部分系统性动力学已被等效电路所刻画，而剩余残差主要归因于高频传感器噪声。
+
+关键在于，由于开路电压（OCV）是 SOC 的严格单调函数，电压跟踪的高保真度可直接转化为准确的 SOC 估计。这一基于物理的验证将被最小化纯库仑计数方法中典型的累积积分误差（漂移），为后续的预测任务提供了高度可靠的基础。
+
+\section{情景分析与耗尽时间预测}
+
+为全面处理问题 Q2（“预测不同条件下的 TTE”与“识别特定驱动因素”），我们在一系列从被动阅读到高强度 5G 游戏的真实使用模式谱系下仿真了电池动力学。
+
+\subsection{参数设置：基于当代容量的缩放}
+
+商用手机电池的详细阻抗参数通常属于专有信息，无法公开获取。为处理这一问题，我们采用基于容量的缩放方法来近似模型参数。我们利用 INR 18650-20R 电池 [5] 的二阶 RC 电路数据集作为基线。
+
+基线参数——包括欧姆内阻（$R_0$）、电化学极化电容（$C_1$）、电化学极化内阻（$R_1$）、浓差极化电容（$C_2$）与浓差极化内阻（$R_2$）——首先在整个 SOC 范围内用三次样条插值进行拟合。随后，这些参数被缩放以匹配目标手机电池容量（$Q_{target}=4500\ \mathrm{mAh}$），其基准为基线容量（$Q_{source}=2000\ \mathrm{mAh}$）。假设阻抗与容量成反比、电容与容量成正比，则电压响应参数按因子 $k=Q_{target}/Q_{source}$ 调整（即 $R\propto 1/k$，$C\propto k$）。最后，开路电压（OCV）曲线被替换为目标手机电池的实测数据，以准确反映其静态特性。
+
+\subsection{瞬态动力学：间歇负载的仿真}
+
+为评估模型在瞬态负载（短期动力学）下的预测能力，我们仿真了一个\textbf{间歇高负载情景}（模拟用户在游戏与待机之间循环切换）。图 9 展示了这种耦合动力学：
+
+\begin{itemize}[leftmargin=1.6em,itemsep=0.3em]
+\item \textbf{电压松弛：}端电压（右上）在低电流区间表现出明显的回弹尖峰。这验证了我们的二阶 Thevenin 模型（$R_1C_1$、$R_2C_2$）的有效性，它准确刻画了缓慢的扩散过程。
+\item \textbf{热惯性：}温度（右下）虽伴随电阻性产热尖峰，却呈现逐渐下降的趋势，展示了模型跟踪热力学能量平衡的能力。
+\item \textbf{SOC 线性：}在电流脉冲化的情况下，SOC 以离散阶梯下降，提供了考虑静置期间容量恢复的精确预报。
+\end{itemize}
+
+\subsection{续航预测：耗尽时间预报}
+
+第 5.2 节展示了短期恢复，而实际电池寿命取决于持续放电的极限。在此，我们将仿真扩展至完整放电循环，以预测多种条件下的总耗尽时间（TTE）。
+
+我们首先基于离散的硬件状态定义了三种标准化配置（表 4）。这些情景并非依赖任意的功率估计，而是从特定的 CPU 频率、屏幕亮度与网络吞吐量导出功耗。
+
+为可视化使用强度与环境约束之间的非线性耦合，我们生成了图 10。
+
+\subsection{失效物理：“温度悬崖”机制}
+
+仿真结果揭示了电池续航中显著的非线性。在此，我们将这一现象解构为三个逻辑步骤：现象、机制与洞见。
+
+\noindent\textbf{步骤 1：观测——温度悬崖}\quad 通过比较图 10 中的曲线，我们观察到低温性能的剧烈分化。在 $25\,^{\circ}\mathrm{C}$ 下，高负载（7.55 W）配置给出 2.23 h（134 min）的运行时间。然而，我们的模型预测在更低温度下会出现灾难性骤降。在 $-19\,^{\circ}\mathrm{C}$ 时运行时间为 1.33 h（80 min），而在 $-20\,^{\circ}\mathrm{C}$ 时则一施加负载便立即失效，这说明了陡峭的“温度悬崖”。相比之下，低负载（2.15 W）配置保持稳健，即使在 $-20\,^{\circ}\mathrm{C}$ 下仍能维持 4.82 h（289 min）的运行时间。
+
+\noindent\textbf{步骤 2：机制——功能性耗尽}\quad 为什么电池在高负载与寒冷条件下如此主要地失效？答案在于“功能性耗尽”这一概念。标准的耗尽发生在化学能耗尽之时（$\mathrm{SOC}=0$），而功能性耗尽发生在端电压过早触及 BMS 安全截止值（3.2 V）之时。
+
+端电压定义为 $V_O=V_{OC}(\mathrm{SOC},T)-V_1(t)-V_2(t)-I(t)\cdot R_0(T)$，其中 $V_1$ 与 $V_2$ 表示极化电压（活化极化与浓差极化）。在冷环境中，尽管极化动力学仍有影响，瞬时电压降由内阻 $R_0(T)$ 主导，而后者因 Arrhenius 效应呈指数增长。
+
+\begin{itemize}[leftmargin=1.6em,itemsep=0.3em]
+\item 在\textbf{低负载}（2.15 W，$I\approx 0.6\ \mathrm{A}$）下，电压降 $V_{drop}=I(t)\cdot R_0(T)$ 仍在可控范围内，即使 $R_0$ 较高。电池可以完全释放其化学容量。
+\item 在\textbf{高负载}（7.55 W，$I\approx 2.0\ \mathrm{A}$）下，大电流使电压降显著放大。在 $-20\,^{\circ}\mathrm{C}$ 时，该压降迫使 $V_O<3.2\ \mathrm{V}$ 立即发生，实际上锁死了全部能量容量（100\% 功能性耗尽）。
+\end{itemize}
+
+\noindent\textbf{步骤 3：洞见——最大幅度的缩减}\quad 针对问题 Q2，我们得出结论：电池寿命的“最大幅度缩减”并非由单一因素驱动，而是由大电流脉冲与低温的\textbf{协同组合}所致。这一特定搭配触发了功能性耗尽，使用户无法获取电池的全部理论容量。
+
+\subsection{初始条件：起始 SOC 的影响}
+
+为量化 TTE 对初始条件的依赖，我们在 $-15\,^{\circ}\mathrm{C}$ 下仿真了待机、视频与游戏情景（图 11）。结果揭示了基于负载强度的关键分岔：
+
+\begin{itemize}[leftmargin=1.6em,itemsep=0.3em]
+\item \textbf{参考基线（$25\,^{\circ}\mathrm{C}$）：}在室温下，我们的仿真（为简洁起见从略）确认 TTE 在所有使用情景下均与初始 SOC 呈线性关系。内阻可忽略，使电池无论负载强度如何都能充分利用其化学容量。
+\item \textbf{冷应力区制（$-15\,^{\circ}\mathrm{C}$）：}如图 11 所示，低温引入了非线性的分岔：
+\begin{itemize}[leftmargin=1.4em,itemsep=0.1em]
+\item 轻负载（待机/视频）：保持线性。低电流产生的电压降极小，即使在寒冷环境中也保留了“理想电池”的行为。
+\item 重负载（游戏）：表现出“悬崖效应”。在约 70\% SOC 以下，TTE 崩塌至接近零。
+\end{itemize}
+\end{itemize}
+
+\noindent\textbf{机制——电压裕度}\quad 这一对比证明初始 SOC 起到了电压缓冲的作用。在 $25\,^{\circ}\mathrm{C}$ 下，电压裕度充裕。然而在 $-15\,^{\circ}\mathrm{C}$ 且高负载时，巨大的 $IR$ 压降消耗了可用的电压裕度。若 $SoC_0<70\%$，OCV 过低而无法容纳该压降，导致尽管能量仍有剩余却立即关机。
+
+\subsection{工作负载影响分析：识别功率瓶颈}
+
+为量化哪些使用模式对电池寿命的影响最为关键，我们对工作负载参数进行了单因子（One-at-a-Time, OAT）敏感性分析。
+
+龙卷风图展示了不同使用情景下功耗决定因素的显著迁移：
+
+\begin{itemize}[leftmargin=1.6em,itemsep=0.3em]
+\item \textbf{高负载情景（计算受限）：}如图 13 所示，该情景严格属于计算受限。GPU 频率与 CPU 大核频率是首要因素，其敏感性幅度分别达到 50.7\% 与 47.4\%。这些结果表明，在高强度渲染工作负载下，SOC 的动态功耗显著超过其他组件。尽管屏幕亮度仍是一个贡献因素（$+21.7\%$），但相对于计算需求而言是次要的。因此，针对游戏应用的电池寿命优化应优先降低计算负载（例如通过分辨率缩放或帧率限制），而非调整外围组件。
+\item \textbf{低负载情景（显示主导）：}相比之下，图 12 刻画出一个“显示主导”的区制。由于高性能核心大多空闲或处于功率门控状态，系统对频率缩放的敏感性变得可忽略（大核影响 $\approx 0\%$）。功率层级发生反转，识别出\textbf{屏幕亮度}是关键瓶颈（敏感性范围：$-15.4\%$ 至 $+22.3\%$）。该数据表明，显示屏背光确立了一个与计算吞吐量无关的基线功耗。因此，对于网页浏览或阅读等轻量使用模式，能效策略应将焦点从 CPU 调度转向显示面板效率与亮度管理。
+\end{itemize}
+
+\subsection{协同分析：量化驱动因素的交互作用}
+
+为系统性地量化这些交互（相对于老化），我们采用\textbf{放电速率}（Discharge Rate，$Rate=1/TTE$）作为指标，并计算\textbf{协同速率影响}。
+
+热力图（图 14）证实了我们的发现机制：
+
+\begin{itemize}[leftmargin=1.6em,itemsep=0.3em]
+\item \textbf{红色区域（阻抗放大）：}老化与高负载（主要为 CPU）的交点对应于最高的放电速率。与寒冷效应类似，老化电池（$N_{cyc}=500$）因 $R_0$ 增大而受害，在高负载下这触发的低电压截止显著早于仅由容量衰减所预测的时刻。
+\item \textbf{黄色区域（热力学补偿）：}相反，高温对老化起到缓冲作用。升高的热量增强离子迁移率（经由 Arrhenius 定律），动态降低 $R_0$。这种“热力学掩蔽”部分抵消了退化引起的阻抗增长，使老化电池在温暖环境中比预期更好地维持性能。
+\end{itemize}
+\section{敏感性与稳健性验证}
+
+为确保模型的可靠性，我们考察了模型对三个关键维度的敏感性：\textbf{模型结构}、\textbf{内在参数}与\textbf{随机行为}。
+
+\subsection{结构敏感性：瞬态动力学的必要性}
+
+一个严谨的模型必须为其复杂性作出论证。我们将二阶 RC 模型与简化的 Rint 模型（理想电压源 + 串联电阻，忽略极化电容）进行了比较。Rint 方程定义为 $V_O=V_{OC}(\mathrm{SOC},T)-V_1(t)-V_2(t)-I(t)\cdot R_0(T)$。
+
+如图 15 所示，在低 SOC（15\%）下仿真一个高负载脉冲，揭示出关键的分歧：
+
+\begin{enumerate}[leftmargin=1.8em,itemsep=0.2em]
+\item \textbf{电压跌落的低估：}2RC 模型（蓝线）刻画了由电化学极化累积所引起的持续电压下降。相比之下，Rint 模型（红色虚线）假设瞬时、恒定的 $IR$ 压降，错误地预测电压仍高于 3.2 V 截止值。
+\item \textbf{过于乐观的 TTE 预测：}简化模型忽略了瞬态“电压崩溃”，导致危险的假阴性：Rint 模型预测设备仍在运行，而现实中（以及在我们的 2RC 模型中），BMS 早在 $t=400\ \mathrm{s}$ 时就已触发关机。
+\end{enumerate}
+
+\textbf{结论：}对于智能手机这类突发模式设备，忽略电容效应会导致 TTE 预测出现显著的正向误差。二阶复杂性对于预测过早关机而言是严格必要的。
+
+\subsection{内在参数敏感性：稳健性检验}
+
+为量化哪些硬件属性对电池寿命的影响最为关键，我们进行了单因子（OAT）敏感性分析。我们将关键内在参数扰动 $\pm 10\%$ 至 $\pm 30\%$，并测量总运行时间的偏移。
+
+龙卷风图（图 16）按影响幅度对因素进行了排序：
+
+\begin{itemize}[leftmargin=1.6em,itemsep=0.3em]
+\item \textbf{主导因素（容量）：}不出所料，额定容量具有最高的敏感性。容量的退化（老化）线性地转化为运行时间的损失。
+\item \textbf{效率与静态功耗：}处理器效率（每瓦性能）的影响超过基础系统功耗。这表明对于未来的旗舰手机，优化芯片的光刻工艺（例如 3nm 与 7nm）比优化后台操作系统服务能带来更好的回报。
+\item \textbf{“隐性”杀手（电阻）：}尽管内阻（$R_0$）在全局上似乎敏感性较低，其影响却是非线性的。如 5.4 节所确立，高 $R_0$ 会在冷环境中触发功能性耗尽，使其成为一个条件性的“关键参数”。
+\end{itemize}
+
+\subsection{随机稳健性：Monte Carlo 仿真}
+
+现实世界的用户行为是碎片化且随机的。为验证模型对使用随机性的稳健性，我们构建了迭代 200 次的 Monte Carlo 仿真。我们基于马尔可夫概率链随机化使用状态（HEAVY、MED、LIGHT）的序列与持续时间。
+
+\begin{itemize}[leftmargin=1.6em,itemsep=0.3em]
+\item \textbf{巨大的动态范围：}仿真（图 17）揭示出电池寿命 9 倍的动态范围，从 2.23 小时（连续游戏）到 18.32 小时（网页浏览）。这确认了“耗尽时间”若脱离情境便毫无意义。
+\item \textbf{不确定性包络：}绿色阴影区域显示了“混合用户”TTE 的概率分布。即便使用概率完全相同，操作序列仍使最终 TTE 在均值（12.68 h）附近波动。
+\end{itemize}
+
+\section{模型评价}
+
+\subsection{优点}
+
+\begin{itemize}[leftmargin=1.6em,itemsep=0.4em]
+\item \textbf{热力学与电路/动力学的系统性耦合：}我们的框架不把温度当作静态边界条件，而是建立起一个\textbf{闭环状态空间系统}。通过将 Arrhenius 驱动的阻抗增长与组件级功率需求相耦合，模型得以动态仿真自加热与热节流。这一结构使得定量复现非线性极端情形成为可能，例如高负载、低温条件下的“电压崩溃”——此类情形在解耦的线性模型中通常不可观测。
+\item \textbf{结构透明性与失效模式归因：}与决策逻辑不透明的数据驱动“黑箱”模型（例如 RNN）相反，我们的框架保持严格的物理同构性。对欧姆项（$IR_0$）、电化学项（$V_1$）与浓差极化项（$V_2$）的显式分离，使得对限制因素的精确归因成为可能。这种可解释性对于识别低温关机是由“功率崩溃”而非“能量耗尽”所致至关重要——这一区分在纯统计方法中常被掩盖。
+\item \textbf{面向嵌入式部署的算法效率：}我们的框架通过显式的解析代数解来求解“功率—电流”耦合。该方法不仅避免了神经网络的计算开销，还消除了对迭代数值求解器（例如 Newton-Raphson）的需要。因此，每时间步的复杂度降至 $O(1)$，使算法得以规避“部署悖论”，并能够在能量受限的微控制器上实时实现。
+\end{itemize}
+
+\subsection{缺点}
+
+\begin{itemize}[leftmargin=1.6em,itemsep=0.4em]
+\item \textbf{对遗留数据源的依赖与物理化学失配：}由于现代 5G 智能手机缺少开源的高频电压日志，我们的参数辨识依赖于 SherLock 数据集（Samsung Galaxy S5）。此外，以圆柱形 18650 基线参数替代软包电芯，忽略了\textbf{形状因子}失配。这一几何差异改变了热阻与热惯性，可能导致对系统热缓冲能力的轻微高估。进一步而言，尽管我们实施了基于物理的\textbf{缩放策略}以弥合硬件差距，新兴技术（例如 Si-C 负极或双电芯拓扑）的特定非线性，若没有新的实验标定，可能无法被完全刻画。
+\item \textbf{集总热近似：}我们的模型假设均匀的内部温度分布。现实中，密集任务可能产生局部“热点”，这可能在平均温度上升之前就局部劣化电池隔膜。
+\item \textbf{简化的老化动力学：}尽管我们纳入了循环老化，却忽略了日历老化（随时间退化而与使用无关）以及 OCV 的滞回效应。对于使用 3--5 年以上的电池，这些因素可能引入长期偏差，而我们当前的半经验公式可能低估了这些偏差。
+\end{itemize}
+
+\section{建议}
+
+基于我们协同热力图与续航曲面所得的定量洞见，我们提出缓解“功能性耗尽”并延长电池寿命的具体策略。
+
+\subsection{用户指南：避免“协同陷阱”}
+
+我们的敏感性分析揭示，电池寿命与使用量并非线性相关，而在很大程度上取决于环境情境。我们建议：
+
+\begin{itemize}[leftmargin=1.6em,itemsep=0.3em]
+\item \textbf{“冬季守则”：}当环境温度降至 $-5\,^{\circ}\mathrm{C}$ 以下时，用户应严格避免高功率活动（例如 5G 游戏）。我们的模型显示，内阻（$R_0$）在寒冷天气下呈指数突增。这些条件下的高电流触发巨大的电压降（$V_{drop}=I\cdot R_0$），使设备在仍剩余 20\% 容量时即关机（即“温度悬崖”）。
+\item \textbf{老化意识：}使用较旧设备（$>500$ 次循环）的用户应更为保守。协同热力图表明，老化会放大 CPU 尖峰的影响。我们建议在关键情形下将电池电量保持在 40\% 以上，以提供抵御突发负载瞬变的电压缓冲。
+\end{itemize}
+
+\subsection{操作系统层策略：物理感知的功率调度}
+
+标准的省电模式仅对后台任务施加节流。我们为操作系统提出一个动态的“\textbf{抗崩溃调度器}”：
+
+\begin{itemize}[leftmargin=1.6em,itemsep=0.3em]
+\item \textbf{热门控电流限制：}操作系统应纳入功率状态（State-of-Power, SoP）估计器。若 $T_{bat}<0\,^{\circ}\mathrm{C}$，操作系统应通过限制 CPU 加速频率来主动钳制最大允许电流（$I_{max}$）。这可防止请求功率（$P_{req}$）超过电池的瞬时能力（$P_{max}$），从而避免过早关机。
+\item \textbf{智能预调节：}利用“热力学补偿”效应，当在冷环境中检测到充电器连接时，操作系统可启用快速预热阶段（使用受控的处理器虚拟负载），在用户断开连接之前降低内阻（$R_0$）。
+\end{itemize}
+
+\subsection{模型可扩展性：向其他便携系统的推广}
+
+我们物理信息框架的一个关键优势在于其结构模块化。尽管本文聚焦于智能手机，核心支配方程——特别是二阶 Thevenin 动力学（式 2）与 Arrhenius 热力学耦合（式 4）——对所有锂离子储能系统都是普适的。要将该模型推广至其他便携设备，只需重新配置\textbf{功率需求向量}与\textbf{热边界条件}。
+
+我们提出一个统一的广义功率方程，将任意便携系统 $S$ 的负载分解为\textbf{静态}、\textbf{计算}与\textbf{运动学}分量：
+\begin{equation}
+P_{load}^{(S)}(t)=P_{static}+\sum_{k\in\mathrm{Logic}}\mu_k\cdot\phi_k(t)^{\alpha_k}+\sum_{m\in\mathrm{Mech}}\psi_m\cdot\omega_m(t)^{\nu_m},
+\end{equation}
+其中各参数定义了特定的物理标定律：
+
+\begin{itemize}[leftmargin=1.6em,itemsep=0.2em]
+\item $\phi_k(t)$：逻辑组件 $k$ 的归一化控制变量（例如 CPU 频率 $f$ 或屏幕亮度 $L$）。
+\item $\mu_k,\alpha_k$：逻辑标定系数。对于 CMOS 处理器，$\alpha_k\approx 3$ 反映动态功率定律（$P\propto V^2f$）；对于 OLED 显示屏，$\alpha_k\approx 1$ 表示线性光子发射。
+\item $\omega_m(t)$：运动学状态变量（例如无人机的螺旋桨转速或电动车的车轮速度）。
+\item $\psi_m,\nu_m$：机械负载系数。对于空气动力飞行，$\nu_m\approx 3$（阻力功率）；对于车辆牵引，$\nu_m$ 取决于阻力模型（滚动阻力与空气阻力）。
+\end{itemize}
+
+表 5 概述了面向三类不同设备类别的适配策略。
+
+例如，要将我们的模型适配于四旋翼无人机，我们只需将式 (9) 中 CPU 主导的项替换为一个空气动力项：
+\begin{equation}
+P_{drone}(t)=P_{avionics}+4\cdot k_{motor}\cdot\omega(t)^3.
+\end{equation}
+
+用于 SOC 与电压的底层代数耦合求解器（式 17）在数学上保持不变，这证明了该框架在便携电子谱系上的稳健性。
+
+\section*{参考文献}
+\addcontentsline{toc}{section}{参考文献}
+
+\begin{enumerate}[label={[\arabic*]},leftmargin=2.6em,itemsep=0.3em]
+\item T. F. Fuller, M. Doyle, and J. Newman, ``Simulation and Optimization of the Dual Lithium Ion Insertion Cell,'' \emph{Journal of The Electrochemical Society}, vol. 141, no. 1, p. 1, 1994.
+\item J. C. Forman, S. J. Moura, J. L. Stein, and H. K. Fathy, ``Genetic identification and fisher identifiability analysis of the Doyle--Fuller--Newman model from experimental cycling of a LiFePO4 cell,'' \emph{Journal of Power Sources}, vol. 210, pp. 263--275, 2012.
+\item M. Raissi, P. Perdikaris, and G. E. Karniadakis, ``Physics-informed neural networks: A deep learning framework for solving forward and inverse problems involving nonlinear partial differential equations,'' \emph{Journal of Computational Physics}, vol. 378, pp. 686--707, 2019.
+\item X. Hu, S. Li, and H. Peng, ``A comparative study of equivalent circuit models for Li-ion batteries,'' \emph{Journal of Power Sources}, vol. 198, pp. 359--367, 2012.
+\item Y. Kuang and Y. Zhang, ``Lithium-ion battery model analysis based on Levenberg-Marquardt algorithm,'' in \emph{2025 International Conference on Electrical Automation and Artificial Intelligence (ICEAAIT)}, IEEE, 2025, pp. 786--790.
+\item J. P. Schmidt, S. Arnold, A. Loges, D. Werner, T. Wetzel, and A. Ivers-Tiff\'ee, ``Measurement of the internal cell temperature via impedance: Evaluation and application of a new method,'' \emph{Journal of Power Sources}, vol. 243, pp. 110--117, 2013.
+\item J. Li, ``Research on State of Charge and State of Health Estimation Methods for Lithium Cobalt Oxide Batteries in Mobile Terminals,'' Master's thesis, Beijing Jiaotong University, 2022.
+\item Y. Mirsky et al., ``SherLock vs Moriarty: A Smartphone Dataset for Cybersecurity Research,'' in \emph{Proceedings of the 2016 ACM Workshop on Artificial Intelligence and Security}. ACM, 2016. [Online]. Available: https://www.kaggle.com/datasets/BGU-CSRC/sherlock
+\end{enumerate}
+
+\section*{人工智能使用报告}
+\addcontentsline{toc}{section}{人工智能使用报告}
+
+\begin{enumerate}[leftmargin=1.8em,itemsep=0.3em]
+\item Google Gemini 3（2026 年 2 月版本，pro）
+\begin{itemize}[leftmargin=1.4em,itemsep=0.1em]
+\item 查询 1：“润色以下段落，以提升学术清晰度与专业语气。”
+\item 输出：这些段落的精修版本。
+\item 查询 2：“将以下描述由中文译为英文。”
+\item 输出：对所提供中文文本的准确英文描述。
+\end{itemize}
+\item GitHub Copilot（2026 年 2 月版本）
+\begin{itemize}[leftmargin=1.4em,itemsep=0.1em]
+\item 查询：不适用（IDE 集成插件）
+\item 输出：用于绘图与数据分析函数的代码自动补全。
+\end{itemize}
+\end{enumerate}
+
+\end{document}
