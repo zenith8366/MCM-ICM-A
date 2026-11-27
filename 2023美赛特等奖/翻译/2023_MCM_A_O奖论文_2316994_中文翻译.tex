@@ -1,0 +1,652 @@
+\documentclass[11pt,a4paper]{ctexart}
+\usepackage[margin=2.4cm]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage{fancyhdr}
+\usepackage{enumitem}
+\linespread{1.18}
+\setlength{\headheight}{15pt}
+\setlength{\parskip}{0pt}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small Team 2316994}
+\fancyhead[R]{\small \thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+\fancypagestyle{plain}{\fancyhf{}\renewcommand{\headrulewidth}{0pt}}
+
+\ctexset{
+  section/format = \Large\bfseries\raggedright,
+  subsection/format = \large\bfseries\raggedright,
+  subsubsection/format = \normalsize\bfseries\raggedright
+}
+\setcounter{secnumdepth}{3}
+
+\begin{document}
+
+%====================== 摘要页 ======================
+\thispagestyle{empty}
+\begin{center}
+{\small 2023 MCM/ICM\quad 选题 A\quad 队伍控制号 2316994\quad 摘要页（Summary Sheet）}\\[18pt]
+{\LARGE\bfseries 干枯还是死亡？干旱胁迫下的植物群落}\\[8pt]
+{\large （Dry or Die? Drought-Stricken Plant Communities）}\\[10pt]
+\end{center}
+
+\begin{center}
+{\large\bfseries 摘\quad 要}
+\end{center}
+
+\vspace{6pt}
+在气候变化背景下，降水的年际变率很可能增大，包括多年连旱在内的极端天气与气候事件将更加强烈、更加频繁。因此，有必要关注植物群落的干旱适应性。本文建立如下数学模型，以探究植物群落对干旱的响应机制。
+
+首先，为考虑植物种间相互作用的影响，我们对经典的 Lotka-Volterra 模型作了改进：在 Logistic 方程的基础上，把描述两个物种之间关系的方程扩展为多物种微分方程组。我们使用 Spearman 相关分析（Spearman Correlation Analysis）得到衡量不同物种之间相互作用的系数。当两个物种的分布呈正相关时，我们认为这两个物种在一定程度上互惠互利。
+
+其次，我们考虑环境因素的影响。我们收集了过去 15 年的气象数据，拟合出降水、温度与土壤湿度之间的线性关系。我们还定义了环境影响因子 $Q$，并将其加入基本微分方程。随后，我们用计算机设定温度与降水，并控制其变化周期，以模拟不规则的天气循环。该随机模拟以真实数据为基础，且可以人为调整。借助这一模型，我们预测植物群落随时间的变化趋势。
+
+再次，通过度量 Shannon-Wiener 指数与 ICV（物种生物量变异系数的倒数），我们得到了刻画植物群落干旱适应性的具体定量指标。我们计算了不同情形下植物群落经过一段时间之后这两个指标的变化率。对物种数从 2 到 7 的各群落逐一度量，我们发现：若群落要从这种生物多样性中获益，所需的最少植物物种数为 5。物种越多，群落的干旱适应性越好。
+
+此外，我们进一步分析了更复杂环境的潜在影响，以使模型更完整、更全面。我们考虑了生境缩减、环境污染与气候变暖三种情形。对每一个因子，我们都绘制了物种生物量随时间变化的曲线，以直观展示该因子的影响。
+
+最后，我们使用层次分析法（Analytic Hierarchy Process，AHP）模型评估各因子的重要性。我们得到四个权重指标：物种数量、物种类型、天气周期和其他环境因子的权重分别为 0.257、0.543、0.131 和 0.069。这些指标有助于我们更好地分析确保植物群落长期存续的途径。指标越大，说明该因子相对其他因子越应受到优先关注。
+
+\vspace{6pt}
+\noindent\textbf{关键词：}群落稳定性；生物多样性；干旱；微分方程；AHP 模型
+
+\newpage
+\pagestyle{fancy}
+
+%%====================== 正文 ======================
+\section{引言}
+
+\subsection{问题背景}
+
+近年来，随着气候变化背景下的全球变暖，极端干旱事件的发生频率与强度不断上升，对生态系统的结构与功能造成了巨大影响。降水已被确认为限制生态系统过程的首要因子\cite{ref1}。因此，亟需更深入地研究物种相互作用对恢复力（resilience）的影响，以使植物适应日益增强的干旱胁迫\cite{ref2}。
+
+不同植物对干旱的响应方式不同，对干燥环境的适应方式也不同。对于植物群落而言，其适应干旱周期的能力与物种数量之间存在密切联系。干旱也可能改变群落结构，因为它对植物构成一种胁迫，会降低种群密度，并提高数量较少的物种灭绝的概率\cite{ref3}。由多种植物组成的群落比仅由单一植物组成的群落具有更强的抗旱恢复力，这与生物学中的抵抗稳定性十分相似。
+
+抵抗稳定性是指生态系统抵御外部干扰、保持其结构与功能完整的能力。一般而言，生态系统越复杂，抵抗稳定性越高。对植物群落抵抗稳定性的研究，为解释这一现象提供了新的视角。
+
+\subsection{问题重述}
+
+结合问题陈述中所给出的背景信息与限制条件，我们需要解决以下问题：
+
+\begin{enumerate}
+\item 首先，我们需要建立一个模型，用以预测植物群落在不规则天气周期中随时间的变化。必须考虑物种之间的竞争与互利关系。
+\item 其次，我们需要计算植物群落要从局域生物多样性中获益所需的最少物种数量，并预测物种数量增加与物种组成变化所带来的后果。
+\item 再次，在前述模型的基础上，我们需要将其推广到更复杂的环境，例如：干旱频率的变化、环境污染以及生境缩减。
+\item 最后，我们需要提出确保植物群落长期存续的途径。
+\end{enumerate}
+
+\subsection{我们的思路}
+
+为分析植物群落的干旱适应性，我们按以下流程推进研究。
+
+\begin{itemize}
+\item 定义环境影响因子与种间相互作用影响因子。我们界定干旱环境，并考虑物种之间的相互作用。
+\item 设计植物群落变化模型。我们设计植物群落的变化过程，并调整模型参数以模拟更大范围的环境。
+\item 评估植物群落效益。将 Shannon-Wiener 指数与 M. Godron 稳定性测定方法相结合，我们能够定量刻画植物群落的干旱适应性。
+\item 提出确保植物群落长期存活的途径。在前述模型的基础上，我们识别不同因子对植物群落的影响，并给出确保植物群落长期存续的途径。
+\end{itemize}
+
+\section{假设与合理性说明}
+
+为简化问题并便于模拟真实情形，我们作出以下假设，并对每一条假设给出适当理由。
+
+\begin{itemize}
+\item \textbf{我们所收集的全部数据都是准确的。} 我们从多种来源收集了气候数据、土壤湿度数据与植被数量数据，而数据测量设备不可避免地存在一定测量误差。因此在模型中，我们假设所收集的全部数据都是准确的。
+
+\item \textbf{除干旱之外，植物不受其他极端天气的影响。} 极端天气事件的发生概率通常低于 5\% 或 10\%。然而随着全球变暖，极端天气与气候事件的发生频率已经发生变化，呈上升趋势。本模型只考虑可能发生的极端干旱，不考虑其他极端天气状况。
+
+\item \textbf{忽略动物因素。} 动物也是生态系统的重要组成部分，动物与植物之间存在捕食关系，会影响植物的数量；同时，可能发生的病虫害也会对植物数量产生重要影响。由于本模型主要关注植物群落，动物因素的影响可以忽略。
+
+\item \textbf{土壤 pH 值与土壤微生物是适宜的。} 土壤 pH 值会依植物是否适应而促进或抑制植物生长，土壤中的微生物同样会促进或抑制植物生长。为简化模型，我们假设它们都是适宜的。
+\end{itemize}
+
+\section{符号说明}
+
+本文所用的主要符号及其含义与单位如下，其中主要参数在此定义，这些参数的具体取值将在后文给出。
+
+\begin{description}
+\item[$T$] 温度，单位 $^{\circ}\mathrm{C}$
+\item[$R$] 降水量，单位 mm
+\item[$h$] 土壤湿度，无量纲
+\item[$Q$] 环境影响因子，无量纲
+\item[$n$] 物种数量，无量纲
+\item[$N_1,N_2,\cdots,N_n$] 不同物种的生物量，单位 $\mathrm{kg/hm^2}$
+\item[$K_1,K_2,\cdots,K_n$] 不同物种的环境容量，单位 $\mathrm{kg/hm^2}$
+\item[$r_1,r_2,\cdots,r_n$] 不同物种的种群增长率，单位 $\mathrm{day^{-1}}$
+\item[$a_{ij}$] 物种 $i$ 对物种 $j$ 的影响因子，无量纲
+\item[$H$] Shannon-Wiener 指数，无量纲
+\item[$P_i$] 物种 $i$ 的相对频度，无量纲
+\item[$N_i$] 物种 $i$ 的个体数，无量纲
+\item[$ICV$] 变异系数的倒数，无量纲
+\item[$\tau$] 各物种的平均生物量，单位 $\mathrm{kg/hm^2}$
+\item[$\sigma$] 各物种生物量的标准差，无量纲
+\item[$\Delta ICV$] $ICV$ 的增长率，无量纲
+\item[$CR$] 一致性比率，无量纲
+\item[$CI$] 一致性指标，无量纲
+\item[$RI$] 随机指标，无量纲
+\item[$\lambda_{\max}$] 判断矩阵的最大特征值，无量纲
+\item[$k$] 衡量 $\mathrm{SO_2}$ 浓度的指标，无量纲
+\item[$c$] 当前 $\mathrm{SO_2}$ 浓度，单位 ppm
+\item[$c_0$] $\mathrm{SO_2}$ 浓度的标准值，单位 ppm
+\item[$D$] 生境缩减比例，无量纲
+\end{description}
+
+\section{植物群落变化模型}
+
+\subsection{环境影响因子}
+
+本模型在确定环境影响因子时只考虑干旱环境。干旱是指因土壤水分亏缺、作物水分平衡遭到破坏而引发的农业气象灾害，可分为土壤干旱、大气干旱与生理干旱三种类型。
+
+土壤干旱由土壤中水分不足引起，植物根系无法吸收足够的水分来补偿蒸腾所造成的损失。
+
+大气干旱是指空气中的水分干燥，常伴有相当强度的风；此时土壤虽不缺水，但由于蒸腾强烈，使植物体内水分亏缺而形成危害。
+
+生理干旱是指土壤环境条件不良导致作物生理过程受阻、植物水分平衡失调而造成的伤害。这类不良条件包括土壤温度过高或过低、土壤通气不良、土壤溶液浓度过高，以及土壤中某些有毒化学物质的积累。
+
+影响干旱程度的因素很多，其中温度（$T$）与降水（$R$）是两项主要因素，而温度与降水又可直接作用于土壤湿度。因此，我们可以对数据进行归一化处理，用土壤湿度来反映温度与降水对干旱程度的影响。
+
+我们将土壤湿度 $h$ 定义为式 \eqref{eq:h}。
+
+\begin{equation}
+h=\mu T+\theta R
+\label{eq:h}
+\end{equation}
+
+其中 $\mu$ 与 $\theta$ 为参数，需依据具体气候数据确定。
+
+由于我们需要考察植物群落的干旱适应性同物种数量之间的关系，所用气候数据必须包含连续的干旱周期；同时，该气候不应长期处于干燥状态，例如热带沙漠气候。最终我们选择温带大陆性气候，其特点是冬季寒冷、夏季炎热且降水集中。在该气候类型所在的区域内，我们选择中国新疆，因为那里森林与草原植物丰富，还分布有草甸、沼泽与水生植物。
+
+通过收集国家青藏高原科学数据中心\cite{ref4}的数据，我们能够定量刻画土壤湿度、温度与降水之间的关系。计算结果表明，$\mu=4.7\times 10^{-4}$，$\theta=4.8\times 10^{-3}$。
+
+我们定义土壤湿度低于 $h_0=12\%$ 时为干旱环境。
+
+随后我们考虑土壤湿度对植物生长的影响。根据植物生理学，土壤湿度过高时容易引起植物根系腐烂；土壤湿度过低时，植物根系无法吸收足够的水分，植物生长受到抑制；湿度适宜时植物生长最快。因此，在仅考虑干旱的情形下，环境影响因子 $Q$ 是土壤湿度的二次函数\cite{ref5}。
+
+\begin{equation}
+Q=mh^{2}+nh+c
+\label{eq:Q}
+\end{equation}
+
+其中 $m$、$n$ 与 $c$ 为参数。
+
+依据植物对土壤水分的需求，我们取 $h=12\%$ 时 $Q=1$，$h=5\%$ 或 $h=19\%$ 时 $Q=0$。这意味着土壤湿度为 12\% 时是植物生长的最适湿度，$Q$ 可以达到最大值 1；土壤湿度低于 5\% 时对植物而言过于干燥，难以存活与生长，故 $Q$ 取负值，即物种的增长率为负、生物量将会下降；土壤湿度高于 19\% 时则过于湿润。计算结果表明，$m=-\dfrac{10000}{49}$，$n=\dfrac{2400}{49}$，$c=-\dfrac{95}{49}$。$Q$ 的二次函数图像呈开口向下的抛物线。
+
+结合所收集的数据，我们取 10 天为一个天气变化周期，并用计算机模拟各种不规则的周期。
+
+\subsection{基于 Lotka-Volterra 模型与 Spearman 相关分析的植物种间关系模型}
+
+物种之间的相互作用是生物群落形成的基础。按物种之间的关系，相互作用可分为正相互作用与负相互作用：正相互作用包括偏利共生、原始合作与互利共生，负相互作用包括竞争、捕食与寄生。对于本模型中的植物群落，我们主要考虑互利共生与竞争。
+
+Lotka-Volterra 模型是基于 Logistic 模型的、非常经典的种间竞争模型。我们对该模型加以扩展，建立多种物种之间竞争与互利共生关系的模型。
+
+假设该植物群落中共有 $n$ 个物种。我们定义 $N$ 为某一物种的生物量，$K$ 为某一物种的环境容量，$r$ 为某一物种的种群增长率。依据 Logistic 模型，我们有式 \eqref{eq:logistic}。
+
+\begin{equation}
+\frac{\mathrm{d}N}{\mathrm{d}t}=r\cdot N\cdot\left(1-\frac{N}{K}\right)\cdot Q
+\label{eq:logistic}
+\end{equation}
+
+其中 $\dfrac{N}{K}$ 可以理解为已被占用的空间，$\left(1-\dfrac{N}{K}\right)$ 则可以理解为尚未被占用的空间。
+
+当多个物种相互竞争或利用同一空间时，可以列出如下方程组：
+
+\begin{align}
+\frac{\mathrm{d}N_1}{\mathrm{d}t} &= r_1\cdot N_1\cdot\left(1-\frac{N_1}{K_1}-a_{21}\frac{N_2}{K_2}-a_{31}\frac{N_3}{K_3}-\cdots-a_{n1}\frac{N_n}{K_n}\right)\cdot Q \notag\\
+\frac{\mathrm{d}N_2}{\mathrm{d}t} &= r_2\cdot N_2\cdot\left(1-\frac{N_2}{K_2}-a_{12}\frac{N_1}{K_1}-a_{32}\frac{N_3}{K_3}-\cdots-a_{n2}\frac{N_n}{K_n}\right)\cdot Q \notag\\
+&\cdots \notag\\
+\frac{\mathrm{d}N_n}{\mathrm{d}t} &= r_n\cdot N_n\cdot\left(1-\frac{N_n}{K_n}-a_{1n}\frac{N_1}{K_1}-a_{2n}\frac{N_2}{K_2}-\cdots-a_{n-1,n}\frac{N_{n-1}}{K_{n-1}}\right)\cdot Q \notag
+\end{align}
+
+其中 $a_{ij}$ 为物种 $i$ 对物种 $j$ 的影响因子。当植物种间关系为竞争时，$a_{ij}>0$；当植物种间关系为互利共生时，$a_{ij}<0$。
+
+在本模型中，我们选取新疆 10 种具有代表性的植物。它们的株高各不相同，涵盖草本、灌木与乔木。这 10 种植物的拉丁名及其初始生物量如下，其部分基本信息见相关文献\cite{ref6,ref7,ref8,ref9,ref10}。
+
+\begin{enumerate}
+\item 物种 1：\textit{Populus euphratica}（胡杨），初始生物量 154.57 $\mathrm{kg/hm^2}$；
+\item 物种 2：\textit{Haloxylon ammodendron}（梭梭），初始生物量 9.47 $\mathrm{kg/hm^2}$；
+\item 物种 3：\textit{Poacynum hendersonii}（大叶白麻），初始生物量 2.45 $\mathrm{kg/hm^2}$；
+\item 物种 4：\textit{Nitraria tangutorum}（白刺），初始生物量 54.31 $\mathrm{kg/hm^2}$；
+\item 物种 5：\textit{Halimodendron halodendron}（铃铛刺），初始生物量 3.92 $\mathrm{kg/hm^2}$；
+\item 物种 6：\textit{Kalidium foliatum}（盐爪爪），初始生物量 95.38 $\mathrm{kg/hm^2}$；
+\item 物种 7：\textit{Tamarix chinensis}（柽柳），初始生物量 38.41 $\mathrm{kg/hm^2}$；
+\item 物种 8：\textit{Reaumuria songonica}（红砂），初始生物量 83.90 $\mathrm{kg/hm^2}$；
+\item 物种 9：\textit{Alhagi sparsifolia}（骆驼刺），初始生物量 1.88 $\mathrm{kg/hm^2}$；
+\item 物种 10：\textit{Seriphidium kaschgaricum}（新疆绢蒿），初始生物量 9.08 $\mathrm{kg/hm^2}$。
+\end{enumerate}
+
+在确定影响因子 $a_{ij}$ 的取值时，我们考虑使用 Spearman 相关分析。Spearman 相关分析需要满足两个条件：
+
+\begin{enumerate}
+\item 变量中包含秩变量，或变量不服从正态分布、分布类型未知；
+\item 两个变量之间存在单调关系。
+\end{enumerate}
+
+我们检索了典型群落样地中主要物种的组成及其重要值\cite{ref11}。根据生物学知识，当种间关系为竞争时，物种数量呈负相关；当种间关系为互利共生时，物种数量呈正相关。这些数据可以同时满足上述两个条件。
+
+经计算，我们可以得到这 10 个物种的相关性热力图。
+
+\subsection{结果}
+
+在求解微分方程时，我们采用 Runge-Kutta 方法。它是求解非线性常微分方程的重要迭代方法，精度高，非常适合本模型的求解。
+
+\textbf{单物种情形：}
+
+当群落中只有一个物种时，我们选择物种 1 进行分析。将物种 1 的数据代入式 \eqref{eq:logistic}，即可得到相应的生物量—时间曲线。
+
+由该曲线可以看出，物种 1 的生物量总体上随时间呈下降趋势，说明单一植物物种适应干旱的能力较弱。
+
+\textbf{多物种情形：}
+
+当考虑多个物种时，我们选择物种 1 至物种 5（$n=5$）进行分析。它们的种间影响因子矩阵如下。
+
+\[
+\begin{pmatrix}
+1 & 0.284 & 0.164 & 0.093 & -0.33\\
+0.284 & 1 & 0.336 & -0.165 & 0.163\\
+0.164 & 0.336 & 1 & 0.073 & -0.084\\
+0.093 & -0.165 & 0.073 & 1 & 0.33\\
+-0.33 & 0.163 & -0.084 & 0.33 & 1
+\end{pmatrix}
+\]
+
+将数据代入微分方程组后，我们即可得到相应的生物量—时间曲线。
+
+曲线表明，各物种的生物量都有一定程度的波动，但总生物量相对稳定。在 800 天左右，各物种的生物量曲线出现峰值与谷值。出现这一现象的原因是：在天气模拟中，该时段干旱天气发生得更为频繁。
+
+通过比较单物种与多物种的生物量—时间曲线，我们可以发现，多物种能够更好地适应干旱环境。
+\section{基于 Shannon-Wiener 指数与 ICV 的群落效益模型}
+
+\subsection{物种多样性评价模型}
+
+Shannon-Wiener 指数是一种生物多样性指数，用以度量生态系统中物种的多样性与丰富度。其基本原理是：物种多样性越高，熵越大，反之亦然。熵越大，物种多样性越高，生态系统的多样性也就越高。
+
+我们将 Shannon-Wiener 指数推广到植物群落，用它来评价植物群落的物种多样性。
+
+Shannon-Wiener 指数（$H$）可由式 \eqref{eq:H} 表示。
+
+\begin{equation}
+H=-\sum P_i\cdot \ln(P_i)
+\label{eq:H}
+\end{equation}
+
+其中 $P_i$ 为物种 $i$ 的相对频度，可由式 \eqref{eq:Pi} 计算。
+
+\begin{equation}
+P_i=\frac{N_i}{N}
+\label{eq:Pi}
+\end{equation}
+
+其中 $N_i$ 为物种 $i$ 的个体数，$N$ 为植物群落的个体总数。
+
+\subsection{群落稳定性评价模型}
+
+稳定性是生态系统存在的必要条件与功能表现，也是决定生态系统结构与功能能否正常运行的重要特征之一。当外部干扰超过生态系统所能承受的阈值时，生态系统的结构与功能就会随之改变，系统的稳定性下降，从而破坏生态平衡、导致生态系统退化\cite{ref12}。一般而言，物种数量越多，稳定性越大。
+
+在本模型中，我们使用群落稳定性来评估植物物种所带来的效益。
+
+植物群落的稳定性通过计算变异系数的倒数（$ICV$）来评估，如式 \eqref{eq:ICV} 所示。
+
+\begin{equation}
+ICV=\frac{\tau}{\sigma}
+\label{eq:ICV}
+\end{equation}
+
+其中 $\tau$ 表示各物种的平均生物量，$\sigma$ 表示各物种生物量的标准差。
+
+$\tau$ 可由式 \eqref{eq:tau} 计算。
+
+\begin{equation}
+\tau=\frac{\sum N_i}{n}
+\label{eq:tau}
+\end{equation}
+
+$\sigma$ 可由式 \eqref{eq:sigma} 计算。
+
+\begin{equation}
+\sigma=\sqrt{\sum_{i=1}^{n}(N_i-\tau)^{2}}
+\label{eq:sigma}
+\end{equation}
+
+特别地，与 $ICV$ 取值较低的植物群落相比，$ICV$ 取值较高的植物群落具有更高的稳定性\cite{ref13}。
+
+我们定义 $ICV$ 的增长率为 $\Delta ICV$。当 $\Delta ICV>0$ 时，群落稳定性上升；若 $\Delta ICV>0$ 但接近 0，则群落稳定性几乎不变。
+
+\subsection{结果}
+
+\subsubsection{物种数量效应的结果}
+
+取 $n=2,3,4,5,6,7$，代入相应数据，得到生物量—时间曲线与 $\Delta ICV$。
+
+由物种数量—各指标变化率曲线可以看出，当 $n=5$ 时，Shannon-Wiener 指数与 $ICV$ 的变化率接近 0；随着 $n$ 增大，Shannon-Wiener 指数与 $ICV$ 的变化率几乎保持不变。因此我们可以预测，当 $n\geqslant 5$ 时，植物群落的稳定性几乎不再变化。植物群落要从局域生物多样性中获益，所需的最少物种数量为 5。
+
+\subsubsection{物种组成效应的结果}
+
+由物种间的相关性分析可以看出，物种 1 与物种 6 之间的竞争很强。就互利共生而言，并不存在很强的互惠关系，但物种 1 与物种 5、物种 1 与物种 10 之间的互利关系强于其他组合。我们认为，不同的种间关系会影响植物群落适应干旱的能力。
+
+除物种之间关系的差异之外，物种自身的耐旱性也会影响结果。当植物群落中存在不耐旱的物种时，群落对干旱的适应性也会发生变化。
+
+因此，我们将讨论四种情形：强竞争、弱竞争、互利共生，以及存在不耐旱物种。
+
+在这 10 种植物中，我们主要选取 7 种植物（物种 1 至物种 6 以及物种 10）进行分析。在所有情形中，植物群落均由 5 个物种组成（$n=5$）。
+
+为评估群落稳定性的变化，我们定义初始状态下的 $ICV$ 为 $ICV_1$，1600 天时的 $ICV$ 为 $ICV_2$。
+
+\textbf{强竞争：}
+
+该情形下的物种组成为物种 1 至物种 4 以及物种 6。
+
+在我们收集的数据中，以物种 1 为主体的样方内物种 6 的数量很少，而以物种 6 为主体的样方内物种 1 的数量也很少。由此我们可以推断，\textit{Populus euphratica}（胡杨）与 \textit{Kalidium foliatum}（盐爪爪）之间的竞争很强。
+
+这 5 个物种的种间影响因子矩阵如下。
+
+\[
+\begin{pmatrix}
+1 & 0.284 & 0.164 & 0.093 & 0.629\\
+0.284 & 1 & 0.336 & -0.165 & -0.023\\
+0.164 & 0.336 & 1 & 0.073 & -0.155\\
+0.093 & -0.165 & 0.073 & 1 & 0.13\\
+0.629 & -0.023 & -0.155 & -0.13 & 1
+\end{pmatrix}
+\]
+
+将数据代入微分方程组，我们即可得到相应的生物量—时间曲线。
+
+曲线表明，除物种 1 之外的其余四个物种的生物量随时间逐渐增加，其中物种 6 成为优势种。物种 1 的生物量在 1200 天之前持续增加；在 1200 天之后，受物种 6 的影响，其生物量趋于保持不变。
+
+就群落稳定性而言，$ICV_1=0.6316$，$ICV_2=0.6316$，$ICV$ 的增长率为 0.013\%。这表明当物种之间存在强竞争时，群落稳定性几乎不变。
+
+\textbf{弱竞争：}
+
+该情形下的物种组成为物种 1 至物种 5。在这五个物种之间虽然存在竞争，但没有任何两个物种无法共存。
+
+将数据代入微分方程组后，我们即可得到相应的生物量—时间曲线。曲线形态与强竞争情形的曲线形态相似。
+
+就群落稳定性而言，$ICV_1=0.6348$，$ICV_2=0.6384$，$ICV$ 的增长率为 0.57\%。这表明当物种之间存在弱竞争时，群落稳定性会上升，但上升幅度较小。
+
+\textbf{互利共生：}
+
+该情形下的物种组成为物种 1 至物种 3、物种 5 以及物种 10。在这五个物种之间，物种 1 与物种 5、物种 1 与物种 10 之间存在较为明显的互惠关系。
+
+这 5 个物种的种间影响因子矩阵如下。
+
+\[
+\begin{pmatrix}
+1 & 0.284 & 0.164 & -0.33 & -0.332\\
+0.284 & 1 & 0.336 & 0.163 & 0.1\\
+0.164 & 0.336 & 1 & -0.084 & 0.4\\
+-0.33 & 0.163 & -0.084 & 1 & 0.117\\
+-0.332 & -0.1 & 0.4 & 0.117 & 1
+\end{pmatrix}
+\]
+
+将数据代入微分方程组，我们即可得到相应的生物量—时间曲线。
+
+曲线表明，各物种的生物量整体呈上升趋势。物种 10 与物种 2 的初始生物量相近，而在物种 1 的互惠作用下，约 1200 天之后物种 10 的生物量超过了物种 2 的生物量。
+
+就群落稳定性而言，$ICV_1=0.6415$，$ICV_2=0.7936$，$ICV$ 的增长率为 23.72\%。这表明当物种之间存在较强的互惠关系时，群落稳定性可以得到大幅提高。
+
+\textbf{存在不耐旱物种：}
+
+我们同样使用物种 1 至物种 5 进行分析。在该情形下，我们假设物种 1 与物种 3 不耐旱。
+
+在前文中，我们将植物生长的最适湿度定义为 12\%。对于不耐旱植物，我们将最适生长湿度定义为 15\%。也就是说，在定义不耐旱物种时，我们只需改变式 \eqref{eq:Q} 中 $m$、$n$ 与 $c$ 的取值。
+
+在求解微分方程时，对物种 2、物种 4 与物种 5 使用式 \eqref{eq:Q} 计算 $Q$；对物种 1 与物种 3 则使用式 \eqref{eq:Qprime} 计算 $Q'$。
+
+\begin{equation}
+Q'=m'h^{2}+n'h+c'
+\label{eq:Qprime}
+\end{equation}
+
+我们取 $h=15\%$ 时 $Q'=1$，$h=8\%$ 或 $h=22\%$ 时 $Q'=0$。计算结果表明，$m'=-\dfrac{10000}{49}$，$n'=\dfrac{3000}{49}$，$c'=-\dfrac{176}{49}$。
+
+由此我们得到相应的生物量—时间曲线。
+
+曲线表明，物种 3 的生物量在 400 天左右降至 0，物种 1 的生物量在 800 天左右降至 0，而物种 2、物种 4 与物种 5 的生物量稳步上升。这表明不耐旱的物种在干旱环境中会迅速死亡，植物群落的稳定性较低。
+
+\textbf{结果分析：}
+
+根据上述分类讨论的结果，当物种类型为互惠物种时，植物群落的稳定性可以得到大幅提高；当物种类型为竞争物种时，植物群落可以基本保持稳定；当存在不耐旱物种时，植物群落无法维持稳定。
+
+\section{复杂环境的潜在影响}
+
+\subsection{干旱的频率与变化幅度}
+
+\subsubsection{频率}
+
+干旱的发生频率可能发生变化。在人类活动的影响下，未来干旱频率可能进一步上升。为评估干旱频率变化对植物群落干旱适应性的影响，我们修改模拟天气条件的参数，使干旱发生得更频繁或更稀少。
+
+当天气周期中干旱的发生频率较高时，将相关数据代入微分方程即可得到相应的生物量—时间曲线。
+
+曲线表明，当干旱频率上升时，所有物种的生物量都随时间下降。这说明局域生物多样性对植物群落干旱适应性的作用是有一定限度的。
+
+我们可以推测，当干旱发生得较少时，植物群落会生长良好。然而与此同时，单个植物受干旱的影响也较小。因此，当干旱频率较低时，局域多样性对植物群落干旱适应性的作用要弱于干旱频率较高的情形。
+
+\subsubsection{更大的变化幅度}
+
+我们将干旱发生幅度的增大定义为干旱发生的范围更广、持续时间更长。
+
+干旱在更大尺度上发生，意味着干旱可以扩展到本应湿润的地区，而生长在这些地区的植物大多是耐旱性较差的物种。由上述分析可知，干旱对不耐旱植物可能是致命的，它将严重破坏当地生态系统的稳定性。
+
+干旱持续时间更长，可以通过改变天气变化周期的长度来模拟。我们取 30 天为一个天气变化周期。与先前 10 天的周期相比，30 天的周期显然延长了天气状况的持续时间。当计算机模拟的天气状况为干旱时，延长的干旱对植物群落的影响更大。
+
+改变天气周期后，我们即可得到相应的生物量—时间曲线。
+
+曲线表明，当干旱持续时间更长时，在单一时间段内，若模拟条件为干旱，生物量的下降幅度更大。随着退化不断累积，生物量越来越少。
+
+\subsection{不利因素}
+
+影响植物群落的不利因素还有很多，我们主要考虑三种：空气污染、气候变暖与生境缩减。
+
+\textbf{空气污染：}
+
+在人类活动的影响下，一些污染物被排放到大气中并逐渐积累。空气污染严重损害生态系统。常见的空气污染物包括粉尘、烟尘、雾等小颗粒污染物，以及 $\mathrm{SO_2}$、$\mathrm{CO_2}$ 等气态污染物。
+
+在本模型中，我们主要考虑 $\mathrm{SO_2}$ 对植物群落的影响。
+
+$\mathrm{SO_2}$ 对叶绿素具有漂白作用，会使叶绿素分子降解为无光合活性的脱镁叶绿素，从而抑制光合作用与生长发育。结果表明，植物叶绿素含量与大气中 $\mathrm{SO_2}$ 浓度呈负相关，且这种相关关系可以拟合为线性关系\cite{ref14}。我们由此推断，大气中的 $\mathrm{SO_2}$ 含量会导致植物生物量下降。
+
+我们定义衡量 $\mathrm{SO_2}$ 浓度的指标数为 $k$，$k$ 可由式 \eqref{eq:k} 表示。
+
+\begin{equation}
+k=\frac{c-c_0}{c}
+\label{eq:k}
+\end{equation}
+
+其中 $c$ 为当前 $\mathrm{SO_2}$ 浓度，$c_0$ 为 $\mathrm{SO_2}$ 浓度的标准值。
+
+\textbf{气候变暖：}
+
+在过去一个世纪中，人类大量使用化石燃料（如煤、石油等），排放了大量 $\mathrm{CO_2}$ 及其他温室气体。随着温室效应的不断累积，地—气系统吸收与发射的能量之间出现失衡，结果能量不断在地—气系统中积累，导致温度上升、全球变暖。
+
+变暖通过影响光合作用速率与呼吸作用速率来影响植物生长。一般而言，温度升高会降低光合作用速率、提高呼吸作用速率；随着温度进一步升高，呼吸作用速率又会下降。
+
+我们假设变暖抑制植物生长。年温度上升速率可以表示为 $\dfrac{\mathrm{d}T}{\mathrm{d}t}$。
+
+\textbf{生境缩减：}
+
+随着城市扩张与工业发展，大面积土地被开发使用，使生物失去其生境。与此同时，森林砍伐、盲目开垦、草原盲目放牧、沼泽的不合理开发以及水利工程建设，进一步缩减了生境。
+
+生境缩减必然导致植物减少。我们将生境缩减比例定义为 $D$。
+
+综合上述三个因素，式 \eqref{eq:logistic} 可以改写为式 \eqref{eq:full}。
+
+\begin{equation}
+\frac{\mathrm{d}N_j}{\mathrm{d}t}=r_j\cdot N_j\cdot\left(1-D-\frac{\mathrm{d}T}{\mathrm{d}t}-\sum a_{ij}\frac{N_i}{K_j}\right)\cdot Q\cdot(1-k)
+\label{eq:full}
+\end{equation}
+
+我们设定三个因素的标准值：$k=0.0167$，$\dfrac{\mathrm{d}T}{\mathrm{d}t}=0.025$，$D=0.08$。
+
+在这三个因素中，我们固定其中两个不变，只改变另一个。被改变的因素分别取标准值的 1 倍、2 倍与 3 倍。
+
+当 $k$ 变化时，我们可以得到相应的生物量—时间曲线。
+
+曲线表明，在 $\mathrm{SO_2}$ 的影响下，所有物种的生物量都随时间增加而下降。当 $k$ 逐渐增大时，生物量的下降速率逐渐增大，甚至出现物种灭绝。
+
+当 $\dfrac{\mathrm{d}T}{\mathrm{d}t}$ 变化时，我们可以得到相应的生物量—时间曲线。
+
+温度上升对生物量的影响与 $\mathrm{SO_2}$ 的影响非常相似：所有物种的生物量都随时间增加而下降。当 $\dfrac{\mathrm{d}T}{\mathrm{d}t}$ 逐渐增大时，生物量的下降速率逐渐增大，甚至出现物种灭绝。
+
+当 $D$ 变化时，我们可以得到相应的生物量—时间曲线。
+
+曲线表明，在 $D$ 的影响下，所有物种的生物量都随时间增加而下降。当 $D$ 增大时，生物量的下降速率增大，但不会出现灭绝。
+
+\subsection{结果分析}
+
+基于前面的分析，我们发现许多环境因素都会影响植物群落对干旱环境的适应性。
+
+在大多数不利因素的影响下，植物群落的生物量呈下降趋势，群落稳定性降低。这说明植物群落从局域生物多样性中获益的能力，如同生态系统的自我调节能力一样，是有一定限度的。当条件严酷时，植物群落可以大量地从局域生物多样性中获益并维持稳定；然而这种益处并非没有上限。随着环境进一步恶化，它无法抵消环境对植物群落的影响，植物群落的稳定性被破坏，部分物种将会灭绝。
+
+\section{基于 AHP 的植物群落长期存续途径}
+
+\subsection{AHP 模型}
+
+为分析各因素对植物群落长期存续的影响及其重要性，我们使用层次分析法模型求出每个因素的权重。
+
+层次分析法适用于带有主观性与不确定性的情形，它能够合乎逻辑地运用经验、直觉与洞察力，非常适合我们的目标。
+
+我们考虑四个因素的影响：物种数量、物种类型、天气周期以及其他环境因素。将各影响因素两两比较，按重要性等级即可得到如下判断矩阵。
+
+\[
+A=\begin{pmatrix}
+1 & \dfrac{1}{3} & 2 & 5\\[0.4em]
+3 & 1 & \dfrac{1}{4} & 6\\[0.4em]
+\dfrac{1}{2} & 4 & 1 & 2\\[0.4em]
+\dfrac{1}{5} & \dfrac{1}{6} & \dfrac{1}{2} & 1
+\end{pmatrix}
+\]
+
+我们需要检验判断矩阵的一致性，它由一致性比率（$CR$）来评价。$CR$ 可由式 \eqref{eq:CR} 计算。
+
+\begin{equation}
+CR=\frac{CI}{RI}
+\label{eq:CR}
+\end{equation}
+
+其中 $CI$ 为一致性指标，$RI$ 为随机指标。$CI$ 由式 \eqref{eq:CI} 计算。
+
+\begin{equation}
+CI=\frac{\lambda_{\max}-n}{n-1}
+\label{eq:CI}
+\end{equation}
+
+其中 $\lambda_{\max}$ 为判断矩阵的最大特征值。$n$ 与 $RI$ 的对应关系可通过查表得到。
+
+经计算，$\lambda_{\max}=4.07$，$CR=0.027<0.1$，一致性检验通过。各因素的权重见下文。
+
+\subsection{植物长期存续的建议}
+
+\textbf{建议一：植物的生境需与植物的习性相匹配，同时更多互利植物对群落有利。}
+
+由权重计算结果可知，物种类型的权重最高。因此，要确保植物群落的长期存续，我们应首先考虑物种类型。正如 5.3.2 节所得到的结论，当物种之间的关系为互利共生时，植物群落最为稳定。
+
+\textbf{建议二：适当增加物种数量，确保植物群落中有足够多的物种。}
+
+权重位居第二的是物种数量。植物群落可以从局域生物多样性中获益，正如 5.3.1 节所得到的结论，植物群落要从局域生物多样性中获益，所需的最少物种数量为 5。因此，就长期存续而言，物种越多，适应性越好。
+
+\textbf{建议三：保护环境，人人有责！}
+
+其余两个因素的权重较小，且都与环境有关。在现实生活中，环境因素无法人为控制；然而环境因素实际上直接或间接地受到人类活动的影响。因此，请保护环境，既为了生态系统，也为了我们自己。
+
+\subsection{对更大环境的影响}
+
+更大的环境意味着更极端的天气变化、更多类型的植物、更复杂的种间相互作用，以及更多的影响因素，例如动物、物种入侵等等。因此在更大的环境中，不规则的变化因素会更多。根据我们前面得到的结果，当外部干扰因素更多时，植物群落的存续能力更差。所以在变化幅度更大的环境中，有必要确保物种数量足够，并确保物种之间的相互作用关系适宜。
+
+\section{敏感性分析}
+
+\begin{itemize}
+\item 在前述模型中，我们已经在各章节中完成了敏感性分析。我们调整各类因素的变化范围，例如物种数量、物种类型、干旱的频率与更大的变化幅度，以及其他环境影响。
+
+由这些结果可以看出，植物群落的存活条件与长期存续能力随各类因素的变化而有规律地改变。因此可以看出，我们的模型具有良好的敏感性。
+
+\item 我们还对 5 个物种的模拟数据进行了分析：横轴为生长时间，纵轴为各物种随时间的变化相对于各自初始值的对比结果，可以称为相对生物量。
+
+可以看出，在模拟干旱的初期，各物种的相对生物量变化较大，并随模拟降水与模拟气温的不断变化而上下波动。然而经过一段时间的变化之后，我们观察图表发现，生物量的变化幅度减小。这表明随着时间的延长，所有物种逐渐适应干旱环境，生长状况逐渐趋于稳定，物种对干旱环境的敏感性降低。
+\end{itemize}
+
+\section{模型评价与进一步讨论}
+
+\subsection{优点}
+
+\begin{itemize}
+\item \textbf{新颖性。} 通过 Spearman 相关系数，我们得到了不同植物物种分布的系数，并据此给出植物之间的相互作用因子，这非常有创新性，也符合科学。
+\item \textbf{综合性。} 在我们的模型中，我们综合使用了多种经典而科学的数学模型，例如用于计算生物量变化的微分方程模型，以及用于评价不同因素重要性的 AHP 模型。我们在这些模型的基础上作了一些调整、简化与修改，最终构建出完整而综合的模型。
+\item \textbf{统一而简洁。} 我们模型的基本框架与方程是一致的。在考虑更复杂的因素时，我们只需在方程中加入参数，变得更加复杂的新方程仍能给出良好的结果，模型表现良好。整个植物群落预测模型是统一而简洁的。
+\item \textbf{准确而严谨。} 我们使用 Shannon-Wiener 指数与 $ICV$ 具体地量化植物群落的稳定性与生物多样性，这能够更准确地反映群落的抗旱性。而具体的数据也有助于我们更好地把结论推广到更多植物物种的情形。
+\end{itemize}
+
+\subsection{缺点}
+
+\begin{itemize}
+\item 在考虑各因素的权重时，AHP 模型判断矩阵中的数值是主观设定的，因此在客观性与合理性方面可能略显薄弱。
+\item 现实生活中的数据是连续的，温度与降水时刻都在变化；然而计算机模拟难以处理连续数据，因此我们对数据作了离散化处理，这使连续数据损失了部分信息。
+\item 由于时间限制，我们只分析了几种通常分布于同一区域、生长习性相近的植物。要预测气候变化下树木的易感性，还需要来自极端干旱事件期间及之后各种植物物种组合的更多实验证据。我们的结果可能存在一定局限，未能覆盖所有情形。
+\end{itemize}
+
+\subsection{进一步讨论}
+
+有证据表明，在干旱胁迫不断增强的情况下，由于生态位重叠或竞争效应加剧，物种相互作用可能由正相互作用转变为负相互作用\cite{ref2}。植物之间的相互作用因子会在一定程度上受到影响，例如受土壤湿度变化与物种种群密度变化的影响。作为下一步工作，我们可以探究植物之间相互作用因子随干旱程度及其他因素的变化，以改进我们的模型。
+
+\begin{thebibliography}{99}
+
+\bibitem{ref1} K. Cherwin and A. Knapp. Unexpected patterns of sensitivity to drought in three semi-arid grasslands. Oecologia, 169(3):845--852, 2012.
+
+\bibitem{ref2} S. Haberstroh and C. Werner. The role of species interactions for forest resilience to drought. Plant Biology, 2022.
+
+\bibitem{ref3} Vojtech Lanta, Jiff Dolezal, Lenka Zemkova, and Jan Leps. Communities of different plant diversity respond similarly to drought stress: experimental evidence from field non-weeded and greenhouse conditions. Naturwissenschaften, 99(6):473--482, 2012.
+
+\bibitem{ref4} National tibetan plateau scientific data center. https://data.tpdc.ac.cn/zh-hans/data/3c4feb37-7f5b-4aa6-b906-3b23dd4c520e.
+
+\bibitem{ref5} Fang Zhang. The Establishment and Study of The Suitability Model of Plant Growth Environment Based on IoT. PhD thesis, Zhejiang A\&F University.
+
+\bibitem{ref6} Yuan Ma, Fang Liu, Yuguang Hao, Fangchun Lin, Yuting Liu, Yanan Liu, Zhan Yang, and Jiapeng Wang. Growth characteristics of typical plant communities in ulanbuh desert. Temperate Zone Forestry Research, 4(2):7, 2021.
+
+\bibitem{ref7} Bin Sun, Bingyu Wang, Jin Feng, Jiachang Jiang, Dongrong Pan, Hui Wang, and Xia Li. Study on the biomass dynamics of kalidium foliatum grassland in hexi desert. Chinese Herbivore Science, 36(5):3, 2016.
+
+\bibitem{ref8} Donghong Fei. Preliminary study on growth conditions and population reproduction of the wild poacynum hendersonii in the qaidam basin. Forestry Science and Technology, 37(5):3, 2012.
+
+\bibitem{ref9} Xiyi Wang, Shuzhen Peng, Hailiang Xu, Hongbo Ling, and Tingting Ma. Dynamic simulation and macro-value evaluation of vegetation biomass in the lower reaches of tarim river. Journal of Arid Land Resources and Environment, (3):7, 2020.
+
+\bibitem{ref10} Xiaoqiang Wang, Min Wang, Xianhua Zhang, Jiaqi Tan, Hui Yuan, and Xiqing Han. Study on the relationship between species diversity and biomass of typical desert grassland communities around urumqi. Acta Agrestia Sinica, (005):030, 2022.
+
+\bibitem{ref11} Tingquan Wang. Analysis on species diversity, point pattern and ecological niche of dessert plants in ebinur. Xinjiang University, 2015.
+
+\bibitem{ref12} Chenyang Xue, Xianghu LI, Zhiqiang Tan, and Zhen Li. Plant community stability and its relationship with species diversity of typical wetland in poyang lake, china. Ecological Science.
+
+\bibitem{ref13} Qiqi Zhang, Guangxuan Han, Feng Lu, Yingfeng Zhou, Xiaojie Wang, Peiguang Li, Xiaojing Chu, Wenjun He, Dongxue Yu, and Weimin Song. Effects of different restoration ages on plant diversity and community stability of wet land in yellow river delta. Chinese Journal of Ecology, 41(7):9, 2022.
+
+\bibitem{ref14} Yuwu Lian, Ronghua Chen, and Daoying Huang. Correlation of chlorophyll in leaves and so2 in air. Chinese Journal of Applied Ecology, 1(4):5, 1990.
+
+\end{thebibliography}
+
+\section{附录}
+
+以下为模型中输入的 MATLAB 源代码。
+
+\begin{verbatim}
+function D=k5(m, n)
+D = n;
+Q1 = weather1();
+Q2 = weather2();
+options = odeset('RelTol', 1E-4, 'AbsTol', [1E-5,1E-5,1E-5,1E-5,1E-5]);
+[T, XYZPQ] = ode45(@(t,y) zq5(t,y,Q1,Q2), m, D, options);
+plot(T, XYZPQ(:,1), 'color', '#B395DF', 'LineWidth', 1.5);
+hold on
+plot(T, XYZPQ(:,2), 'color', '#86A8E5', 'LineWidth', 1.5, 'LineStyle', '--');
+hold on
+plot(T, XYZPQ(:,3), 'color', '#CD5C5C', 'LineWidth', 1.5, 'LineStyle', '-');
+hold on
+plot(T, XYZPQ(:,4), 'color', '#E79FA6', 'LineWidth', 2.5, 'LineStyle', ':');
+hold on
+plot(T, XYZPQ(:,5), 'color', '#A6B9A1', 'LineWidth', 1.5, 'LineStyle', '-.');
+x0 = XYZPQ(end:end, 1);
+y0 = XYZPQ(end:end, 2);
+z0 = XYZPQ(end:end, 3);
+p0 = XYZPQ(end:end, 4);
+q0 = XYZPQ(end:end, 5);
+D = [x0, y0, z0, p0, q0];
+\end{verbatim}
+
+\end{document}

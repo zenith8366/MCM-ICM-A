@@ -1,0 +1,532 @@
+\documentclass[11pt,a4paper]{ctexart}
+\usepackage[margin=2.4cm]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage{fancyhdr}
+\usepackage{enumitem}
+\linespread{1.18}
+\setlength{\headheight}{15pt}
+\setlength{\parskip}{0pt}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small Team 2424371}
+\fancyhead[R]{\small \thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+\fancypagestyle{plain}{\fancyhf{}\renewcommand{\headrulewidth}{0pt}}
+
+\ctexset{
+  section/format = \Large\bfseries\raggedright,
+  subsection/format = \large\bfseries\raggedright,
+  subsubsection/format = \normalsize\bfseries\raggedright
+}
+\setcounter{secnumdepth}{3}
+
+\begin{document}
+
+%====================== 摘要页 ======================
+\thispagestyle{empty}
+\begin{center}
+{\small 2024 MCM/ICM\quad 选题 A\quad 队伍控制号 2424371\quad 摘要页（Summary Sheet）}\\[18pt]
+{\LARGE\bfseries 神奇的性别比：探究适应性性别比的重要作用}\\[8pt]
+{\large （Magic Sex Ratio: Exploring the Important Role of Adaptive Sex Ratio）}\\[10pt]
+\end{center}
+
+\begin{center}
+{\large\bfseries 摘\quad 要}
+\end{center}
+
+\vspace{6pt}
+作为现存最古老的脊椎动物之一，海七鳃鳗（sea lamprey）具有独特的性别分化机制。为考察七鳃鳗（lamprey）依据资源可获得性改变自身性别比这一能力的优势与劣势，我们建立了两个主要模型：性别比诱导的种群增长模型（Population Growth Model Induced by Sex Ratio）与生态系统稳定性的 3-R 指数模型（3-R Index Model of Ecosystem Stability）。
+
+首先，我们建立了一个基于微分方程的种群增长模型，其中主要考虑七鳃鳗的性别比、洄游以及生物间相互作用这三类因素。在性别比的诱导因素与效应方面，我们运用最小二乘法拟合七鳃鳗幼体生长速率与食物密度之间的函数关系，进而建立性别 logistic 函数（sex logistic function），以确定幼体生长速率对七鳃鳗性别分化的影响；最后考虑性别比对出生率的作用。在生物之间的相互作用方面，我们主要考虑海洋中七鳃鳗与宿主鱼类（host-fish）之间的寄生关系，以及河流中七鳃鳗与浮游生物之间的捕食关系，并将改进的 Logistic 模型与 Lotka--Volterra 方程（Lotka-Volterra Equations）相融合，建立不同物种生物量随时间变化的微分方程。最后，采用有限体积法（Finite Volume Method, FVM）求取该偏微分方程（PDE）系统的数值解。
+
+针对问题一，在给定相同初始条件的前提下，运用种群增长模型，分别考察七鳃鳗能够改变性别比与不具备改变性别比能力两种情形下不同物种生物量的变化趋势，进而分析七鳃鳗对更大尺度生态系统的影响。
+
+针对问题二，我们调整模型参数，模拟严酷环境（例如人类捕杀、饥荒与栖息地破坏）对七鳃鳗所处生态系统的影响，发现七鳃鳗能够调节性别比，这是其对抗严酷环境的一项优势，但该调节存在严重的“时间滞后效应”。
+
+针对问题三，我们建立了用以度量生态系统稳定性的 3-R 指数模型。首先，我们用三个定量指标衡量生态系统的稳定性（抵抗力、恢复速率与恢复度），随后在特定时刻对生态系统施加扰动以改变性别比，再借助扰动前后 Shannon 指数（Shannon Index）的变化计算 3-R 指数，从而得到性别比对生态系统稳定性的影响。
+
+针对问题四，我们对模型进行扩展，在分析中纳入更多物种，引入竞争因素，并分析七鳃鳗改变性别比相对于其他不同类型生物所具有的优势。
+
+\vspace{6pt}
+\noindent\textbf{关键词：}七鳃鳗；性别比；偏微分方程（PDE）；有限体积法（FVM）；3-R 指数
+
+\newpage
+\pagestyle{fancy}
+
+%%====================== 正文 ======================
+\section{引言}
+
+\subsection{研究背景}
+
+从历史上看，海七鳃鳗一直被视为珍贵的食材而广受青睐。从动物学角度看，海七鳃鳗是现存最古老的脊椎动物之一，是研究脊椎动物起源与演化的关键物种。从生态学角度看，海七鳃鳗是一种肉食性外寄生生物，能够随外部环境的变化而改变自身的性别比，这对生态系统的稳定至关重要。
+
+自 20 世纪 50 年代海七鳃鳗侵入五大湖（Great Lakes）以来，其对该区域的生态与渔业造成了影响，因而迫切需要研究海七鳃鳗性别比的生态系统影响，以支撑现实中针对海七鳃鳗的防控与保护工作\cite{1},\cite{2}。
+
+\subsection{问题重述}
+
+综合考虑题目中给出的背景信息与限制条件，我们需要解决以下问题：
+
+\begin{itemize}
+\item 建立一个模型，确定一个能够改变性别比的海七鳃鳗种群对生态系统的影响。
+\item 分析海七鳃鳗种群在生态系统存续过程中的优势与劣势。
+\item 建立一个模型，基于海七鳃鳗的性别比确定其对生态系统稳定性的影响。
+\item 估计在含有可变性别比海七鳃鳗种群的生态系统中，海七鳃鳗对其他物种的影响。
+\end{itemize}
+
+\subsection{本文工作}
+
+根据上述要求，我们的工作安排如下：全文先给出现实情形抽象所需的模型假设与符号体系，随后建立由七鳃鳗性别比诱导的种群增长模型（模型一），用以回答前两个问题；再建立基于生态系统稳定性变化的 3-R 指数模型（模型二），用以回答问题三；最后通过引入寄生物种与饵料鱼类对模型进行扩展，回答问题四，并对模型开展灵敏度分析、优缺点评述与结论总结。
+
+\section{模型假设与合理性说明}
+
+为简化问题并便于模拟现实情形，我们作出如下基本假设，并对每一条假设给出合理的论证：
+
+\begin{itemize}
+\item \textbf{假设 1：}海七鳃鳗在河流中以浮游生物为食，在海洋中寄生于大型鱼类。
+
+\textbf{合理性说明：}幼年海七鳃鳗器官发育尚未成熟，不具备营寄生生活的条件，一般以微小浮游生物（如藻类与小型无脊椎动物）为食\cite{3}。河流中的海七鳃鳗绝大多数为幼体个体，因此可近似认为海七鳃鳗在河流中以浮游生物为食。
+
+\item \textbf{假设 2：}忽略水温、气候等外部环境因素对海七鳃鳗物种丰度的影响。
+
+\textbf{合理性说明：}海七鳃鳗主要生活在温带与寒带气候类型的水域中，通常见于温带海洋、河流与湖泊，尤其是水质清洁、水温适中且溶氧充足的水域。由于其能够适应不同的水温范围，海七鳃鳗所受环境气候因素的影响可以忽略\cite{4}。
+
+\item \textbf{假设 3：}类固醇等化学药剂能够直接改变海七鳃鳗的性别比，但不改变其出生率与死亡率。
+
+\textbf{合理性说明：}类固醇等化学物质可诱导幼年海七鳃鳗发生性逆转；由于绝大多数海七鳃鳗处于幼年阶段，因此可以认为使用类固醇能够直接改变海七鳃鳗种群的性别比。
+
+\item \textbf{假设 4：}假定海七鳃鳗在产卵或排卵之后立即死亡。
+
+\textbf{合理性说明：}研究表明，大多数海七鳃鳗雌、雄个体在交配后停止摄食，等待自然死亡\cite{5}。在此期间，海七鳃鳗对其他生物及生态系统没有影响，因此可以假定海七鳃鳗在产卵或排卵之后立即死亡。
+
+\item \textbf{假设 5：}七鳃鳗所处生态系统拥有充足的生产者，足以供给食物链底层生物的生存。
+
+\textbf{合理性说明：}由于海洋具有极高的生物多样性，可以假定生产者为我们所构建的生态系统提供充足的外源营养物质。
+\end{itemize}
+
+\section{符号说明}
+
+本文所用主要符号及其含义如下：
+
+\begin{itemize}
+\item $M_1$：生活在河流中的雄性海七鳃鳗的生物量；
+\item $M_2$：生活在海洋中不同位置的雄性海七鳃鳗的生物量；
+\item $N_{1\mathrm{male}}$：由海洋洄游至河流的雄性七鳃鳗的生物量；
+\item $N_{2\mathrm{male}}$：由河流洄游至海洋的雄性七鳃鳗的生物量；
+\item $R_{\mathrm{male}}$：由七鳃鳗新生幼体分化而来的雄性个体的生物量；
+\item $P(t)$：$t$ 时刻河流中浮游生物的生物量；
+\item $H_i$：$t$ 时刻被寄生的宿主鱼类的生物量。
+\end{itemize}
+
+\section{模型一：由七鳃鳗性别比诱导的种群增长模型}
+
+\subsection{模型概述}
+
+根据海七鳃鳗的生理活动与活动范围，我们将海七鳃鳗的生命周期划分为三个阶段：在河流中变态发育的幼体阶段、洄游至海水中生存的成体阶段，以及洄游至河流中进行繁殖的繁殖阶段。我们重点关注海七鳃鳗性别比、两次洄游以及生物间相互作用对群落中不同物种丰度的影响。
+
+在考虑海七鳃鳗性别比时，我们首先用最小二乘法拟合新生海七鳃鳗生长速率与食物浓度之间的关系，并定义性别 logistic 函数以确定性别比与食物浓度之间的关系，随后考虑性别比对海七鳃鳗繁殖的作用。在考虑海七鳃鳗的两次洄游时，依据其两次洄游的特征，建立不同时刻河流与海水中的种群迁移模型。在考虑生物间相互作用时，依据海七鳃鳗在不同阶段的种内关系（繁殖、种内竞争）与种间关系（包括种间竞争、寄生与捕食），给出圣劳伦斯河（St.\ Lawrence River）与圣劳伦斯湾（Gulf of St.\ Lawrence）中不同物种种群随时间变化的微分方程。
+
+最后，利用有限体积法求得该偏微分方程组的数值解，并在其他条件完全相同的情况下，分别得到可改变海七鳃鳗性别比的群落与不具备改变海七鳃鳗性别比能力的群落中，特定水域内不同物种随时间的变化，进而分析性别比可变对生态系统具有积极作用的结论。
+
+\subsection{模型建立}
+
+海七鳃鳗具有复杂的生命周期。幼体七鳃鳗在淡水河流中孵化，经变态发育为成体后洄游至海水中继续生存，随后在繁殖期又洄游回淡水河流中产卵。
+
+圣劳伦斯湾是成体七鳃鳗的重要栖息地，我们关注西经 $59^\circ$ 至 $63.5^\circ$、北纬 $46^\circ$ 至 $50.5^\circ$ 水域范围内该物种的生存状况。为便于研究，尽管现实中模型所研究的范围是一个球面四边形，我们假定空间位置按经度与纬度等分，从而可依据经度与纬度将其抽象为平面直角坐标系中具有横、纵坐标的平面矩形。模型中所有以经度与纬度表示的两点间球面最短距离，均借助 Haversine 公式\cite{6}进行换算，如下所示：
+
+\[
+d = 2\arcsin\sqrt{\sin^{2}\left(\frac{\delta_1-\delta_2}{2}\right)+\cos\delta_1\cos\delta_2\sin^{2}\left(\frac{\alpha_1-\alpha_2}{2}\right)}
+\]
+
+其中 $d$ 表示球面最短距离，$\delta_1,\delta_2,\alpha_1,\alpha_2$ 分别为两点的纬度与经度。
+
+圣劳伦斯河是幼体七鳃鳗与繁殖期七鳃鳗的栖息地。由于圣劳伦斯河内部的物种与环境变化并不显著\cite{7}，且河流内部群落的演替具有相似性，我们将这部分水域作为一个整体来考虑。
+
+经过上述分析，我们可以设 $M_1$ 为生活在圣劳伦斯河中的雄性海七鳃鳗生物量，$F_1$ 为雌性个体的生物量，二者均为时间 $t$ 的函数。记 $M_2$、$F_2$ 为生活在圣劳伦斯湖不同位置的海七鳃鳗生物量，它们是时间 $t$、经度 $x$ 与纬度 $y$ 的函数。
+
+\subsubsection{洄游子模型}
+
+海七鳃鳗的生命周期中存在两次重要的洄游。第一次发生在每年 3 月至 4 月，即北半球春季，大量不同年龄（多为 5--7 龄）的成体型七鳃鳗由海洋上溯至淡水河流，以便随后交配产卵\cite{8}。第二次发生在每年 5 月至 6 月，此时大多数幼体经漫长的变态发育成为成体（多为 3--5 龄），并向海洋洄游以获取更多食物\cite{9}。
+
+\begin{equation}
+N_{1\mathrm{male}}=\delta(t-t_1)\cdot m_1\cdot\iint_{(x,y)} M_2\,\mathrm{d}x\,\mathrm{d}y
+\end{equation}
+
+\begin{equation}
+N_{2\mathrm{male}}=\delta(t-t_2)\cdot m_2\cdot M_1
+\end{equation}
+
+\begin{equation}
+N_{1\mathrm{female}}=\delta(t-t_1)\cdot m_1\cdot\iint_{(x,y)} F_2\,\mathrm{d}x\,\mathrm{d}y
+\end{equation}
+
+\begin{equation}
+N_{2\mathrm{female}}=\delta(t-t_2)\cdot m_2\cdot F_1
+\end{equation}
+
+其中 $N_1$ 为 $t$ 时刻由海洋洄游至河流的七鳃鳗生物量，$N_2$ 为 $t$ 时刻由河流洄游至海洋的七鳃鳗生物量，$m_1$ 与 $m_2$ 分别为两次洄游的洄游率。第一式之所以需要对空间变量积分，是因为所有海域中的成体均具有洄游的可能；式中 $\delta$ 可表示为：
+
+\begin{equation}
+\delta(t)=
+\begin{cases}
+1, & t=0\\
+0, & \text{其他}
+\end{cases}
+\end{equation}
+
+\subsubsection{性别比的诱导因素与效应}
+
+海七鳃鳗通常在春季的筑巢生境中产卵，其幼体的性腺在组织学上可长期保持未分化状态。野外研究表明，海七鳃鳗的性别决定直接受幼体生长速率影响：在生产力低下环境中生长较慢的幼体更倾向于分化为雄性，而在生产力较高环境中生长较快的幼体更倾向于分化为雌性\cite{10}。因此定义性别 logistic 函数：
+
+\begin{equation}
+\eta(v)=\frac{1}{1+e^{-(\alpha v+\beta)}}
+\end{equation}
+
+上式中 $\eta(v)$ 表示幼体生长速率为 $v$ 时其分化为雌性的概率，$\alpha$ 与 $\beta$ 为对生长速率的修正系数。
+
+更多研究表明\cite{11}，海七鳃鳗幼体的生长速率主要与可食浮游生物的密度相关；若浮游生物密度为 $\rho$，则二者关系为：
+
+\begin{equation}
+v=A\cdot e^{\mu\rho}+M
+\end{equation}
+
+依据文献\cite{11}及相关研究数据，我们采用最小二乘法进行参数拟合，得到 $A=-0.76$，$\mu=-0.02$，$M=0.67$。$R^2=0.9804$ 表明拟合效果非常好，同时也说明七鳃鳗幼体的生长速率随食物浓度的升高而逐渐放缓。
+
+七鳃鳗的交配与产卵通常在春季洄游之后开始，其交配制度以一雄多雌为主，卵在体外受精，且雄性生物量通常占优势\cite{12}，这意味着七鳃鳗的出生率往往受数量较少的卵的制约。因此，在度量七鳃鳗出生率时，只需考虑交配期雌性个体的数量。设 $R_{\mathrm{male}}$ 与 $R_{\mathrm{female}}$ 分别为 $t$ 时刻由七鳃鳗新生幼体分化而来的雄性、雌性生物量，$c$ 为单位时间内一个雌性个体可产生的存活幼体数，则可得性别比对出生率的作用：
+
+\begin{equation}
+R_{\mathrm{male}}=c\cdot N_{1\mathrm{female}}\,(1-\eta)
+\end{equation}
+
+\begin{equation}
+R_{\mathrm{female}}=c\cdot N_{1\mathrm{female}}\,\eta
+\end{equation}
+
+\subsubsection{河流中的种群增长模型}
+
+根据相关研究结果\cite{3}，在河流中生长的幼年海七鳃鳗倾向于非寄生性生活，主要以微小浮游生物（如藻类与小型无脊椎动物）为食。因此，此处主要考虑浮游生物与海七鳃鳗丰度的变化。
+
+\paragraph{浮游生物}
+
+浮游生物主要由浮游植物（硅藻、绿藻与蓝藻）与浮游动物（纤毛虫、轮虫）组成。其中一部分浮游生物通过光合作用将阳光与二氧化碳转化为有机物而生存，另一部分则通过摄食其他浮游生物而生存。无论采取何种生存方式，浮游生物的生长均具有资源限制与密度依赖的特征，因此其生长可用 logistic 模型描述。除此之外，浮游生物还会被海七鳃鳗捕食，故河流中浮游生物生物量的变化可表示为：
+
+\begin{equation}
+\frac{\mathrm{d}P}{\mathrm{d}t}=r_P\cdot P\cdot\left(1-\frac{P}{K_P}\right)-\delta_P\cdot(M_1+F_1)
+\end{equation}
+
+其中 $P(t)=\rho(t)V_{\mathrm{river}}/m$ 表示 $t$ 时刻河流中浮游生物的生物量，$r_P$ 表示浮游生物的生长速率，$K_P$ 表示圣劳伦斯河中浮游生物的环境容纳量，$\delta_P$ 表示七鳃鳗对浮游生物的捕食效应系数。
+
+\paragraph{河流中的七鳃鳗}
+
+在河流中生存的通常是幼年七鳃鳗以及在繁殖季洄游而来的成体七鳃鳗。由于成体七鳃鳗在交配后不再获取食物，并会在短时间内死亡，这部分个体在河流中存留的时间较短，故我们忽略这部分个体对河流物种数量的影响。七鳃鳗的天敌具有较强的食物替代性，因此我们只考虑天敌对七鳃鳗的捕食效应，而不考虑天敌数量的变化。于是，河流中七鳃鳗生物量的变化为：
+
+\begin{equation}
+\frac{\mathrm{d}M_1}{\mathrm{d}t}=-\delta_1\cdot M_1-N_{2\mathrm{male}}+R_{\mathrm{male}}
+\end{equation}
+
+\begin{equation}
+\frac{\mathrm{d}F_1}{\mathrm{d}t}=-\delta_1\cdot F_1-N_{2\mathrm{female}}+R_{\mathrm{female}}
+\end{equation}
+
+其中 $\delta_1$ 表示人类活动及其他天敌对七鳃鳗的捕食效应，方程第二项表示由河流向海洋洄游的影响，第三项表示由海洋洄游至河流的成体七鳃鳗的产卵作用。
+
+\subsubsection{海洋中的种群增长模型}
+
+海洋中的七鳃鳗大多为成体，基本营寄生生活：它们以盘状的口吸附于较大的鱼类体表，随后通过牙齿与吸盘状口部结构吸血。因此，在海洋中我们主要考虑宿主鱼类（如鲑鱼、鳕鱼、鲈鱼等）与七鳃鳗丰度的变化。与河流中的生物不同，海洋中的生物量是经度、纬度与时间的三元函数，因此我们不仅要考虑生物间的种间竞争与寄生关系，还要考虑不同物种在其空间位置上的扩散与避敌策略。
+
+\paragraph{宿主鱼类}
+
+已有研究证明\cite{13}，寄生可能降低宿主密度并导致宿主种群灭绝。设宿主鱼类的生物量为 $H=H(x,y,t)$，并将宿主划分为被寄生的个体 $H_i=H_i(x,y,t)$ 与未被寄生的个体 $H_u=H_u(x,y,t)$，则宿主鱼类生物量的变化应表示为：
+
+\begin{equation}
+\frac{\partial H_u}{\partial t}=r_H H\left(1-\frac{H}{K_H}\right)-dH_u-\beta H_u(M_2+F_2)+D\left(\frac{\partial^2 H}{\partial x^2}+\frac{\partial^2 H}{\partial y^2}\right)
+\end{equation}
+
+\begin{equation}
+\frac{\partial H_i}{\partial t}=\beta H_u(M_2+F_2)-(d+\alpha)H_i+D\left(\frac{\partial^2 H}{\partial x^2}+\frac{\partial^2 H}{\partial y^2}\right)
+\end{equation}
+
+其中 $r_H$ 表示宿主的生长速率，$K_H$ 表示宿主鱼类的环境容纳量；在该方程中，无论亲本是否被寄生，新生个体均为未被寄生的个体。$d$ 表示健康宿主的自然死亡率，$\alpha$ 表示寄生导致的宿主死亡效应。$D$ 表示扩散效率，反映鱼类在空间位置上的自由扩散。
+
+\paragraph{海洋中的七鳃鳗}
+
+海洋中七鳃鳗种群的变化主要考虑人类或天敌捕食所引起的死亡、洄游以及空间扩散的影响，可得如下结果：
+
+\begin{equation}
+W_{\mathrm{male}}=-\delta_2 M_2-\delta(t-t_1)m_1M_2+E\left(\frac{\partial^2 M_2}{\partial x^2}+\frac{\partial^2 M_2}{\partial y^2}\right)+G\left(\frac{\partial H}{\partial x}+\frac{\partial H}{\partial y}\right)
+\end{equation}
+
+\begin{equation}
+\frac{\partial M_2}{\partial t}=
+\begin{cases}
+W_{\mathrm{male}}, & (x,y)\neq(x_0,y_0)\\
+W_{\mathrm{male}}+N_{2\mathrm{male}}, & (x,y)=(x_0,y_0)
+\end{cases}
+\end{equation}
+
+\begin{equation}
+W_{\mathrm{female}}=-\delta_2 F_2-\delta(t-t_1)m_1F_2+E\left(\frac{\partial^2 F_2}{\partial x^2}+\frac{\partial^2 F_2}{\partial y^2}\right)+G\left(\frac{\partial H}{\partial x}+\frac{\partial H}{\partial y}\right)
+\end{equation}
+
+\begin{equation}
+\frac{\partial F_2}{\partial t}=
+\begin{cases}
+W_{\mathrm{female}}, & (x,y)\neq(x_0,y_0)\\
+W_{\mathrm{female}}+N_{2\mathrm{female}}, & (x,y)=(x_0,y_0)
+\end{cases}
+\end{equation}
+
+其中 $\delta_2$ 表示海七鳃鳗的死亡率，$E$ 表示七鳃鳗在海中的扩散系数，$G$ 表示海七鳃鳗的追踪系数。$W$ 的表达式中的第一项表示人类活动与天敌捕食的影响，第二项表示海七鳃鳗由海洋向河流洄游的影响，第三项表示海七鳃鳗在海中的自由扩散，最后一项表示海七鳃鳗总是朝向宿主较多之处移动。综合上述分析，该微分方程组对应的生物量流动关系为：浮游生物为河流中的七鳃鳗提供能量，河流中的七鳃鳗经洄游进入海洋，海洋中的七鳃鳗寄生于宿主鱼类，而宿主鱼类的空间分布又牵引着海洋中七鳃鳗的移动方向，各环节通过出生、死亡、迁移与扩散相互耦合。
+
+\subsection{模型求解}
+
+建模过程中产生了许多待定参数。为确定这些参数的具体取值，我们查阅了大量文献与网络资源\cite{13}--\cite{16}，对模型中所用参数进行估计。有限体积法（FVM）是一种求解偏微分方程组的数值方法，它通过将连续求解域离散为有限个子区域（单元）、在每个控制体积上应用数值积分，从而把连续的 PDE 问题转化为离散的代数问题。
+
+在建立不同物种种群随时间、经度与纬度变化的模型时，将西经 $59^\circ$ 至 $63.5^\circ$、北纬 $46^\circ$ 至 $50.5^\circ$ 的水域等分为 $15\times15$ 个子区域，时间以 1 天为单位划分，即 $\Delta x=0.5$，$\Delta y=0.5$，$\Delta t=1\,\mathrm{d}$。通过编程计算，我们得到 $t=360$、$t=3600$、$t=18000$ 时刻宿主鱼类的空间分布。
+
+\subsection{问题一的结果}
+
+为考察七鳃鳗改变性别比的能力对更大尺度生态系统的影响，在给定相同初始值条件的情况下，分别对七鳃鳗种群能够改变性别比与不具备改变性别比能力两种情形，模拟不同物种丰度随时间的变化。为使模型更具一般性，所给定的初始值并不一定使群落处于稳定状态。
+
+下面我们分别在初始时刻取七鳃鳗的雄性比例为 $p=0.56$、$p=0.67$、$p=0.78$、$p=0.82$，绘制不同物种相对生物量随时间的变化。
+
+基于上述结果，我们可以得到七鳃鳗性别比对生态系统的影响如下：
+
+\textbf{增强七鳃鳗自身抵御严酷环境的能力。}除初始性别比不同外，各情形的初始条件完全一致；从可改变性别比的全部结果可以看出，七鳃鳗的生物量都经历了先下降、再上升的过程，并在 4000--5000 天之后达到稳定。这表明当食物资源不利于其繁殖时，七鳃鳗能够通过改变性别比、进而调整种群规模来抵御严酷的外部环境。
+
+\textbf{能够维持宿主鱼类与浮游生物种群的稳定。}对比 $p=0.56$ 的两种情形可以看出，当宿主数量不足时，七鳃鳗能够通过改变性别比抑制自身的过度增殖，从而使宿主种群趋于稳定。对比 $p=0.82$ 的两种情形可以看出，七鳃鳗能够通过改变性别比抑制浮游生物的过度增殖，从而使浮游生物的生物量保持稳定。
+
+\textbf{利用反馈调节生态系统。}七鳃鳗通过性别比的变化有效调节生态系统的种间关系，并维持生态系统的稳定性。
+\subsection{问题二的结果}
+
+\subsubsection{优势：对严酷环境具有很强的抵抗力}
+
+为证明七鳃鳗种群对严酷环境具有很强的抵抗力，我们调整模型中的参数，以模拟七鳃鳗在现实生活中可能遭遇的严酷环境，从而分析七鳃鳗种群的抗扰动能力。
+
+（1）遭遇自然灾害，导致浮游生物种群骤然减少。假定在 $t=7000$ 时刻，$P$ 骤变为 $0.75P$。
+
+结果表明，七鳃鳗种群并未出现明显变化，仅在约 10000 天时存在轻微波动，但随后迅速恢复。这说明七鳃鳗种群能够很好地抵御饥荒造成的损害。
+
+（2）生存环境恶化或人类捕捞加剧，导致七鳃鳗的自然死亡率升高。假设自 $t=6000$ 开始，将 $\delta_1$、$\delta_2$ 调整为 $2\delta_1$、$2\delta_2$。
+
+结果表明，死亡率升高后七鳃鳗物种的生物量逐渐下降，直至新的稳定种群量达到平衡。这说明当生存环境恶化或遭受人为捕捞时，七鳃鳗并不会灭绝，而是维持较低的个体数量以延续繁殖。
+
+（3）人类使用性抑制剂或破坏原有栖息地，导致七鳃鳗的繁殖力下降。假设自 $t=5000$ 起 $c$ 变为 $0.5c$，即一个雌性个体单位时间内可产生的幼体数量由 $c$ 变为 $0.5c$。
+
+与前一情景类似，当繁殖力受到影响时，七鳃鳗并未灭绝，而是维持较低的个体数量以延续繁殖。
+
+\subsubsection{劣势：调节性别比存在时间滞后}
+
+观察模型结果的图形可以发现，尽管七鳃鳗种群最终能够达到相对稳定的状态，但其调节过程较为缓慢，甚至在 $p=0.82$ 的情形中一度接近灭绝。其可能的原因在于：七鳃鳗种群只能依据当前的食物密度调节具繁殖能力的幼年七鳃鳗的性别比，而幼年七鳃鳗需发育为成体后才参与繁殖并影响出生率，因此存在明显的时间滞后效应。一旦环境发生剧烈的长期变化，七鳃鳗很可能因时间滞后效应、未能及时调整种群规模而趋于灭绝。
+
+\section{模型二：基于七鳃鳗性别比影响下生态系统稳定性变化的 3-R 指数模型}
+
+\subsection{模型概述}
+
+海七鳃鳗的性别比在生态系统中发挥作用，并影响生态系统的稳定性。生态系统稳定性是指生态系统在面对外部扰动（如自然灾害、气候变化、人类活动等）时维持其结构与功能的能力。本研究模型的目标是对这一影响进行定量评估。
+
+在模型一中，我们得到了海七鳃鳗性别比与生态系统中其他物种生物量之间的动态关系。在此基础上，为度量其对生态系统稳定性的影响，我们首先选取用于度量的指标（3-R 指数：抵抗力、恢复速率与恢复度），随后对指标进行量化。接着我们借助 Shannon 指数\cite{17}构造生态系统的内部变量 $S$，并通过建立其与七鳃鳗性别比的关系，从三个方面进一步分析生态系统的稳定性。
+
+\subsection{模型建立}
+
+\subsubsection{生态系统稳定性度量指标的选取}
+
+生态系统稳定性是指生态系统在面对自然与人为扰动时维持其结构与功能的能力。这种稳定性是生态系统健康与可持续性的关键特征，对于生态系统服务（如食物供给、水源调节、碳储存等）的提供至关重要。生态系统稳定性的指标包括抵抗力、恢复速率、恢复度、持久性、耐受性等\cite{18}。
+
+\textbf{抵抗力：}系统变量在受到扰动时抵抗变化的能力。
+
+\textbf{恢复速率：}扰动之后系统变量返回其参照状态的速度。
+
+\textbf{恢复度：}扰动之后完全恢复到参照状态的能力。
+
+\textbf{持久性：}系统维持某一参照状态的持续时间长度。
+
+\textbf{耐受性：}系统耐受扰动的能力，与扰动后变化的程度及返回的速率无关。
+
+我们选择抵抗力、恢复速率与恢复度作为生态系统稳定性的指标，因为它们能够综合反映生态系统面对扰动时的响应能力与恢复能力。抵抗力反映生态系统的初始稳定性，恢复速率反映生态系统的快速恢复能力，恢复度反映生态系统的长期稳定性与适应性。将这三项指标共同考虑，可以更全面地评估生态系统的稳定性，并为生态保护与环境管理提供科学依据。
+
+\subsubsection{指标的量化}
+
+在构建指标的定量模型时，我们需要遵循以下要点\cite{19}：
+
+\begin{itemize}
+\item[(a)] 应无量纲且经过归一化，并且应是稳定性的单调函数；
+\item[(b)] 对所有可能取值应有界，不得出现趋于无穷的取值；
+\item[(c)] 应适用于所有类型的生态系统与系统变量。
+\end{itemize}
+
+在此基础上，我们分别针对系统变量建立抵抗力、恢复速率与恢复度的定量模型\cite{18}。
+
+\paragraph{抵抗力（$R_{st}$）}
+
+\begin{equation}
+\text{Resistance}=1-\frac{2\times|S_R-S_X|}{S_R+|S_R-S_X|}
+\end{equation}
+
+其中 $S_R$ 为系统变量的参照值，$S_X$ 为扰动发生时刻 $t_P$ 之后的标准时间段 $X$ 处系统变量的取值。考虑到所研究系统的随机性与变异性，$S_R$ 应取较长安定时间段内的均值。对于该特定时间段 $X$，生态学中常作如下假设：$S_X=S_0$\cite{18}，其中 $S_0$ 为系统变量偏离参照值的最大偏差处的取值。于是抵抗力模型化为
+
+\begin{equation}
+\text{Resistance}=1-\frac{2\times|S_R-S_0|}{S_R+|S_R-S_0|}
+\end{equation}
+
+\paragraph{恢复速率（$R_{sl}$）}
+
+\begin{equation}
+\text{Resilience}=\frac{2\times|S_R-S_0|}{|S_R-S_0|+|S_R-S_Y|}-1
+\end{equation}
+
+其中 $S_R$、$S_0$ 含义同上，$t_0$ 为观测到最大偏差的时刻，$S_Y$ 为 $t_0$ 之后经过标准化时间段 $Y$ 后系统变量的取值。
+
+\paragraph{恢复度（$R_c$）}
+
+\begin{equation}
+\text{Recovery}=1-\frac{2\times|S_R-S_{R'}|}{S_R+|S_R-S_{R'}|}
+\end{equation}
+
+其中 $S_R$ 含义同上，$S_{R'}$ 为扰动之后系统变量在参照状态下的取值。
+
+值得注意的是，上述三个方程的取值均介于 $-1$ 与 $1$ 之间。$\text{Resistance}=1$ 对应无变化，抵抗力越接近 1，表示生态系统的抵抗力越好。$\text{Resilience}=1$ 对应完全恢复，恢复速率越接近 1，表示生态系统的恢复速率越快。$\text{Recovery}=1$ 对应恢复至原始状态，恢复度越接近 1，表示生态系统的可恢复性越强。
+
+\subsubsection{系统内部变量}
+
+通过求解模型一，我们得到海七鳃鳗性别比与各物种生物量之间的关系，即海七鳃鳗性别比影响下的种群增长规律，进而分析其对生态系统稳定性的影响。Shannon 指数是一种综合性的多样性度量，它不仅考虑物种的丰富度，还考虑物种的均匀度。这种综合性使 Shannon 指数能够更全面地反映生态系统的特征；同时，Shannon 指数具有足以探测生态系统中物种微小变化的敏感性，可为生态系统稳定性的监测提供重要信息。在本模型中，我们选择 Shannon 指数作为系统变量 $S$。
+
+\begin{equation}
+S=-\sum_{i}p_i\log(p_i)
+\end{equation}
+
+根据模型一的结论，我们可以得到海七鳃鳗性别比与 $S=f(\rho)$ 之间的关系；将其代入 3-R 指数的定量公式，即可得到七鳃鳗性别比对生态系统抵抗力、恢复速率与恢复度（3-R）的影响。
+
+\subsubsection{生态系统扰动因素}
+
+为求解七鳃鳗性别比对生态系统的影响，在只考虑单一变量的前提下，我们所选取的外部扰动应当只改变七鳃鳗的性别比。除受遗传控制之外，七鳃鳗的性别比还可由外源性类固醇调控\cite{20}，即在 $t_P$ 时刻通过人为干预施用激素使七鳃鳗的性别比发生改变，从而研究其对生态系统稳定性的影响。我们假定七鳃鳗种群通过改变特定性别比立即作出响应。
+
+\subsection{问题三的结果}
+
+在模型一的基础上，我们在第 5115 天对生态系统施加外源性类固醇扰动，得到各物种生物量的变化，并据此计算其 Shannon 指数，结果显示：扰动后各物种生物量出现可观测的偏移，Shannon 指数随物种生物量的变化而同步波动。
+
+我们以雄性性别比的变化量 $\Delta p$ 为自变量，以据此计算得到的用于度量生态系统稳定性的 3-R 指标为因变量，结果如下。
+
+根据结果可以看出，海七鳃鳗的性别比对生态系统的恢复度（$R_c$）影响很小，而对生态系统恢复速率（$R_{sl}$）的影响相对较大；从总体趋势来看，当种群中雄性比例较高时，海七鳃鳗的恢复速率更大，而抵抗力（$R_{st}$）略有下降。这一结果是海七鳃鳗生命周期独有特征、其对环境扰动的抵抗能力以及其在生态系统中生态位的共同体现。导致雄性比例升高的环境因素同时也会影响七鳃鳗种群的繁殖能力，反映出物种与生态系统之间的相互作用与适应，这种复杂的反馈机制不仅揭示了物种内部的动态，而且对于维持复杂多样生态系统的多样性至关重要。
+
+\section{模型扩展}
+
+在模型一中，我们讨论了七鳃鳗性别比对生态系统的影响。现在，我们将在生态系统中再引入两种不同的生物，探究七鳃鳗的性别比是否能为它们带来某些益处。所考虑的两种生物为：
+
+\begin{itemize}
+\item 一种寄生物，记为 A，它与七鳃鳗处于竞争关系，二者寄生同一宿主。
+\item 一种鱼类，记为 B，它是宿主鱼类的主要食物来源。
+\end{itemize}
+
+我们构建七鳃鳗所处生态系统的食物网，据此可以更完整地分析它们之间的相互作用。由于引入了寄生物 A 与鱼类 B，我们需要考虑 A 与七鳃鳗之间的竞争、A 对宿主的寄生以及宿主对 B 的捕食，并建立相应的微分方程。限于篇幅，具体公式在此不再列出。同时，我们在 $8000\le t\le 9000$ 期间人为降低幼年七鳃鳗的雌性比例，并借助这一扰动考察性别比变化对寄生物 A 与鱼类 B 的作用。
+
+从图中可以看出，起初由于外部因素的干扰，七鳃鳗通过改变自身性别比而使自身趋于平衡。在下降阶段，来自寄生物的竞争压力减小，从而可获取更多资源，生物量随之上升。在上升阶段，宿主鱼类受到的影响更大、生物量更低，进而被捕食的概率下降，因此对鱼类 B 有利。在人为改变幼体性别比之后，从图中也可得到类似的结论。因此，我们可以认为，七鳃鳗种群中可变的性别比在一定程度上为寄生物 A 与鱼类 B 带来了优势。
+
+\section{灵敏度分析}
+
+在建模过程中，我们已经验证（见 5.3 节），当生态系统处于稳定期且对七鳃鳗性别比施加小尺度扰动时，生态系统能够凭借自身较强的抵抗力使种间关系重新达到均衡。因此，七鳃鳗的性别比 $p$ 相对稳定。
+
+另一方面，宿主鱼类的生长速率 $r_H$ 较为敏感，其扰动可能对整个生态系统带来较大影响。在我们的模型中 $r_H=0.026$；下面我们将分别增大与减小 $r_H$，观察其对生态系统的影响。为简洁地说明性别比、七鳃鳗种群、浮游生物生物量与宿主鱼类之间的关系，此处暂不考虑寄生物 A 与鱼类 B 对系统的作用。
+
+$r_H$ 增大：我们考虑 $r_H=0.03+0.01k$（$k=0,1,2,\cdots,7$）的各种情形，并分别统计生态系统的 Shannon 指数，结果如下表所示：
+
+\begin{itemize}
+\item $r_H=0.03$，Shannon 指数为 1.0344 nat；
+\item $r_H=0.04$，Shannon 指数为 0.9631 nat；
+\item $r_H=0.05$，Shannon 指数为 0.9377 nat；
+\item $r_H=0.06$，Shannon 指数为 0.9283 nat；
+\item $r_H=0.07$，Shannon 指数为 0.9187 nat；
+\item $r_H=0.08$，Shannon 指数为 0.9096 nat；
+\item $r_H=0.09$，Shannon 指数为 0.9044 nat；
+\item $r_H=0.10$，Shannon 指数为 0.8998 nat。
+\end{itemize}
+
+由上表可见，随着 $r_H$ 增大，系统的 Shannon 指数逐渐减小。换言之，生态系统的多样性在下降。当 $r_H=0.1$ 时，可以看出，当系统达到稳定后，宿主鱼类的生物量一直处于接近环境容纳量的状态。这主要是由于初始阶段的剧烈扰动导致七鳃鳗骤减、宿主鱼类骤增，二者经过一系列相互作用最终达到均衡。
+
+$r_H$ 减小：当 $r_H$ 减小时，宿主鱼类生长放缓可能导致七鳃鳗的食物供给不足，进而可能破坏系统的平衡。我们考察 $r_H=0.02+0.001k$（$k=0,1,2,\cdots,5$）时生态系统所能维持的最大天数，结果如下表所示：
+
+\begin{itemize}
+\item $r_H=0.02$，生态系统崩溃时间为 488 天；
+\item $r_H=0.021$，生态系统崩溃时间为 1736 天；
+\item $r_H=0.022$，生态系统崩溃时间为 3158 天；
+\item $r_H=0.023$，生态系统崩溃时间为 6225 天；
+\item $r_H=0.024$，生态系统崩溃时间为 $>24000$ 天；
+\item $r_H=0.025$，生态系统崩溃时间为 $>24000$ 天。
+\end{itemize}
+
+可见，当 $r_H$ 低于某一阈值时，系统会在有限时间内崩溃；当 $r_H$ 高于该阈值后，系统可长期维持而不崩溃。这说明宿主鱼类的生长速率是决定系统存续与否的关键参数，模型对 $r_H$ 在低值区间的取值高度敏感。
+
+\section{模型的优缺点}
+
+\subsection{优点}
+
+\begin{itemize}
+\item 依据海七鳃鳗复杂的生命周期建模，贴近海七鳃鳗真实的生命历程。
+\item 偏微分方程模型是对多变量系统的自然描述，能够准确刻画物种的变化，在研究初始性别比以及系统中特殊扰动的影响方面具有很大优势。
+\item 采用有限体积法求取偏微分方程的数值解，简化了模型求解的时间复杂度，效率高、求解速度快。
+\item 选取多个可量化指标以创新性地度量生态系统稳定性。在考虑性别比对生态系统稳定性的影响时，能够综合度量生态系统面对不利环境的抗扰动能力与恢复能力，并展现其对生态系统的长期影响。
+\end{itemize}
+
+\subsection{缺点与可能的改进}
+
+\begin{itemize}
+\item 由于生态系统中生物之间的相互作用十分复杂，我们难以分析所有物种之间的相互作用，只能选取特定物种进行分析。
+\item 在网络文献与相关资源中，我们获得的与七鳃鳗物种相关的数据较少，因而难以获得更精确、更稳定的初始值，参数估计可能不够精确。
+\end{itemize}
+
+\section{结论}
+
+本文将七鳃鳗性别比诱导的种群增长模型与基于七鳃鳗性别比影响下生态系统稳定性变化的 3-R 模型相结合，得到如下结果：
+
+\begin{itemize}
+\item 当七鳃鳗能够通过食物浓度改变性别比时，它可以调整种群规模，增强七鳃鳗抵御严酷环境的能力。当宿主的生物量不足时，七鳃鳗能够控制自身繁殖，从而使宿主的生物量趋于稳定；当浮游生物的生物量过高时，七鳃鳗能够抑制浮游生物的过量增长，从而使浮游生物的数量趋于稳定。总之，七鳃鳗通过改变性别比以反馈方式调节生态系统，有效调控生态系统中各物种的生物量。
+\item 七鳃鳗种群的优势在于对外部扰动具有很强的抵抗力，而其劣势在于：在调节出生率与物种种群生物量的过程中存在明显的时间滞后。
+\item 海七鳃鳗的性别比对生态系统恢复度（$R_c$）影响很小，而对生态系统恢复速率（$R_{sl}$）的影响相对较大。当海七鳃鳗种群中雄性比例较高时，其恢复速率更快，而抵抗力（$R_{st}$）略有下降。
+\item 能够改变性别比的海七鳃鳗，能够为其竞争者寄生物以及宿主的食物来源创造有利因素。
+\end{itemize}
+
+\begin{thebibliography}{20}
+
+\bibitem{1} M. F. Docker, J. B. Hume, and B. J. Clemens, ``Introduction: A surfeit of lampreys,'' \emph{Lampreys: Biology, Conservation and Control: Volume 1}, pp. 1--34, 2015.
+
+\bibitem{2} B. J. Clemens, H. Arakawa, C. Baker, et al., ``Management of anadromous lampreys: Common threats, different approaches,'' \emph{Journal of Great Lakes Research}, vol. 47, S129--S146, 2021.
+
+\bibitem{3} M. F. Docker and I. C. Potter, ``Life history evolution in lampreys: Alternative migratory and feeding types,'' in \emph{Lampreys: Biology, Conservation and Control: Volume 2}, Springer, 2019, pp. 287--409.
+
+\bibitem{4} F. L. Kelly and J. J. King, ``A review of the ecology and distribution of three lamprey species, \emph{Lampetra fluviatilis} (L.), \emph{Lampetra planeri} (Bloch) and \emph{Petromyzon marinus} (L.): A context for conservation and biodiversity considerations in Ireland,'' in \emph{Biology and Environment: Proceedings of the Royal Irish Academy}, JSTOR, 2001, pp. 165--185.
+
+\bibitem{5} V. C. Applegate, \emph{Natural History of the Sea Lamprey, Petromyzon marinus, in Michigan}. University of Michigan, 1950.
+
+\bibitem{6} C. C. Robusto, ``The cosine-haversine formula,'' \emph{The American Mathematical Monthly}, vol. 64, no. 1, pp. 38--40, 1957.
+
+\bibitem{7} D. R. Lean, ``Some secrets of a great river: An overview of the St.\ Lawrence River supplement,'' \emph{Canadian Journal of Fisheries and Aquatic Sciences}, vol. 57, no. S1, pp. 1--6, 2000.
+
+\bibitem{8} J. V. Adams and M. L. Jones, ``Estimation of lake-scale stock-recruitment models for Great Lakes sea lampreys,'' \emph{Ecological Modelling}, vol. 467, p. 109\,916, 2022.
+
+\bibitem{9} D. Pavlov, D. Yu. Nazarov, A. Zvezdin, and A. Kucheryavyi, ``Downstream migration of early larvae of the European river lamprey \emph{Lampetra fluviatilis},'' in \emph{Doklady Biological Sciences}, Springer Nature BV, vol. 459, 2014, p. 344.
+
+\bibitem{10} N. S. Johnson, W. D. Swink, and T. O. Brenden, ``Field study suggests that sex determination in sea lamprey is directly influenced by larval growth rate,'' \emph{Proceedings of the Royal Society B: Biological Sciences}, vol. 284, no. 1851, p. 20\,170\,262, 2017.
+
+\bibitem{11} J. Mallatt, ``Laboratory growth of larval lampreys (\emph{Lampetra (Entosphenus) tridentata} Richardson) at different food concentrations and animal densities,'' \emph{Journal of Fish Biology}, vol. 22, no. 3, pp. 293--301, 1983.
+
+\bibitem{12} N. S. Johnson, T. J. Buchinger, and W. Li, ``Reproductive ecology of lampreys,'' \emph{Lampreys: Biology, Conservation and Control: Volume 1}, pp. 265--303, 2015.
+
+\bibitem{13} D. Ebert, M. Lipsitch, and K. L. Mangin, ``The effect of parasites on host population density and extinction: Experimental epidemiology with \emph{Daphnia} and six microparasites,'' \emph{The American Naturalist}, vol. 156, no. 5, pp. 459--477, 2000.
+
+\bibitem{14} J. V. Adams and M. L. Jones, ``Estimation of lake-scale stock-recruitment models for Great Lakes sea lampreys,'' \emph{Ecological Modelling}, vol. 467, p. 109\,916, 2022.
+
+\bibitem{15} L. A. Weitkamp, S. A. Hinton, and P. J. Bentley, ``Seasonal abundance, size, and host selection of western river (\emph{Lampetra ayresii}) and Pacific (\emph{Entosphenus tridentatus}) lampreys in the Columbia River estuary,'' \emph{Fishery Bulletin}, vol. 113, no. 2, 2015.
+
+\bibitem{16} P. J. Manion and L. H. Hanson, ``Spawning behavior and fecundity of lampreys from the upper three Great Lakes,'' \emph{Canadian Journal of Fisheries and Aquatic Sciences}, vol. 37, no. 11, pp. 1635--1640, 1980.
+
+\bibitem{17} P. Fedor and M. Zvar\'{\i}kov\'{a}, ``Biodiversity indices,'' \emph{Encyclopedia of Ecology}, vol. 2, pp. 337--346, 2019.
+
+\bibitem{18} K. Van Meerbeek, T. Jucker, and J.-C. Svenning, ``Unifying the concepts of stability and resilience in ecology,'' \emph{Journal of Ecology}, vol. 109, no. 9, pp. 3114--3132, 2021.
+
+\bibitem{19} K. H. Orwin and D. A. Wardle, ``New indices for quantifying the resistance and resilience of soil biota to exogenous disturbances,'' \emph{Soil Biology and Biochemistry}, vol. 36, no. 11, pp. 1907--1912, 2004.
+
+\bibitem{20} R. H. Devlin and Y. Nagahama, ``Sex determination and sex differentiation in fish: An overview of genetic, physiological, and environmental influences,'' \emph{Aquaculture}, vol. 208, no. 3--4, pp. 191--364, 2002.
+
+\end{thebibliography}
+
+\end{document}

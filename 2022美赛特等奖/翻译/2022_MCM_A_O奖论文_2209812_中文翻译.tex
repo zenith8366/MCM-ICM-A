@@ -1,0 +1,704 @@
+\documentclass[11pt,a4paper]{ctexart}
+\usepackage[margin=2.4cm]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage{fancyhdr}
+\usepackage{enumitem}
+\linespread{1.18}
+\setlength{\headheight}{15pt}
+\setlength{\parskip}{0pt}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small Team 2209812}
+\fancyhead[R]{\small \thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+\fancypagestyle{plain}{\fancyhf{}\renewcommand{\headrulewidth}{0pt}}
+
+\ctexset{
+  section/format = \Large\bfseries\raggedright,
+  subsection/format = \large\bfseries\raggedright,
+  subsubsection/format = \normalsize\bfseries\raggedright
+}
+\setcounter{secnumdepth}{3}
+
+\begin{document}
+
+%====================== 摘要页 ======================
+\thispagestyle{empty}
+\begin{center}
+{\small 2022 MCM/ICM\quad 选题 A\quad 队伍控制号 2209812\quad 摘要页（Summary Sheet）}\\[18pt]
+{\LARGE\bfseries 功率曲线让骑手越来越快}\\[8pt]
+{\large （Power Curve Make Cyclists Faster and Faster）}\\[10pt]
+\end{center}
+
+\begin{center}
+{\large\bfseries 摘\quad 要}
+\end{center}
+
+\vspace{6pt}
+每一次骑行都有其节奏——而你是否能够掌控这一节奏，完全取决于基于其功率画像（power profile）所做的基础规划。本文建立了以功率曲线（Power Curve, PC）为基础的模型来指导自行车比赛，度量模型对天气以及功率分布偏差的敏感性，并给出团队计时赛中的最优功率使用方案。
+
+在任务 1 与任务 2 中：首先，我们依据运动生理学，选取了一个三参数双曲模型，它在临界功率（critical power, CP）模型中更为精确。在此基础上，我们利用数据定义了男子与女子计时赛专家（time trial specialist）、男子与女子冲刺手（sprinter）的功率曲线（图 7）。其中，冲刺手具有更高的爆发力，而计时赛专家（TTS）具有更强的长时耐力；女性运动员的爆发力与耐力均弱于男性运动员。
+
+随后，我们建立了疲劳与恢复（Fatigue and Recovery, FR）模型，形成最优配速控制。接着，我们基于庞特里亚金最小值原理（Pontryagin's Minimum Principle, PMP）得到了最优解的必要条件，并基于动态规划（Dynamic Programming, DP）与贝尔曼（Behrman）最优性原理得到了贝尔曼方程的数值解。我们将功率曲线应用于东京奥运会、UCI 世界锦标赛以及我们自己设计的计时赛赛道（该赛道位于意大利圣费利切·奇尔切奥（San Felice Circeo），图 12），骑手的功率分布示于图 10、图 11 与图 13。我们发现该结果与上述骑手的特征相一致，其中包括：东京奥运会男子计时赛专家的用时为 1 小时 41 分 29.4 秒（3641.49 秒），女子为 0 小时 33 分 4.51 秒（1984.51 秒）。
+
+在任务 3 与任务 4 中：本节度量了我们的模型对天气以及功率分布偏差的敏感性。
+
+对于风而言，对风效应的敏感性取决于相应的赛道。赛道越接近条形或带状，风向与风速对骑手而言就越规律，否则就越不确定。对于温度的影响，在适宜范围内，温度越低对骑手越有利。因此，骑手应当仔细观察地形，合理利用风向，并注意采取一定的散热措施。
+
+对于功率分布的偏差而言，偏差概率越大，时间代价及其增长趋势就越大。因此，保持良好的配速稳定性是取得好成绩的关键。对于发生在不同路段上的功率偏差，当地势起伏越大时，对骑手的影响越敏感；起伏越小时，影响越不敏感。在上坡骑行时保持蹬踏节奏，而在下坡时休息并尽量维持高速，对骑手而言意义重大。
+
+在任务 5 中：本节说明团队骑行如何降低阻力并使团队功率最大化。我们发现，骑手在团队中的实时位置以及每次领骑的时间，是决定团队表现的关键因素。基于这些因素，我们建立了一个团队计时赛优化模型，以最大化功率的使用效率。
+
+最后，我们评估了模型的优势与不足。并且为车队经理（Directeur Sportif）撰写了一份两页的骑手比赛指南。
+
+\vspace{6pt}
+\noindent\textbf{关键词：}功率曲线；动力学分析；动态规划（DP）；庞特里亚金最小值原理（PMP）；贝尔曼方程
+
+\newpage
+\pagestyle{fancy}
+
+%%====================== 正文 ======================
+\section{引言}
+
+\subsection{问题背景}
+
+每一位自行车手都知道，时间与强度是不可分割地联系在一起的。例如，冲刺超过数秒就非常困难，而在正确补给的条件下，轻松的耐力骑行却可以持续数小时。功率曲线（PC）正是这种关系的一种表示，观察它可以提供关于自身相对优势与局限的宝贵信息。
+
+骑手可以利用功率曲线，根据自己在赛道上的位置来确定应当施加多大的功率。在本问题中，我们需要完成以下目标：
+
+\begin{itemize}
+\item 定义计时赛专家与另一类骑手的功率画像，同时考虑性别因素；然后在多种计时赛赛道上检验该模型。
+\item 确定天气可能造成的影响与敏感性，以及结果对骑手偏离目标功率分布的敏感程度。
+\item 将模型扩展至六人团队计时赛的最优功率使用，团队成绩按第四名骑手越过终点线时计算。
+\end{itemize}
+
+\subsection{文献综述}
+
+本问题主要讨论如何依据功率曲线指导骑手。在过去的几年中，从生理学角度分析骑手，以及从比赛角度优化自行车竞赛，都已成为研究热点。因此，本节聚焦于这两个方面的主要模型。
+
+\begin{itemize}
+\item 首先，在功率曲线的描述方面，一种是简单的双参数临界功率（CP）模型，但其生理学假设并不恰当 [5]；另一种则是稍复杂但生理上更可接受的三参数 CP 模型 [10]。
+\item 关于骑手配速的优化，可以从疲劳与恢复的生理模型出发，分析功率分布与功率曲线之间的关系 [13]。它有效地解释了骑手在比赛过程中疲劳与恢复的动态平衡过程。
+\item 在骑手速度的优化方面，Ashtiani, Faraz 等人 [13] 提出了一个基于动力学的优化模型。它不仅包含骑手的受力模型，还充分考虑了天气的影响。
+\item 骑手之间的空气动力学相互作用对于策略的有效性非常重要，而这正是团队计时赛中团队策略的关键。
+\end{itemize}
+
+文献综述的整体框架如图 1 所示。该框架把骑手的比赛策略划分为生理学与动力学两条主线：在生理学一侧，包含简单的双参数 CP 模型（其假设并不恰当）与复杂但更符合生理的三参数 CP 模型，疲劳—恢复模型对应任务 1，配速优化模型对应任务 2 与任务 3；在动力学一侧，空气动力学相互作用导出团队策略，对应任务 5。
+
+\subsection{我们的工作}
+
+我们在本问题中所完成的工作主要由下面的图 2 展示。整体思路是：由数据经处理后拟合三参数 CP 模型与疲劳—恢复模型，再通过动力学求解得到功率画像与功率分布，进而形成最优配速控制；其中由 PMP 得到必要条件，由动态规划与贝尔曼原理得到数值解。在此基础之上，一方面以天气（风的影响、温度的影响）与功率分布偏差（偏差概率、位置偏差）为两条支线开展敏感性分析，另一方面以降低阻力、最大化团队功率为目标，建立团队计时赛优化模型。
+
+\section{模型的准备工作}
+
+\subsection{假设与说明}
+
+考虑到实际问题总是包含许多复杂因素，我们作出如下假设以帮助我们建模。
+
+\begin{itemize}
+\item 假设 1：可以忽略刹车 [2]。
+
+$\Rightarrow$ 说明：一方面，没有任何一辆自行车配备了能够测量制动力的数据记录系统；另一方面，唯一不希望的制动是为了避免摔车，而这在个人计时赛中通常不是问题。
+
+\item 假设 2：可以忽略横向运动 [2]。
+
+$\Rightarrow$ 说明：从能量角度看这是合理的。例如，当横向速度为 1 m/s，而大多数职业骑手的速度超过 10 m/s 时，横向速度占总速度的比例不足 1\%。
+
+\item 假设 3：所有自行车尺寸相同。
+
+$\Rightarrow$ 说明：奥林匹克精神告诉我们，人体极限与竞赛纪录是由运动员自身而非其器材来打破的。因此，统一自行车标准不仅是为了便于建模，也是公平竞赛的一部分。自行车相应的取值将在 3.4.1 节给出。
+
+\item 假设 4：骑手在比赛过程中保持姿势不变。
+
+$\Rightarrow$ 说明：从空气动力学角度看 [2]，阻力面积在很大程度上取决于骑手的姿态。由于骑手的姿态总在变化，阻力面积应当取平均值。在最高水平的比赛中，骑手会形成自己独特的骑行节奏，并在较长时间内保持稳定姿态。因此，这一假设是合理的。
+\end{itemize}
+
+\subsection{符号说明}
+
+本文所使用的主要符号如下所列。
+
+\begin{itemize}
+\item $P$：功率输出
+\item $CP$：临界功率
+\item $W'$：高于临界功率的可用功（无氧工作能力）
+\item $TTE$：力竭时间
+\item $w$：剩余无氧能量
+\item $w_{rec}$：已恢复的无氧能量
+\item $T_{rec}$：恢复时长
+\item $P_{max}$：可能的最大功率
+\item $s$：骑手已行驶的距离
+\item $v$：骑手的骑行速度
+\item $\phi$：风向与正北方向的夹角
+\item $\gamma$：骑行方向与正北方向的夹角
+\item $V$：风速
+\end{itemize}
+
+\subsection{数据}
+
+\subsubsection{数据收集}
+
+我们使用的数据主要包括不同类型骑手的身体数据。数据来源汇总如下。
+
+\begin{itemize}
+\item 训练峰（Training Peaks）：https://www.trainingpeaks.com/blog/power-profiling/
+\item STRAVA-Tokyo2020：https://www.strava.com/activities/5678015293
+\item STRAVA-BelgiumUCI：https://www.strava.com/activities/6006887196
+\end{itemize}
+
+其中，训练峰的数据包含不同性别、不同类型的骑手在 5 秒、1 分钟、5 分钟以及功能阈值（functional threshold, FT）处的功率。赛段数据（包括纬度、经度与海拔）方面，STRAVA-Tokyo2020 对应 2021 年日本东京奥运会计时赛赛道，而 STRAVA-BelgiumUCI 对应 2021 年 9 月 22 日在比利时佛兰德斯举行的 2021 年 UCI 世界锦标赛男子计时赛赛道。
+
+\subsubsection{数据处理}
+
+对于 STRAVA-Tokyo2020 与 STRAVA-BelgiumUCI 的赛段数据，我们需要将赛道离散为多个位置点，并求出相邻位置之间的距离与坡度。数据处理的更多细节如下图 3 与图 4 所示。
+
+\begin{enumerate}
+\item 第一步：求出地球球面上两个相邻位置点（相距约 600 m 至 1000 m）之间的夹角（图 3）。
+\item 第二步：将两个相邻位置点的纬度与经度转换为它们之间的直线距离。
+\item 第三步：根据直线距离与海拔求出相邻位置点的坡度。
+\end{enumerate}
+
+在具体实现中，图 4 给出了距离计算的几何关系，即由两点在球面上的夹角与地球半径得到两点间的直线距离，再结合两点的高程差得到该段的坡度，从而将连续赛道转化为可用于动态规划的离散状态序列。
+﻿\section{任务 1 与任务 2：基于功率曲线指导自行车比赛}
+
+\subsection{临界功率模型}
+
+这是一种普遍的经验：以相对较快但舒适的速度骑行，可以持续相当长的时间而不会过度疲劳。然而，速度哪怕只是小幅提高，也会显著增加主观用力感，并极大地缩短可耐受的运动持续时间。这些感受具有坚实的数学与生理学基础，而这些基础被凝结在临界功率（critical power, CP）概念之中，只是这一点恐怕被人们低估了。因此，CP 是体现有氧功能的一个重要参数（此外还有气体交换阈值（gas exchange threshold, GET）、最大摄氧量（maximal O$_2$ uptake, VO$_2$max）以及运动效率）[3]。它同时也为研究与更好地理解疲劳和运动不耐受的过程提供了一个有用的框架。在当前若干功率—持续时间（power-duration, PD）模型中，双参数双曲模型（CP$_{2-hyp}$）与三参数双曲模型（CP$_{3-hyp}$）被研究得最多 [4]。
+
+\subsubsection{双参数双曲模型}
+
+从数学角度看，在重度强度域内，CP 是建立功率输出（$P$）与力竭时间（$TTE$）之间联系的两个（或三个）经验参数之一。已知这种联系是双曲型的，其功率渐近线代表 CP，而曲率常数记为 $W'$（图 5a）[5, 6]。
+
+\[
+TTE=\frac{W'}{P-CP}
+\]
+
+其中，$TTE$ 表示在给定功率下运动能够维持的时间，$W'$ 是超过 CP 的可用功，$P$ 是运动持续期间的平均功率（该方程在 3.3 节还有另一种解释）。CP 定义了维持细胞内稳态所能维持的最高功率输出。该公式可用于预测任意给定、且高于 CP 的输出功率所对应的运动维持时间 $TTE$，这在训练中具有很大的应用潜力。知道为了达到给定的 $TTE$ 应当选择多大的 $P$ 也可能是很有用的。为此，将式（1）对 $P$ 求解，从而得到其线性形式（图 5b）：
+
+\[
+P=\frac{W'}{TTE}+CP
+\]
+
+例如，若取一名假想运动员，其实测 CP 为 300 W，$W'$ 为 20 kJ，则我们可以（用式（1））计算出该运动员在给定 $P$ 下所能维持的时间。
+
+尽管这种双参数双曲 CP 模型可以解释大量现象，但它仍然包含若干违背已知生理学的不当假设 [7]。这些假设列示如下：
+
+\begin{itemize}
+\item 功率与速度并非瞬时可达。通过氧输送系统使所需功率变得可用需要 2 分钟或更长时间；而由于身体加速或生物力学方面的考虑，达到所需速度也需要数秒。
+\item 只要时间足够长，功率会继续下降到由 CP 所定义的渐近线以下。对大多数人而言，CP 模型适用于持续 2 至 30 分钟的运动，少数人可延长至 60 分钟。
+\item 功率与速度都不是无限的，因为每个人都有无法超越的最大奔跑速度 [8]。
+\item 在疲劳点上，功率并不一定被完全耗尽。在恒定功率试验中，个体是在无法再维持所需功率输出时才停止运动的。
+\end{itemize}
+
+\subsubsection{三参数双曲模型}
+
+对于中长距离比赛，研究已发现，运动员特有的理想速度曲线由三段构成：先是短暂的最大加速阶段，随后是长时间的持续（但并非全力）配速阶段，最后是短暂的在终点线上力竭冲刺的阶段 [9]。在此基础上，为了克服双参数 CP 模型假设所带来的限制，Morton 建立了三参数双曲 CP 模型 [10]。三参数模型克服了「最大功率输出为无限大」以及「功率耗尽时才出现力竭」这两个假设。他的修正用数学表达如下：
+
+\[
+TTE=\frac{W'}{P-CP}+k
+\]
+
+其中 $k$ 为渐近线，取负值。由于可能的最大功率（$P_{max}$）只能在瞬时出现（即 $TTE=0$），由此可得：
+
+\[
+TTE=\frac{W'}{P-CP}+\frac{P_{max}}{CP-P_{max}}
+\]
+
+\subsection{定义功率曲线}
+
+从数据来源中下载相应数据。该数据集的开发者依据世界级运动员与未受训练者的已知运动能力，确定了各个区间的上限与下限。它包含不同性别、不同类型骑手在 5 秒、1 分钟、5 分钟以及功能阈值（FT）处的功率，使我们能够据此拟合 CP 模型（图 6）[11]。
+
+如图 6 所示，数据按性别分为男子骑手与女子骑手两支，每一支又按骑手类型分为计时赛专家、全能型骑手（Rouleur）、冲刺手与追逐赛选手（Pursuiter）；对每一类数据，用其在 1 秒、1 分钟、5 分钟与功能阈值处的功率拟合模型，从而得到相应的功率曲线。
+
+利用训练峰中的部分数据，不同性别骑手中计时赛专家与冲刺手的功率曲线如图 7 所示。图 7 的五个子图分别给出不同时间尺度下四类骑手（男子冲刺手 SM、男子计时赛专家 TM、女子冲刺手 SW、女子计时赛专家 TW）的功率曲线对比。
+
+基于该图，我们可以得出以下结论：
+
+\begin{itemize}
+\item 在比较两类骑手的功率时，当持续时间较短（时间 $<20$ s）时，冲刺手的功率高于计时赛专家（$P_S>P_T$）。这表明，一般而言冲刺手在比赛开始阶段更具统治力。然而随着时间继续增加，冲刺手的优势越来越少。显然，当时间 $>300$ s 时，计时赛专家占据了上风，而且时间越长，优势越明显。
+\item 从性别角度看，同类型的女子骑手功率总是弱于男子骑手。即便是女子冲刺手，在爆发力方面也几乎无法战胜男子计时赛专家；但随着时间推移，女子冲刺手可以胜过男子计时赛专家，这说明女子骑手的持久力并不算太弱。
+\end{itemize}
+
+\subsection{骑手的最优配速}
+
+\subsubsection{骑手的疲劳与恢复}
+
+CP 的概念被定义为可以无限期维持的最大功率输出，并由式（1）所控制 [12]。$W'$ 是超过 CP 的可用功。从生理学角度看，它也可以被解释为无氧工作能力。因此，式（1）意味着骑手只能在一段时间内维持该功率，之后无氧能量便会耗尽。在比赛过程中，骑手功率的整体趋势是下降的，而当功率低于 CP 时，$W'$ 会逐渐恢复。因此，在最后的加速之前，骑手处于一种基于动态疲劳—恢复（Fatigue-Recovery, FR）模型的动态平衡之中。
+
+正如上文所讨论的，如果骑手将其无氧工作能力（$W'$）用尽，那么他或她所能产生的最大功率就是 CP。为进一步说明，我们定义 $w$ 为骑行过程中的剩余 $W'$。如下式（5）所示，$w$ 的恢复过程可以与其消耗过程类似。如果骑手在时长为 $T_{rec}$ 的时间内以低于 CP 的恒定功率 $P$ 蹬踏，则实际恢复的能量（$w_{rec}$）将小于 $(CP-P)\times T_{rec}$。因此，我们提出调整恢复功率 $P_{adj}$ 的概念：
+
+\[
+P_{adj}=CP-\frac{w_{rec}}{T_{rec}}
+\]
+
+并将其用于如下能量消耗与恢复的切换模型之中：
+
+\[
+\frac{dw}{dt}=\left\{\begin{array}{ll}-(P-CP), & P\geq CP\\[0.3em] -\left(P_{adj}-CP\right), & P<CP\end{array}\right.
+\]
+
+其中 $P$ 为骑手的蹬踏功率。我们进一步假设恢复功率 $P_{adj}$ 仅由蹬踏功率 $P$ 决定，而与时长 $T_{rec}$ 无关。研究表明，$P_{adj}$ 可以很好地近似为蹬踏功率 $P$ 的线性函数，其常数 $a$ 与 $b$ 需针对每位骑手分别确定 [13]。因此 $P_{adj}$ 定义为：
+
+\[
+P_{adj}=aP+b
+\]
+
+骑手产生瞬时最大功率（$P_{max}$）的能力受 $W'$ 消耗的影响。一项研究 [14] 发现了 $P_{max}$ 与无氧能量 $w$ 之间的如下线性关系：
+
+\[
+P_{max}=aw+CP
+\]
+
+\subsubsection{最优控制表述}
+
+在本节中，骑手的配速被建模为一个带约束的最优控制问题。关键的动态状态变量为：i）骑手的剩余无氧能量 $w$；ii）骑手已行驶的距离 $s$；iii）骑手的骑行速度 $v$。控制输入是骑手功率关于时间的函数 $u(t)$。于是状态空间模型具有如下形式：
+
+\[
+\dot{x}=f(x(t),u(t))=\left[f_1\quad f_2\quad f_3\right]^{T}
+\]
+
+其中状态向量为：
+
+\[
+x(t)=\left[s(t)\quad v(t)\quad w(t)\right]^{T}
+\]
+
+而 $f$ 是一个非线性函数，它把输入与状态映射为它们的变化率。式（9）中的 $f_1$ 就是速度，故有
+
+\[
+f_1=\frac{ds}{dt}=v
+\]
+
+而 $f_2$ 可由牛顿第二定律得到（图 8）：
+
+\[
+f_2=\frac{dv(t)}{dt}=\frac{u(t)}{mv(t)}-h(s)-\frac{1}{2m}C_d\rho Av(t)^2
+\]
+
+其中
+
+\[
+h(s)=\frac{m_b}{m}g\left(\sin(\theta)+C_R\cos(\theta)\right)
+\]
+
+并且 $a$ 是骑手与自行车的共同加速度，$G$ 是它们的有效重力，$F_P$ 是蹬踏力，$F_W$ 是迎面风的阻力（风向将在 4.1 节中考虑），$f_1$ 与 $f_2$ 是自行车所受的摩擦力，$F_{N1}$ 与 $F_{N2}$ 是支持力，$m_b$ 是自行车与骑手的总质量，$g$ 是重力加速度，$C_d$ 是空气阻力系数，$A$ 是迎风面积，$\rho$ 是空气密度（假定为常数且不受海拔影响），$\theta$ 是道路坡度（上坡为正、下坡为负），$C_R$ 是道路的滚动阻力系数，而 $m$ 是自行车的有效质量，它由 $m_b$ 加上车轮转动惯量的影响计算得到：
+
+\[
+m=m_b+\frac{2I_w}{R_w^{2}}
+\]
+
+其中 $I_w$ 是车轮的转动惯量，$R_w$ 是自行车车轮的半径。
+
+图 8 给出了骑手与自行车所受空气动力学作用力的示意：重力 $G$、迎面风阻力 $F_W$、前后轮摩擦力 $f_1$ 与 $f_2$、支持力 $F_{N1}$ 与 $F_{N2}$、加速度 $a$ 以及由蹬踏产生的力矩 $M_1$、$M_2$ 共同构成系统的受力图景，式（12）与式（13）正是该受力图景的数学表达。
+
+若自行车传动系统的效率为 100\%，我们将推进功率 $u(t)$ 等同于骑手作用在踏板上的功率。在本表述中不考虑变速档位的选择，因为我们以骑手的蹬踏功率而非蹬踏力作为输入；否则优化问题会变得更加复杂。
+
+注意，前面给出的式（6）就是关于骑手剩余无氧能量时间导数的第三个状态方程：
+
+\[
+f_3=\frac{dw}{dt}=\left\{\begin{array}{ll}CP-u, & u\geq CP\\[0.3em] CP-(au+b), & u<CP\end{array}\right.
+\]
+
+现在我们可以为计时赛中的配速策略设计一个最短时间最优控制问题。目标函数为被最小化的时间：
+
+\[
+\min_{u(t)}\ J=\int_{t_0}^{t_f} dt
+\]
+
+约束条件为：
+
+\begin{itemize}
+\item 状态空间模型：$\dot{x}=f(x(t),u(t))$
+\item 速度限制：$0\leq v(t)\leq v_{max}$
+\item 剩余能量限制：$0\leq w(t)\leq W'$
+\item 骑手功率限制：$0\leq u(t)\leq P_{max}(w)$
+\end{itemize}
+
+其中 $P_{max}$ 由式（8）定义。在本表述中终点位置是给定且固定的，而另外两个状态 $v$ 与 $w$ 是自由的。在本研究的仿真中，假定最高速度 $v_{max}$ 在整个骑行过程中保持不变，包括急转弯的情形。
+
+\subsubsection{最优解的必要条件}
+
+在这一部分，我们使用变分方法研究上述最优控制问题。根据庞特里亚金最小值原理（PMP），输入 $u$ 最优的必要条件是：它使如下哈密顿函数取最小，
+
+\[
+H\left(x(t),u(t),\lambda(t)\right)=L\left(x(t),u(t)\right)+\lambda^{T}(t)\left\{f\left(x(t),u(t)\right)\right\}
+\]
+
+其中
+
+\[
+\lambda=\left[\lambda_1\quad\lambda_2\quad\lambda_3\right]^{T}
+\]
+
+$\lambda$ 是协态变量向量，$L$ 是式（16）中代价函数 $J$ 的被积函数，$f$ 是状态方程右端向量，其分量由式（11）、式（12）与式（15）给出。
+
+当对控制变量与状态变量存在此类不等式限制时，哈密顿函数必须按如下方式补充：
+
+\[
+H=L+\lambda^{T}f+\mu C
+\]
+
+其中
+
+\[
+\mu=\left\{\begin{array}{ll}\geq 0, & C=0\\[0.2em] =0, & C<0\end{array}\right.
+\]
+
+此外，式（17）中给出的 $v$ 与 $w$ 的上下限也应当被纳入考虑，即
+
+\[
+S(v,w)=\left[\begin{array}{c}v(t)-v_{max}\\ -v(t)\\ w(t)-W'\\ -w(t)\end{array}\right]\leq 0
+\]
+
+在这种情况下，$S(v,w)$ 关于 $v$ 与 $w$ 的一阶导数中都含有 $u$。于是，我们可以把 $S^{(1)}(v,w)$ 类似地视为 $C(v,w)$，并将哈密顿函数增广为：
+
+\[
+H=L+\lambda^{T}f+\mu C+\eta^{T}S^{(1)}
+\]
+
+其中 $\eta=\left[\eta_1\quad\eta_2\quad\eta_3\quad\eta_4\right]^{T}$ 必须满足如下条件：
+
+\[
+\eta_i=\left\{\begin{array}{ll}\geq 0, & S_i^{(1)}=0\\[0.2em] =0, & S_i^{(1)}<0\end{array}\right.\qquad i=1,2,3,4
+\]
+
+需要强调的是，当约束被满足时，哈密顿函数中的 $C$ 与 $\eta^{T}S^{(1)}$ 项始终为零。协态的动力学如下所示：
+
+\[
+\dot{\lambda}=-\frac{\partial H}{\partial x}=-L_x-\lambda^{T}f_x-\mu C_x-\eta^{T}S_x^{(1)}
+\]
+
+其展开形式为：
+
+\[
+\begin{array}{l}
+\dot{\lambda}_1=\lambda_2\frac{g m_b}{m}\cdot\frac{d\theta(s)}{ds}\left(\cos(\theta(s))-C_R\sin(\theta(s))\right)\\[0.6em]
+\dot{\lambda}_2=-\lambda_1-\lambda_2\frac{1}{m_t}\left(\frac{u}{v^{2}}-C_d\rho Av\right)\\[0.6em]
+\dot{\lambda}_3=0
+\end{array}
+\]
+
+$u$ 的最大值使该函数取最小。我们可以考虑四种情形。
+
+情形 I：$\frac{\lambda_2}{mv}-\lambda_3<0$ 且 $\frac{\lambda_2}{mv}-a\lambda_3<0$。
+
+此时，无论处于疲劳模式还是恢复模式，斜率均为负，这表明在每一种情形下 $u$ 取最大值都使哈密顿函数最小。疲劳模式下的最大输入值为 $u_{max}$，而恢复模式下的最大输入值为 $CP$。哈密顿函数最小的那个控制是最优的，
+
+\[
+H^{*}=\min\left\{H_{fatigue}\left(u_{max}\right),\ H_{recovery}\left(CP\right)\right\}
+\]
+
+其中 $H$ 的下标用于区分疲劳模式与恢复模式，因为两种模式下的方程略有不同。仅通过代入上述 $u$ 值，我们无法判断哪一个哈密顿函数更小。理想输入可以写为：
+
+\[
+u^{*}=\left\{\begin{array}{ll}u_{max}, & H_{fatigue}\left(u_{max}\right)<H_{recovery}\left(CP\right)\\[0.2em] CP, & H_{fatigue}\left(u_{max}\right)>H_{recovery}\left(CP\right)\end{array}\right.
+\]
+
+注意，当 $H_{fatigue}(u_{max})=H_{recovery}(CP)$ 时，$u=CP$ 与 $u=u_{max}$ 都是最优的。
+
+情形 II：$\frac{\lambda_2}{mv}-\lambda_3>0$ 且 $\frac{\lambda_2}{mv}-a\lambda_3>0$；情形 III：$\frac{\lambda_2}{mv}-\lambda_3>0$ 且 $\frac{\lambda_2}{mv}-a\lambda_3<0$；情形 IV：$\frac{\lambda_2}{mv}-\lambda_3<0$ 且 $\frac{\lambda_2}{mv}-a\lambda_3>0$。这些情形的解都基于与上述相同的方法得到。
+
+于是，在考虑了上述所有情形之后，最优功率轨迹只能取如下向量中的值：
+
+\[
+u^{*}=\left[\begin{array}{c}u_{max}\\ u_{\dot{v}=0}\\ CP\\ 0\end{array}\right]
+\]
+
+该方程给出了 $u$ 最优的必要条件，因为它基于 PMP 分析得到。
+
+\subsubsection{问题的数值解}
+
+在采样区间之间对输入采用零阶保持，可得到如下离散化的状态空间方程：
+
+\[
+t_{i+1}=t_i+\frac{\Delta s}{v_i}
+\]
+
+\[
+v_{i+1}=v_i+\frac{\Delta s}{v_i}\left(\frac{u_i}{m_t v_i}-g\left(\sin(\theta_i)+\mu\cos(\theta_i)\right)-\frac{0.5C_d\rho A}{m_t}v_i^{2}\right)
+\]
+
+\[
+\left\{\begin{array}{ll}w_{i+1}=w_i+\frac{\Delta s}{v_i}\left(CP-u_i\right), & u_i\geq CP\\[0.6em] w_{i+1}=w_i+\frac{\Delta s}{v_i}\left(CP-au_i-b\right), & u_i<CP\end{array}\right.
+\]
+
+式（16）中的代价函数以位置为自变量改写并离散化如下：
+
+\[
+J_N=\sum_{i=0}^{i=N}\frac{\Delta s_i}{v_i}
+\]
+
+根据贝尔曼最优性原理 [16]，当一个系统处在从初始状态到最终状态的最优路径上时，它应当在整段行程中始终遵循最优策略，而与任何先前的选择或条件无关。为了在动态规划中求出理想的状态轨迹，可以从最终状态出发反向计算，推算出从任意状态到最后一个阶段的最优后续代价。$J^{*}_{i+1,N}$ 存储了从 $s_{i+1}$ 处所有可行 $(v,w)$ 节点到 $s_N$ 处终止状态的最优代价与控制输入。其中，
+
+\[
+J^{*}_{i,N}=\min_{u_i}\left\{J_{i,i+1}+J^{*}_{i+1,N}(x)\right\}
+\]
+
+其中
+
+\[
+J^{*}_{i+1,N}=\min_{u_i,u_{i+1},\cdots,u_{N-1}}\left[J_{i+1,N}\right]
+\]
+
+贝尔曼方程的动态规划求解过程如下：
+
+\begin{enumerate}
+\item 任意初始化数组 $v$（例如对所有 $s\in S^{+}$ 令 $v(s)=0$）；
+\item 重复执行下述循环；
+\item 对每一个 $s\in S^{+}$：依贝尔曼最优性原理更新该状态的值函数，即在可行控制集合上取 $\min_{u}\left\{J_{i,i+1}+J^{*}_{i+1,N}(x)\right\}$ 并记入 $v(s)$；
+\item 直至相邻两次迭代的值函数之差小于预设的阈值（一个很小的正数）；
+\item 输出一个确定性策略 $\pi^{*}(s)$，使得由该策略诱导的代价达到最优。
+\end{enumerate}
+
+\subsection{模型在计时赛赛道上的应用}
+
+\subsubsection{常数的取值}
+
+$\bullet$ 阻力
+
+常识告诉我们，如果在大风中直立骑行，我们会面临很大的阻力。职业骑手通常采用俯身姿态以降低风阻，其骑行姿势为：上体放低，头部略向前倾；双臂自然弯曲以利于腰椎前突屈曲，降低身体重心并避免因车辆颠簸而将冲击传递到全身；双手轻而稳地握住车把，臀部稳稳地坐在车座上。骑手不同姿势下的迎风面积（$A$）与阻力系数（$C_d$）如图 9 所示。
+
+于是取 $C_d=0.88$，$A=3.9$ ft$^{2}$。此外一般取 $\rho=1.29$ kg/m$^{3}$，$C_R=0.015$。它们将用于式（12）与式（13）。
+
+作为参照，图 9 给出了四类骑行姿态的迎风面积与阻力系数：直立通勤姿态（Upright commuter）$A=5.5$ ft$^{2}$、阻力系数 1.10；竞速姿态（Racing）$A=3.9$ ft$^{2}$、阻力系数 0.88；跟骑姿态（Drafting）$A=3.9$ ft$^{2}$、阻力系数 0.50；流线型姿态（Streamlined）$A=5.0$ ft$^{2}$、阻力系数 0.12。
+
+$\bullet$ 有效质量
+
+在式（14）中，出于标准化与便于计算的考虑，我们假定本文涉及的自行车完全相同：两个同尺寸的车轮半径均为 0.35 m，质量均为 1.2 kg，因此每个车轮的 $I_w$ 为 0.147 kg$\cdot$m$^{2}$。于是自行车与骑手的有效质量（$m$）比它们的实际重量（$m_b$）约大 2.3 kg。
+
+\subsubsection{仿真结果与分析}
+
+利用处理后的 STRAVA-Tokyo2020 与 STRAVA-BelgiumUCI 数据以及图 7 中的功率曲线，我们得到了骑手在东京奥运会（男子与女子为不同赛道）以及 UCI 世界锦标赛个人计时赛赛道上的最优功率分布，分别如图 10 与图 11 所示。
+
+图 10 分为两个子图：图 10a 为男子组，图 10b 为女子组；图 11 为 UCI 世界锦标赛的对应结果。在每一个子图中，上半部分是功率 $P$ 关于距离 $s$ 的曲线，下半部分是海拔关于 $s$ 的曲线。
+
+图 12 展示了我们自己设计的一条赛道，它位于意大利圣费利切·奇尔切奥（San Felice Circeo），沿郊外与海滩展开。路线从南侧沿海（图像底部）出发，环绕城市，再回到出发地点，该处同时也是最终终点。整段赛道先下降高度，随后维持一段平路，然后经一个陡坡下降到终点线，全长约 16 公里（图 13）。按照与上文相同的方式，我们得到骑手在该赛道上的最优功率分布，如图 13 所示。
+
+此外，四类骑手在三个赛道上的最小时间代价列示如下：
+
+\begin{itemize}
+\item 男子计时赛专家：东京奥运会 3641.49 秒，UCI 世界锦标赛 3258.93 秒，自设计赛道 1280.11 秒；
+\item 女子计时赛专家：东京奥运会 1984.51 秒，UCI 世界锦标赛 3373.95 秒，自设计赛道 1321.25 秒；
+\item 男子冲刺手：东京奥运会 4117.69 秒，UCI 世界锦标赛 3407.07 秒，自设计赛道 1322.85 秒；
+\item 女子冲刺手：东京奥运会 3027.01 秒，UCI 世界锦标赛 3528.34 秒，自设计赛道 1497.89 秒。
+\end{itemize}
+
+综上所述，我们可以得出以下结论：
+
+\begin{itemize}
+\item 无论何种类型的运动员，模型都主张在比赛开始时尽可能多地使用功率；但在一定距离之后，则力求把功率维持在临界功率上。这意味着在比赛开始时投入可观的全力发挥，对后半程的影响很小。
+\item 可以看出，对于所有功率画像，模型都建议骑手在上坡时以特定水平的功率骑行，而在下坡时以尽可能小的功率骑行同时保持配速。因此在实际比赛中，骑手应当合理利用下坡路段来休息，并为即将到来的上坡骑行做一些体能储备。
+\end{itemize}
+\section{任务 3 与任务 4：对天气与功率分布偏差的敏感性}
+
+\subsection{天气的影响}
+
+在自行车运动中，天气常常是不可预测的。阵风、高温以及其他天气变化都会对参赛者产生影响。因此，探究骑手对天气的敏感性对于指导比赛具有重要意义。
+
+\subsubsection{风的影响}
+
+下图 14 展示了风对骑手的作用，其中 $\phi$ 是风向与正北方向的夹角，$\gamma$ 是骑行方向与正北方向的夹角。正如 2.1 节中的假设 2 所述，我们应当忽略横向作用与横向偏移。因此，我们把作用在骑手身上的阻力等同于其在骑行方向上的阻力：
+
+\[
+F_W=\frac{1}{2}mC_d\rho A\left[v-V\cos(\gamma-\phi)\right]^{2}
+\]
+
+其中 $F_W$ 为阻力。
+
+$\bullet$ 结果
+
+基于上述式（36），我们对 3.4.2 节中运动员的最小时间与最优能量分布，针对不同计时赛赛道（TTC）上不同的风向与风速重新进行了优化，所得结果如图 15 所示。在该图中，速度轴表示风沿其自身方向的速度大小，角度轴表示风向与正北方向之间夹角的大小，影响轴表示对所有女子骑手而言在相应赛道上受到影响（包括有利与不利影响）的百分比。
+
+在图 15 中我们可以看到，东京奥运会赛道（图 15a）与自设计赛道（图 15b）的结果是不规则的，而它们的路线接近矩形。然而，UCI 世界锦标赛赛道（图 15c）的结果是规则的，这表明当风向为从北到南或从南到北（风向角接近 0）时，影响最大；而且风速越大，影响越大，对风也越敏感。综上所述，对风效应敏感性的模型取决于相应的赛道。赛道越接近条形或带状，风向与风速对骑手而言就越规律，否则就越不确定。
+
+\subsubsection{温度的影响}
+
+受温度 $t$（$^{\circ}$C）变化影响的首先是气压与空气密度。由式（36）可知，它们对骑手的功率曲线有很大影响。根据气压 $p$（Pa）与海拔 $h$（m）之间的关系，
+
+\[
+p=-0.011h+100.8
+\]
+
+以及空气密度公式，
+
+\[
+\rho=\frac{1.293p}{101.325}\times\frac{273.15}{273.15+t}
+\]
+
+其中
+
+\[
+t=t_0-\frac{0.6h}{100}
+\]
+
+这里 $t_0$ 是 $h=0$ 处的温度。因此，
+
+\[
+\rho=f\left(t_0,h\right)
+\]
+
+在此基础上，我们使用东京奥运会女子计时赛专家的数据。随后我们假定与预期的比赛温度相匹配的温度为 20 $^{\circ}$C，并在正、负两个方向上以 0.5 度为步长改变温度，最终得到图 16 所示的温度敏感性结果，其中正向影响表示骑手花费的时间更少，反之则表示花费的时间更多。
+
+于是，在非极端环境的正常温度下，一般而言温度越低对骑手越有利。因此，对骑手来说，保持装备轻便、注意补水以及穿着有利于散热的运动服装，都有助于他们取得更好的成绩。
+
+\subsection{功率分布偏差的影响}
+
+\subsubsection{偏差概率的敏感性}
+
+在本节中，理想的能量分布（3.4.2 节）被离散为若干采样点。我们假设每个采样点都有一个概率 $p$ 发生功率偏移。利用东京女子计时赛赛道的数据，我们在不同的 $p$ 下测量了多个最小时间。
+
+图 17 展示了时间代价与代价百分比相对于不同时间点的散点图，以及平均时间点曲线。因此我们可以得出结论：偏差概率越大，时间代价及其增长趋势也就越大。换言之，运动员状态的不稳定会使他们朝不利的方向发展。因此，在比赛中保持自己的配速对于骑手取得良好成绩至关重要。
+
+\subsubsection{位置偏差的敏感性}
+
+采用与 4.2 节相同的方式，在理想能量分布下，东京奥运会女子计时赛赛道被划分为多个路段（每 2 km 一段）。假设能量偏移的概率为 $p$（$p=0.1$），并进行多次测量以得到每一路段下的多个最小时间。各路段能量偏移对最小时间影响的散点图与雷达图绘制如下。
+
+图 18 与图 19 展示了在同一偏差概率下，骑手如何受到赛道不同区域上能量分布偏差的影响。骑手在 10--12 km、12--14 km 与 16--18 km 的上坡路段上受到的影响明显更大；而在 4--6 km、8--10 km 与 14--16 km 的下坡路段上，能量分布变化对骑手的影响较小。下表给出了到达这些关键点的理想时间以及由影响所造成的偏差：
+
+\begin{itemize}
+\item 6 km：468.05$\pm$8.66 秒；14 km：1196.94$\pm$33.84 秒；
+\item 8 km：608.76$\pm$14.95 秒；16 km：1334.84$\pm$36.20 秒；
+\item 10 km：795.81$\pm$18.10 秒；18 km：1636.44$\pm$42.49 秒；
+\item 12 km：1023.94$\pm$25.97 秒。
+\end{itemize}
+
+基于这些结果，我们可以得出结论：骑手在上坡骑行时如果没有恰当的功率分布，将受到更大的影响；而在下坡骑行时突破其能量分布限制则不会产生显著影响。因此，为取得更好的成绩，骑手应当力求在上坡时保持蹬踏节奏，而在下坡时休息并尽量维持高速。
+
+\section{任务 5：团队计时赛的最优功率使用}
+
+\subsection{团队骑行的收益}
+
+$\bullet$ 降低阻力
+
+如下图 20 所示，在自行车团队比赛中，处在第一位的人迎风面积最大，因而承受的风阻也最大。而且在这样的情况下，该骑手还必须维持一定的速度为团队领骑。
+
+图 20 给出了自行车队受空气阻力影响的情形概述。团队中每一位骑手所受到的空气阻力各不相同，
+
+\[
+D=\frac{1}{2}\rho C_{dr}C_dAv^{2}
+\]
+
+其中 $C_{dr}$ 为减阻系数，$C_d$ 为阻力系数。
+
+$\bullet$ 最大化团队功率
+
+如下图 21 所示，目前最常用的策略是采用固定的轮换次序：每位骑手在第一位领骑大约十至三十秒，然后换到末位。第一位上的阻力最大，因此所需的功率输出也最高。骑手会根据自己的能力以及当下的状态来调整在该位置上停留的时间：状态较弱或疲劳时停留更短，状态更强或精力更充沛时停留更长。而那些明显弱于其他人的骑手，往往会在比赛过程中被队伍甩掉。
+
+图 21 展示了四人团队计时赛中常规的轮换动态，即在固定次序下骑手依次从领骑位置退到队尾、如此循环的过程，这一动态正是我们在建模中要优化的对象。
+
+\subsection{团队计时赛优化模型}
+
+在本节中，我们讨论团队计时赛优化模型，其中团队由六名骑手组成，团队成绩在第四名骑手越过终点线时确定。
+
+我们假设这六名骑手分别为 A、B、C、D、E、F。于是我们建立如下优化模型：
+
+\[
+\min_{u(t)}\ J=\int_{t_0}^{t_f} dt
+\]
+
+其中
+
+\[
+J=f\left(\Delta_1,\Delta_2,\Delta_3,\Delta_4,\Delta_5,\Delta_6,\Delta_7,\Delta_8\right)
+\]
+
+而
+
+\begin{itemize}
+\item $\Delta_1=L\left(P_0,P_1,P_2,\cdots\right)$
+\item $\Delta_2=t_{front-A}$
+\item $\Delta_3=t_{front-B}$
+\item $\cdots$
+\item $\Delta_7=t_{front-F}$
+\end{itemize}
+
+其中 $L(s)$ 是关于时间次序的函数，$t_{front-A}$ 表示 A 处在第一位的时间。
+
+\section{优势与不足的评价}
+
+\subsection{优势}
+
+\begin{itemize}
+\item 本文的模型结合了生理学、动力学与空气动力学，对骑手的个人比赛与团队比赛进行分析。它还大量使用精确数据进行仿真与分析。最终结果更符合常识，并且具有较高的可信度。
+\item 敏感性分析评估了多种可能性。对天气的敏感性被区分为对风的敏感性与对温度的敏感性。对功率分布偏差的敏感性则同时考虑了功率画像的偏差以及各路段上功率画像的偏差。
+\end{itemize}
+
+\subsection{不足}
+
+\begin{itemize}
+\item 在估计风的影响时，没有充分考虑空气涡流与大气压力的作用。由于骑手的速度常常超过 10 m/s，且其姿态并非完全流线型，因此在受到风与空气作用后，其身后会形成空气涡流，而阻力也会因大气压力的作用而增大。
+\end{itemize}
+
+\section*{参考文献}
+
+\begin{enumerate}
+\item Clarke, David C., and Philip F. Skiba. "Rationale and resources for teaching the mathematical modeling of athletic training and performance." Advances in physiology education (2013).
+\item Gede, Gilbert. Optimal pacing strategies for cyclist time trials. University of California, Davis, 2014.
+\item Jones, Andrew M., et al. "Critical power: implications for determination of VO2max and exercise tolerance." Med Sci Sports Exerc 42.10 (2010): 1876-90.
+\item Maturana, Felipe Mattioni, et al. "Critical power: how different protocols and models affect its determination." Journal of Science and Medicine in Sport 21.7 (2018): 742-747.
+\item Vanhatalo, Anni, Andrew M. Jones, and Mark Burnley. "Application of critical power in sport." International journal of sports physiology and performance 6.1 (2011): 128-136.
+\item J. Qiao. "Application of power-maintenance time curves and critical power in predicting cycling performance." Sports Research 42.03 (2021): 99-104. doi:
+\item Clarke, David C., and Philip F. Skiba. "Rationale and resources for teaching the mathematical modeling of athletic training and performance." Advances in physiology education (2013).
+\item Morton, R. Hugh. "A new modelling approach demonstrating the inability to make up for lost time in endurance running events." IMA Journal of Management Mathematics 20.2 (2009): 109-120.
+\item Keller, Joseph B. "Optimal velocity in a race." The American Mathematical Monthly 81.5 (1974): 474-480.
+\item Hugh Morton, R. "A 3-parameter critical power model." Ergonomics 39.4 (1996): 611-619.
+\item Coggan, A. "Creating Your Power Profile" Training Peaks. n.p. 2019. Sat. 19 Feb 2022. https://www.trainingpeaks.com/blog/power-profiling/.
+\item Monod, H., and J. Scherrer. "The work capacity of a synergic muscular group." Ergonomics 8.3 (1965): 329-338.
+\item Ashtiani, Faraz, et al. "Optimal Pacing of a Cyclist in a Time Trial Based on Individualized Models of Fatigue and Recovery." arXiv preprint arXiv:2007.11393 (2020).
+\item Ashtiani, Faraz, et al. "Experimental modeling of cyclists fatigue and recovery dynamics enabling optimal pacing in a time trial." 2019 American Control Conference (ACC). IEEE, 2019.
+\item Overtoom, Mats. "Optimal Team Time Trial Strategy in Road Cycling: Optimisation of Changing Strategy using a Mathematical Performance model." (2013).
+\item Behrman, Richard E., and Stuart E. Dreyfus. Applied dynamic programming. Princeton university press, 2015.
+\end{enumerate}
+
+\section{备忘录：比赛指导}
+
+\subsection*{如何使用功率曲线？}
+
+功率曲线的价值在于它向你展示了你所做过的功。由于它是功率关于时间的图，它能为你的能量系统提供一个快照，并给出你的优势与劣势的视图。
+
+每一位骑手都有优势与劣势。典型的功率曲线很容易区分。例如，在下图中，冲刺手在短时间内维持更高的功率，而计时赛专家则在更长时间内维持更高的功率。恰当使用功率曲线，可以为骑手制定更专业的指导。
+
+\subsection*{如何确定骑手的配速？}
+
+配速的三条原则：
+
+\begin{itemize}
+\item 无论发生什么，保持自己首要的配速节奏。
+
+在比赛中保持自己的配速对骑手取得良好成绩至关重要。此外，从心理学角度看，稳定的配速还能提升自信心。
+
+\item 在比赛开始时投入可观的全力发挥。
+
+在比赛开始时，足够的速度使骑手不容易落后。而且这对其余旅程不会有很大影响。
+
+\item 合理利用下坡骑行来休息，并为即将到来的上坡骑行做一些体能储备。
+
+上坡骑行部分会消耗骑手更多的时间与体能，而且如果骑手的功率画像出现偏差，其影响也更大。而下坡骑行部分则让骑手有更多时间以轻松的骑行方式休息。
+\end{itemize}
+
+\subsection*{如何在计时赛中保持体力？}
+
+\begin{itemize}
+\item 在下坡途中保持速度并注意休息。
+\item 尽可能跟在其他选手身后。
+\end{itemize}
+
+\subsection*{如何为自行车比赛做准备？}
+
+\begin{itemize}
+\item 检查赛道。
+
+一方面，熟悉赛道有助于骑手确定功率分布以避免偏差；另一方面，它也有助于骑手确定哪个方向的风影响最大。
+
+\item 赛前保持休息，注意饮食，使自己处于稳定状态。
+
+\item 提前查看天气。
+
+天气预报会告知比赛日的风速、风向与温度变化。在此基础上，你需要做的就是做好准备。例如，若遇到高温天气，就要准备好降温措施。
+
+\item 选择合适的装备。
+
+沉重的自行车将成为骑手最大的负担。合适的装备有助于骑手应对未预料到的情况。
+\end{itemize}
+
+\end{document}

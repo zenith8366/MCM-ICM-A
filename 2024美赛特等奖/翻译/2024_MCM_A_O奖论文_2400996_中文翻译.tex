@@ -1,0 +1,575 @@
+\documentclass[11pt,a4paper]{ctexart}
+\usepackage[margin=2.4cm]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage{fancyhdr}
+\usepackage{enumitem}
+\linespread{1.18}
+\setlength{\headheight}{15pt}
+\setlength{\parskip}{0pt}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small Team 2400996}
+\fancyhead[R]{\small \thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+\fancypagestyle{plain}{\fancyhf{}\renewcommand{\headrulewidth}{0pt}}
+
+\ctexset{
+  section/format = \Large\bfseries\raggedright,
+  subsection/format = \large\bfseries\raggedright,
+  subsubsection/format = \normalsize\bfseries\raggedright
+}
+\setcounter{secnumdepth}{3}
+
+\begin{document}
+
+%====================== 摘要页 ======================
+\thispagestyle{empty}
+\begin{center}
+{\small 2024 MCM/ICM\quad 选题 A\quad 队伍控制号 2400996\quad 摘要页（Summary Sheet）}\\[18pt]
+{\LARGE\bfseries 七鳃鳗的适应性性别：恩赐还是诅咒}\\[8pt]
+{\large （Adaptive Sex of Lamprey: Gift or Curse?）}\\[10pt]
+\end{center}
+
+\begin{center}
+{\large\bfseries 摘\quad 要}
+\end{center}
+
+\vspace{6pt}
+七鳃鳗既具有极高的食用价值与研究价值，又因其在某些地区属于入侵物种而长期引发担忧。正是由于这种复杂性，它长期以来一直处于人们关注的焦点之中。这究竟是一份恩赐，还是一种诅咒？为探究这一现象，我们对七鳃鳗种群的迭代过程进行了建模，并分析了适应性性别对七鳃鳗种群以及更大尺度生态系统的影响。
+
+我们建立了若干模型：模型一为七鳃鳗种群迭代模型；模型二为 BDS 评估模型（Biomass--Diversity--Stability，生物量—多样性—稳定性评估模型），等等。
+
+在建立全部模型之前，基于七鳃鳗变态发育的特殊性，我们将七鳃鳗种群划分为幼体库与成体库两部分，从而以更高的仿真度模拟生态系统。此外，我们收集了数据，并通过计算设定了合理的参数。
+
+对于模型一，我们建立了三个子模型以构成七鳃鳗种群迭代模型。子模型 i 以 Lotka--Volterra 基本模型为基础，并针对幼体库与成体库的特性加以修正，用以描述生态系统中七鳃鳗与其他物种之间的竞争关系。子模型 ii 以生物能量学理论为基础，建立资源可获得性与性比之间的关系。子模型 iii 以繁殖代价为基础，建立性比与出生率之间的关系，并充当子模型 i 与子模型 ii 之间的桥梁。
+
+\begin{itemize}
+\item 对于任务 2，我们分别对具有适应性性别的七鳃鳗种群与不具有适应性性别的七鳃鳗种群进行了迭代仿真，并在两个时间点分别将环境参数向下调和向上调，以进行对比分析；结果表明，适应性性别增强了种群的恢复力稳定性，同时降低了种群的抵抗力稳定性，详见 4.1.3 节。
+\item 对于任务 4，我们加入了一个设置合理的关联矩阵，该矩阵覆盖生态系统的基本组成部分。由此我们选取寄生者与被寄生的鱼类进行对比分析，结果与结论在 4.2.3 节给出。
+\end{itemize}
+
+对于模型二，我们建立了一个覆盖生物量、多样性与稳定性的完整生态系统评估模型：其中引入 Shannon--Wiener 多样性指数以度量生态系统多样性，并引入一种新的基于方差的稳定性度量 $S$。将模型一的结果代入模型二，我们便能够在上述三个维度上对适应性性别给生态系统带来的影响进行对比分析。
+
+\begin{itemize}
+\item 对于任务 3，结果表明适应性性别对生态系统稳定性具有正向作用，优化率 $R$ 达到 73.3\%。
+\item 对于任务 1，结果表明适应性性别促进了生物量与多样性的提升，但相较于稳定性，其优化率 $R$ 分别仅达到 5.87\% 与 5.90\%。
+\end{itemize}
+
+最后，我们对由成体到幼体的转化比 $k$ 以及内禀增长率 $b_0$ 进行了敏感性分析，结果表明我们的模型稳定性良好。最后，我们讨论了模型的优点与不足，并给出了结论。
+
+\vspace{6pt}
+\noindent\textbf{关键词：}七鳃鳗；性比；Lotka--Volterra 模型；关联矩阵；稳定性
+
+\newpage
+\pagestyle{fancy}
+
+%%====================== 正文 ======================
+\section{引言}
+
+\subsection{问题背景}
+
+在世界上，七鳃鳗可以被视为一种备受关注的“明星生物”。一方面，七鳃鳗长期以来是欧洲与东南亚人们喜爱的食物，甚至赢得了中世纪欧洲贵族的青睐；另一方面，作为北美五大湖地区的主要入侵物种，它使当地管理部门疲于遏制其种群发展。无论你是它的爱好者还是反对者，都无法否认：由于其独特的生态学特征与适应性性别，七鳃鳗具有很高的研究价值。
+
+上图展示了七鳃鳗的生态外形。成体七鳃鳗缺少成对鳍，头顶具有单个鼻孔，头部两侧各有七个鳃孔。在幼体期（称为沙隐幼体，ammocoetes），它们钻入粉砂、泥与碎屑之中，以滤食者的方式生存，收集碎屑、藻类与微生物。水流经沙隐幼体摄食器官的速率是所有已记录的悬食性动物中最低的，因此它们需要营养丰富的水体才能满足自身的营养需求 [1]。作为成体，它们通过寄生于其他鱼类获取营养，从而达到性成熟。产卵结束之后，所有成体都会死亡。除了因变态发育而形成的双重生活史之外，其依据环境分化性别的能力同样令人惊叹，这一现象也被称为适应性性比变异。
+
+\subsection{问题重述}
+
+在上述背景下，为探究“一个物种依据资源可获得性改变其性比的能力”具有何种价值，本组将研究生态系统与种群之间的相互作用，并完成以下任务：
+
+\begin{enumerate}
+\item 研究当七鳃鳗种群能够改变其性比时，对更大尺度生态系统所产生的影响。
+\item 研究该能力对七鳃鳗种群自身的利与弊。
+\item 研究在给定七鳃鳗性比变化的情形下，对生态系统稳定性的影响。
+\item 研究一个七鳃鳗种群性比可变的生态系统，是否会给生态系统中的其他成员（例如寄生者）带来优势。
+\end{enumerate}
+
+\subsection{文献综述}
+
+本问题聚焦于七鳃鳗适应性性比的意涵。近年来，围绕七鳃鳗种群模型的研究主要集中于两个方面：七鳃鳗自身的生物学特性，以及合适的基础模型。
+
+在生物学上，七鳃鳗与最常被研究的单细胞生物和哺乳动物在三项生物学特性上存在差异：变态发育、产后死亡与适应性性别。首先，七鳃鳗的发育涉及一个变态过程：七鳃鳗幼体是滤食者，而成体则是寄生者 [2]。其次，成体在繁殖之后死亡，这意味着存在一个死亡率峰值的周期 [3]。最后，成体的性比受幼体生长率的影响，这正是我们研究的重点 [4]。
+
+至于基础模型，最常用的是 logistic 模型、类 Lotka--Volterra 模型以及食物网模型。值得注意的是，无论是带时滞效应与功能反应函数的 Lotka--Volterra 模型 [5]，还是基于能量流的食物网模型 [6]，都无法全面考虑七鳃鳗的上述三项生物学特性，这意味着我们需要对基础模型加以改进。
+
+三种基础模型的优缺点如下所示。
+
+\subsection{我们的工作}
+
+我们的求解思路图如下所示。
+
+\section{模型准备}
+
+\subsection{假设与合理性说明}
+
+\begin{itemize}
+\item \textbf{假设 1}：成鱼洄游、产卵、死亡以及孵化成幼体所需的时间可以忽略不计。
+
+\textbf{合理性说明}：我们的模型以“年”为计算单位，因此不考虑更精细的时间尺度。我们主要考虑的唯一时间是幼体生长为成体所需的时间，该时间在产卵之后直接按“年”计量。
+\item \textbf{假设 2}：海七鳃鳗在产卵之后立即死亡。
+
+\textbf{合理性说明}：根据我们所查阅的文献 [7]，七鳃鳗在产卵后会在很短时间内死亡，因此我们忽略其产卵结束之后的时间。
+\item \textbf{假设 3}：水体各区域全年温度适宜且保持一致。
+
+\textbf{合理性说明}：温度对幼体存活具有相当大的影响，只有在温度适宜的前提下讨论七鳃鳗的繁殖才有意义。假设各区域温度一致是为了简化模型。
+\item \textbf{假设 4}：水体中的悬浮有机固体浓度与溶解氧浓度不受七鳃鳗影响，且在各区域之间保持一致。
+
+\textbf{合理性说明}：七鳃鳗分布范围广，加之水体的流动性，意味着流域内的环境资源是可再生的。在忽略人为因素的情况下，我们可以假定二者在大时间尺度上是稳定的。
+\item \textbf{假设 5}：忽略重大自然灾害与人类活动的影响。
+
+\textbf{合理性说明}：由于重大自然灾害与人类干扰难以预测，我们的模型不予考虑。
+\end{itemize}
+
+\subsection{符号说明}
+
+本章介绍文中出现的符号及其说明。
+
+\begin{itemize}
+\item $l_1(t)$：幼体数量随时间变化的函数；
+\item $l_2(t)$：成体七鳃鳗数量随时间变化的函数；
+\item $b_i(t)$：物种 $i$ 的出生率；
+\item $d_i(t)$：物种 $i$ 的死亡率；
+\item $M_i(t)$：幼体个体 $i$ 的生物量随时间变化的函数；
+\item $\mu_i(t)$：幼体个体 $i$ 的生物量增长率随时间变化的函数；
+\item $r_1$：物种 $i$ 的出生率；
+\item $r_1^{0}$：物种 $i$ 的初始出生率（不受性比影响）；
+\item $x$：幼体达到成年所需的时间；
+\item $B$：生态系统总生物量；
+\item $D$：Shannon--Wiener 指数；
+\item $W_i$：物种 $i$ 个体的平均生物量；
+\item $C$：生态系统中物种之间的关联矩阵。
+\end{itemize}
+
+\subsection{数据收集与可视化}
+
+本文依赖以下数据来源。
+
+\begin{itemize}
+\item Royal Society：\texttt{https://royalsocietypublishing.org/doi/full/10.1098/rspb.2017.0262\#d1e751}
+\item EDG-ANSL：\texttt{https://catalog.data.gov/dataset/aquatic-nuisance-species-locator1}
+\item GLENDA：\texttt{https://catalog.data.gov/dataset/great-lakes-environmental-database-glenda}
+\item NARS-NLA2007：\texttt{https://www.epa.gov/national-aquatic-resource-surveys/data-national-aquatic-resource-surveys}
+\end{itemize}
+
+\begin{itemize}
+\item 我们从 Royal Society 获得了七鳃鳗样本性别的原始数据。
+\item 我们从 EDG 获得了五大湖地区七鳃鳗的分布数据。
+\item 我们从 GLENDA 获得了五大湖水体的悬浮有机固体浓度数据。
+\item 我们从 NARS-NLA2007 获得了五大湖水体的溶解氧浓度数据。
+\end{itemize}
+
+下图对五大湖七鳃鳗（2021 年）的分布数据进行了可视化。
+
+可以看出，七鳃鳗更为集中地分布于营养更为丰富的湖域；在这些区域，它们的密度大致相同。
+\section{模型建立}
+
+\subsection{模型一：七鳃鳗种群迭代模型}
+
+\subsubsection{七鳃鳗生命周期的研究}
+
+基于相关文献，我们可以了解到七鳃鳗的生命周期大致可以分为两个阶段。第一阶段是幼体阶段：成体七鳃鳗从海洋洄游至河流产卵，并孵化出沙隐幼体。在幼体阶段，这些沙隐幼体倾向于栖息于底质之中，仅将单一口部露出表层。这种潜居生活帮助它们躲避捕食者，并利用底质中的有机物。它们是滤食者，主要取食悬浮于水中的微生物、有机颗粒以及底质中的有机物。它们通过口附近的大部分小鳃裂滤食而获得营养。其幼体生长期的长度在不同七鳃鳗之间各不相同，幼体阶段的平均长度约为 4 至 6 年。幼体阶段结束之后，幼鱼将经历变态发育，长成与之前完全不同的新形态。在成体阶段，七鳃鳗作为寄生鱼类，主要取食其他鱼类的体液或血液，这与幼体阶段差异极大。由于生活环境、生物形态与生态位不同，我们可以将七鳃鳗种群划分为幼体与成体两部分，并针对这两部分分别建立种群模型 [8]。
+
+模型的思维导图如下所示。
+
+\subsubsection{幼体库与成体库}
+
+基于上文的描述，我们创新性地将七鳃鳗种群划分为幼体与成体两部分，并对每一部分分别计算其出生率与死亡率等指标。幼体数量可计算如下：
+
+\begin{equation}
+l_1(t)=\sum_{i}l_1^{\,i}(t)
+\end{equation}
+
+其中 $l_1^{\,i}(t)$ 为年龄为 $i$ 年的幼体数量随时间变化的函数。
+
+成鱼数量等于：
+
+\begin{equation}
+l_2(t)=l_2^{\mathrm{male}}(t)+l_2^{\mathrm{female}}(t)
+\end{equation}
+
+其中 $l_2^{\mathrm{male}}(t)$ 为雄性成鱼数量，$l_2^{\mathrm{female}}(t)$ 为雌性成鱼数量。
+
+有趣的是，当我们将七鳃鳗种群划分为这两部分之后，我们便无法再用简单的 Lotka--Volterra 模型来描述它，而必须对其进行简单的修正。
+
+具有多种群相互作用项的 Lotka--Volterra 模型公式如下：
+
+\begin{equation}
+\frac{\mathrm{d}l_i}{\mathrm{d}t}=r_i l_i\left(1+\sum_{j=1}^{n}a_{ij}\frac{l_j}{K_j}\right)
+\end{equation}
+
+其中 $r_i$ 指物种 $i$ 的内禀增长率，$a_{ij}$ 指物种 $i$ 与物种 $j$ 之间的内在关系（通常用关联矩阵描述），$K_i$ 指物种 $i$ 的环境容纳量。
+
+值得注意的是，在我们的模型中，幼体与成体是可以相互转换的：幼体经变态发育成为成体，而成体在交配产卵之后死亡，这一过程可以视为转化为幼体，因此幼体库与成体库之间是一种互换关系。因此，我们不能直接把这两个组分拆解为两个物种来计算，因为我们无法仅用幼体自身的数量来刻画幼体的出生率，也无法仅用成体的数量来刻画成体的出生率。于是，我们将 Lotka--Volterra 模型的方程拆分为两部分，前半部分表示物种的出生率，后半部分表示物种的死亡率。
+
+\begin{equation}
+\frac{\mathrm{d}l_i}{\mathrm{d}t}=b_i+d_i=r_i l_i+r_i l_i\sum_{j=1}^{n}a_{ij}\frac{l_j}{K_j}
+\end{equation}
+
+其中方程的前半部分表示物种的出生率，以内禀增长率来表述；后半部分表示物种的死亡率，以物种之间的相互关系来描述。
+
+在我们的模型中我们发现，幼体库与成体库之间的关系十分特殊：成体库的出生率应当来源于幼体库，而幼体库的出生率则来源于成体库；但二者的死亡率都源自自身。因此，我们需要修正公式，即：幼体库的出生率通过成体库的数量计算，而成体库的出生率需要通过成长为成体的幼体数量计算。为简化模型计算，我们以“年”为单位刻画种群，并将种群增长率视为种群规模的一阶差分，于是可分别得到幼体库与成体库的增长率如下：
+
+\begin{equation}
+\frac{\mathrm{d}l_1}{\mathrm{d}t}=l_1(t+1)-l_1(t)=k l_2(t)r_1+r_1^{0}l_1(t)\sum_{j=1}^{n}a_{1j}\frac{l_j}{K_j}-\sum_{i}s_i+\sigma_1(t)
+\end{equation}
+
+\begin{equation}
+\frac{\mathrm{d}l_2}{\mathrm{d}t}=l_2(t+1)-l_2(t)=\sum_{i}s_i+r_1^{0}l_2(t)\sum_{j=1}^{n}a_{2j}\frac{l_j}{K_j}-2r_1 l_2(t)+\sigma_2(t)
+\end{equation}
+
+其中 $\sum_{i}s_i$ 表示各年龄转化为成体的幼体数量，$s$ 应服从二项分布，稍后给出；$\sigma_1$ 与 $\sigma_2$ 表示随机扰动。
+
+\subsubsection{幼体生长率的测度}
+
+由文献 [2] 可知，七鳃鳗幼体是滤食者。基于基本的生物能量学生长模型，我们可以得到个体的生物量增长率：
+
+\begin{equation}
+\mu_i(t)=\frac{\mathrm{d}M_i(t)}{\mathrm{d}t}=aM_i^{\,b}(t)
+\end{equation}
+
+其中 $W$ 为个体生物量，$a$ 取决于食物浓度 ($C$)、同化效率 ($AE$) 与代谢代价 ($R_g/G$)；$b$ 与滤食者的滤食率有关，对于幼体七鳃鳗这一稳定的滤食种群，可将其视为常数 3/4 [9]。
+
+我们希望突出资源可获得性对幼体生长率的影响，因此接下来我们将通过建立 $a$ 与资源可获得性之间的关系，来对现实情形加以简化。
+
+如生物量生长模型所示，我们将水体等效为一个长方体。幼体通过位于河床表面的孔洞与外界交换能量。根据假设 4，该水体内所有幼体可获得的资源与幼体的密度（即种群规模）成反比。由此得到如下公式：
+
+\begin{equation}
+l_1 S\left|\mathrm{individualResource}\right|_{\mathrm{individual}}=S\left|\mathrm{areaResource}\right|_{\mathrm{area}}
+\end{equation}
+
+滤食者的主要食物来源是水中的悬浮有机固体，而溶解氧的量会影响同化效率。对二者的浓度加以刻画，可得如下方程
+
+\begin{equation}
+a=\gamma_1\frac{O_s}{l_1}\arctan\left(\gamma_2 D_o\right)
+\end{equation}
+
+其中 $\gamma_1$ 为滤食率因子，$\gamma_2$ 为同化效率因子；$O_s$ 为悬浮有机固体浓度，$D_o$ 为溶解氧浓度；$\arctan$ 函数是对有氧呼吸效率与可用氧之间关系的近似拟合。结合式 (7)，我们得到七鳃鳗幼体的生物量微分方程组：
+
+\[
+\left\{
+\begin{array}{l}
+\frac{\mathrm{d}M_i(t)}{\mathrm{d}t}=\gamma_1\frac{O_s}{l_1}\arctan\left(\gamma_2 D_o\right)M_i^{\frac{3}{4}}(t)\\[1.2em]
+M_i(0)=M_0
+\end{array}
+\right.
+\]
+
+其中 $M_0$ 为受精卵生物量。求解上述方程，可得幼体个体生物量 ($M$) 与生长时间 ($\tau$) 之间的关系：
+
+\begin{equation}
+M_i(t)=M_0+\int_{0}^{\tau}\mu_i(t)\,\mathrm{d}\tau
+\end{equation}
+
+对于变态发育生物而言，达到足够的生物量是发生质变的关键点。基于概率论，近似认为一个幼体开始变态的概率 $P|_{\mathrm{grown-up}}$ 服从正态分布：
+
+\begin{equation}
+P|_{\mathrm{grown-up}}=\frac{1}{\sqrt{2\pi}\sigma}\mathrm{e}^{-\frac{(M-M_b)^2}{2\sigma^2}}
+\end{equation}
+
+其中 $M_b$ 为发生变态的基线生物量。当一个幼体开始变态发育时，根据假设 1，我们即认为它转化为成鱼，并记此时
+
+\begin{equation}
+x=\tau|_{\mathrm{grown-up}}
+\end{equation}
+
+对 $M_b$ 作逆映射，即由 $M_i^{-1}(t)$ 反解出对应的生长年数：
+
+\begin{equation}
+x_b=M_i^{-1}(M_b)
+\end{equation}
+
+显然我们可以得到
+
+\begin{equation}
+x\sim N(x_b,\sigma^2)
+\end{equation}
+
+\subsubsection{生长率、性比与出生率之间的相互影响}
+
+七鳃鳗幼体的性比直接由其生长率决定 [10]。一个幼体转化为成体雄性的概率 ($P$) 可由下式计算：
+
+\begin{equation}
+P=1-\mathrm{e}^{\alpha+\beta x}
+\end{equation}
+
+其中 $\alpha$ 与 $\beta$ 为系数，$x$ 表示幼体的生长年数，且 $\beta<0$。由公式可见，当幼体的生长年数较长时，其转化为雄性的概率较高；而当幼体的生长年数较短时，其转化为雌性的概率较高。这一结论与当前的研究状况一致：生长条件越匮乏，幼体生长越慢、所需生长时间越长，成为雄性的概率就越高。这一特性可能使七鳃鳗种群更快地适应生态环境：当生态系统受到损害时，七鳃鳗种群可以通过调整性比来降低出生率，使种群更快地达到新的平衡点。
+
+接下来，我们将通过一个方程来描述性比对种群出生率的影响。虽然七鳃鳗种群是单配制的 [7]，但其最优性比很可能并不是 1:1，因为它在遭遇环境变化时会自主调节性比 [11]。根据所查阅的文献，鱼类倾向于有更多雌性参与产卵，而雌性产卵所需的能量多于雄性产精，且大量卵细胞实际上并未受精。因此，当环境容量下降时，鱼类可能需要更多雄性以降低能量开销并提高卵的受精率，从而使合适的性比向偏雄的方向移动。反之，当环境容纳量上升时，鱼类可获得更多能量，它们可能倾向于产更多卵，以更快地提高种群整体的发展速率 [12]。基于上述理论，我们拟合了一个相对合理的函数，用来描述种群中性比与出生率之间的关系。
+
+\begin{equation}
+r_1=\frac{r_1^{0}}{1+\ln 2\cdot\frac{l_2^{\mathrm{female}}\left(l_1+l_2\right)}{l_2^{\mathrm{male}}\left(K_1+K_2\right)}}
+\end{equation}
+
+\subsection{模型二：BDS 评估模型}
+
+为了确定生态系统如何受到七鳃鳗性比变化的影响，我们以生态系统总生物量、生态系统物种多样性与生态系统稳定性作为评价标准，建立了 BDS 评估模型。建模思路如下所示。
+
+\subsubsection{生态系统总生物量}
+
+生态系统总生物量是生态系统最重要的指标之一，它可以反映生态系统中生物群落的发展状况。设生态系统中存在 $n$ 个物种，其中第 $i$ 个物种的种群密度为 $l_i$，该物种的生物量为 $s_i$。生态系统总生物量 $B$ 的计算公式如下：
+
+\begin{equation}
+B=\sum_{i=1}^{n}s_i=\sum_{i=1}^{n}l_i W_i
+\end{equation}
+
+\subsubsection{Shannon--Wiener 多样性指数}
+
+评价物种多样性是评估生态系统状况不可缺少的一步。一般而言，物种丰富度越高、物种之间的生物量越均衡，生态系统的状况就越好。
+
+因此，我们应用 Shannon--Wiener 多样性指数来同时考虑物种丰富度与均匀度。该指数源自物理学中的“熵”：物种多样性越高，无序程度越大，“熵”值越高，指数值也就越大 [13]。Shannon--Wiener 指数 $D$ 定义为：
+
+\begin{equation}
+D=-\sum_{i=1}^{n}p_i\ln p_i
+\end{equation}
+
+其中 $p_i=\frac{s_i}{B}$，表示物种 $i$ 的生物量在生态系统中所占的比例。
+
+\subsubsection{生态系统稳定性评估}
+
+稳定性是维持生态系统正常功能的必要条件之一。当外部环境发生变化时，生态系统内部生物量的分布也会通过物种之间的相互作用与调节而发生变化。在这种情况下，物种更多、食物网更复杂的生态系统能够更快地调整其结构与功能，由此产生的生物量分布变化往往相对稳定。因此，在本模型中，我们通过分析各物种生物量比例对外部环境变化的响应来评价生态系统的稳定性。
+
+基于前文所述的七鳃鳗种群迭代模型，我们通过改变生态系统中的食物供给来模拟外部环境的变化。当食物保持恒定、各物种种群规模达到稳定点时，我们改变食物供给条件，并记录随后各年份各物种生物量比例的变化。稳定性指数的计算如下：
+
+\begin{equation}
+S=\frac{1}{n}\sum_{i=1}^{n}\frac{\sum_{j=1}^{m}\left(p_i-p_{ij}\right)^2}{m}
+\end{equation}
+
+此处 $S$ 表示将食物供给调整至相应数值之后的稳定性指数，$p_{ij}$ 为物种 $i$ 在变化 $j$ 年后的生物量比例。$S$ 的数值越小，说明在调整食物供给后的 $n$ 年内各物种生物量比例的相对变化越小，表明生态系统的稳定性越强。
+\section{模型应用与问题求解}
+
+\subsection{七鳃鳗种群迭代模型的仿真}
+
+\subsubsection{模型算法}
+
+我们的模型以差分形式进行计算，每一次计算的结果都由上一次的结果导出，从而依据输入参数模拟七鳃鳗种群的迭代，并考察其能否随时间保持稳定。
+
+\vspace{0.5em}
+\noindent\textbf{算法 1}\quad 七鳃鳗种群迭代仿真
+
+\noindent\textbf{输入：}最大迭代次数 $G$；幼鱼初始数量 $l_1$；成年雄性初始数量 $l_2^{\mathrm{male}}$；成年雌性初始数量 $l_2^{\mathrm{female}}$。
+
+\noindent\textbf{输出：}第 $G$ 年的幼鱼数量 $l_1$；第 $G$ 年的成鱼数量 $l_2$；第 $G$ 年的总量 $l$；第 $G$ 年的性别比 $gk$。
+
+\begin{enumerate}
+\item 对 $i\leftarrow 1:G$ 执行循环
+\item \quad 计算 $l_2^{\mathrm{male}}$ 的减少量
+\item \quad 计算 $l_2^{\mathrm{female}}$ 的减少量
+\item \quad $b\leftarrow \frac{b_0}{1+\ln 2\cdot \frac{l_2^{\mathrm{female}}\left(l_1+l_2\right)}{l_2^{\mathrm{male}}K}}$
+\item \quad $\mathrm{mate}\leftarrow \mathrm{round}\left(\left(l_2^{\mathrm{male}}+l_2^{\mathrm{female}}\right)b+\mathrm{rand}()\right)$
+\item \quad $l_2^{\mathrm{male}}=l_2^{\mathrm{male}}-\mathrm{mate}$
+\item \quad $l_2^{\mathrm{female}}=l_2^{\mathrm{female}}-\mathrm{mate}$
+\item \quad 对 $j\leftarrow 1:100$ 执行循环
+\item \quad\quad 计算 $l_1^{\,j}$ 的减少量
+\item \quad\quad 计算成长为成体的数量变化量
+\item \quad\quad $p\leftarrow 1-\mathrm{pow2}\left(\alpha+\beta j\right)$
+\item \quad\quad $\mathrm{male}\leftarrow \mathrm{round}\left(\mathrm{change}\cdot p+\mathrm{rand}()\right)$
+\item \quad\quad $l_2^{\mathrm{male}}=l_2^{\mathrm{male}}+\mathrm{male}$
+\item \quad\quad $l_2^{\mathrm{female}}=l_2^{\mathrm{female}}+\mathrm{change}-\mathrm{male}$
+\item \quad 结束内层循环
+\item \quad 对 $j\leftarrow 99:-1:1$ 执行循环
+\item \quad\quad $l_1^{\,j+1}=l_1^{\,j}$
+\item \quad 结束内层循环
+\item \quad $l_1(i)\leftarrow \mathrm{sum}\left(l_1\right)$
+\item \quad $l_2(i)\leftarrow l_2^{\mathrm{male}}+l_2^{\mathrm{female}}$
+\item \quad $l(i)\leftarrow l_1(i)+l_2(i)$
+\item \quad $gk(i)\leftarrow \frac{l_2^{\mathrm{male}}}{l_2(i)}$
+\item 结束外层循环
+\end{enumerate}
+\vspace{0.5em}
+
+\subsubsection{模型参数设置}
+
+首先，模型中的所有公式如下所示：
+
+\begin{equation}
+\left\{
+\begin{array}{l}
+\frac{\mathrm{d}l_1}{\mathrm{d}t}=k l_2(t)r_1+r_1^{0}l_1(t)\sum\limits_{j=1}^{n}a_{1j}\frac{l_j}{K_j}-\sum\limits_{i}s_i+\sigma_1(t)\\[1.4em]
+\frac{\mathrm{d}l_2}{\mathrm{d}t}=\sum\limits_{i}s_i+r_1^{0}l_2(t)\sum\limits_{j=1}^{n}a_{2j}\frac{l_j}{K_j}-2r_1 l_2(t)+\sigma_2(t)\\[1.4em]
+r_1=\frac{r_1^{0}}{1+\ln 2\cdot \frac{l_2^{\mathrm{female}}\left(l_1+l_2\right)}{l_2^{\mathrm{male}}\left(K_1+K_2\right)}}\\[1.6em]
+P=1-\mathrm{e}^{\alpha+\beta x}\\[0.6em]
+x\sim N\left(x_b,\sigma^2\right)
+\end{array}
+\right.
+\end{equation}
+
+以五大湖的数据为参考，我们将模型中的部分参数设定为适当的值，并通过调整参数来观察模型在不同参数下的表现。最终，我们将模型参数确定为以下数值，并用该模型求解结果。
+
+值得注意的是，我们的模型具有很强的自适应性，并非只适用于五大湖地区。当模型迁移到其他地区时，需要当地数据加以支持。
+
+\begin{itemize}
+\item $k=5$，$\alpha=0$；
+\item $r_1^{0}=0.05$，$\beta=-\frac{\ln 2}{5}$；
+\item $\sigma^2=2$，$K_2=10000$；
+\item $O_s=45$，$D_o=8$；
+\item $\gamma_1=168.05$，$\gamma_2=1.50$。
+\end{itemize}
+
+\subsubsection{仿真结果}
+
+我们输入 $G=500$，$l_1=6000$（1 至 6 龄各 1000 尾），$l_2^{\mathrm{male}}=5000$，$l_2^{\mathrm{female}}=5000$。
+
+为了获得性比调节机制对七鳃鳗种群的利与弊，我们在第 100 年将 $O_s$ 向下调整至原值的 50\%（即 22.5），并将环境容纳量 $K_2$ 同样调整至原值的 50\%（即 5,000），随后在第 300 年将 $O_s$、$K_2$ 调整回初始值，以观察种群的演化。与此同时，我们设置了对照组：取消性比调节机制，即幼体在任何时刻转化为雌性与雄性的概率相同，其他参数保持不变，模拟种群演化，并观察这两个种群相对演化的规律。仿真结果如下所示。
+
+为了更清晰地看出实验组与对照组之间的差异，我们将实验组与对照组七鳃鳗种群的种群规模绘制在同一张图中，并将 $G$ 扩展至 1000，其余条件不变，结果如下所示。
+
+从图中我们可以看出：
+
+\begin{itemize}
+\item 在第 100 年，环境发生突变，环境容纳量降至原规模的一半，在此后一段时间内两个种群都出现下降，但具有性比调节机制的那个种群下降得更快，并能在更短的时间内达到新的平衡。
+\item 在第 300 年，环境好转，环境容纳量恢复到初始状态。此后两个种群都出现上升，但显然性比受调节的种群上升得快得多，且在恢复之后其数量略多于另一组。
+\end{itemize}
+
+为了量化这一优势，我们定义优化率公式：
+
+\begin{equation}
+R=\frac{k_{\mathrm{before}}}{k_{\mathrm{after}}}-1
+\end{equation}
+
+其中 $k_{\mathrm{before}}$ 表示优化前的指标，$k_{\mathrm{after}}$ 表示优化后的指标，且 $k_{\mathrm{before}}\ge k_{\mathrm{after}}$。由实验数据可得，当 $K$ 下降时优化率 $R=202\%$，当 $K$ 恢复时 $R=288\%$。优化效果相当好。
+
+通过该模型，我们可以对问题 2 给出回答。
+
+\begin{itemize}
+\item 七鳃鳗种群的性比调节机制使整个种群能够更好地适应新环境，种群的韧性更强，能够快速适应复杂多变的生境。这很可能也正是七鳃鳗种群在五大湖附近成为入侵物种的原因 [14]。
+\item 然而，这一机制也有一些负面后果，即种群对恶劣环境的抵抗力可能降低。当环境非常恶劣时，七鳃鳗种群可能在一段时间内处于濒危状态。
+\end{itemize}
+
+\subsection{生态系统评估模型的仿真}
+
+\subsubsection{七鳃鳗性比与生态系统稳定性}
+
+正如我们在上文中所指出的，七鳃鳗幼体在不同食物条件下以不同的速率生长，而幼体的生长率决定了它们分化为雄性还是雌性的概率。因此，生态系统变化对七鳃鳗的影响与其他种群不同。此处我们仍将幼体与成体分开讨论，并运用上文所建立的生态系统稳定性评估模型，来分析性比变化与生态系统稳定性之间的关系。
+
+首先，在仔细考察七鳃鳗所在生态系统的生物群落关系之后，我们对其进行了简化，并加入四个基础物种。这四个物种与幼体、成体之间的关系如下所示：
+
+\begin{itemize}
+\item $c_1$：七鳃鳗幼体
+\item $c_2$：七鳃鳗成体
+\item $c_3$：七鳃鳗成体的捕食者（物种 1）
+\item $c_4$：七鳃鳗成体的竞争者（物种 2）
+\item $c_5$：被成体寄生并捕食幼体的鱼类-1（物种 3）
+\item $c_6$：被成体寄生并捕食幼体的鱼类-2（物种 4）
+\end{itemize}
+
+此后，我们引入一个关联矩阵来描述生态系统中物种之间的相互关系，其表达式如下：
+
+\begin{equation}
+C=\left[
+\begin{array}{ccccc}
+-1 & a_{12} & a_{13} & \cdots & a_{1n}\\
+a_{21} & -1 & a_{23} & \cdots & a_{2n}\\
+a_{31} & a_{32} & -1 & \cdots & a_{3n}\\
+\vdots & \vdots & \vdots & \vdots & \vdots\\
+a_{n1} & a_{n2} & a_{n3} & \cdots & -1
+\end{array}
+\right]
+\end{equation}
+
+其中 $a_{ij}$ 表示 $c_j$ 对 $c_i$ 的影响系数（$i\neq j$），影响系数取值介于 $-1$ 与 $1$ 之间。当 $a_{ij}=0$ 时，两个物种之间没有直接影响。相反，正的影响系数表示 $c_j$ 对 $c_i$ 的生存有有利影响，负的影响系数表示 $c_j$ 对 $c_i$ 的生存有不利影响。$\left|a_{ij}\right|$ 越大，表示影响越大。
+
+在已知物种之间相互关系的基础上，基于七鳃鳗种群迭代模型，我们能够计算出 $c_3$、$c_4$、$c_5$、$c_6$ 的种群密度 $x_3$、$x_4$、$x_5$、$x_6$。计算公式如式 (3) 所示。
+
+各物种种群的生物量由该生态系统物种的种群密度乘以各种群中个体的平均重量得到。接下来，基于我们已经收集的相关数据，给出重量矩阵 $W=[0.69,\,3.7,\,40.3,\,1.2,\,15.8,\,14.0]$，$C$ 的取值如下图所示。
+
+仿真在两种情景下进行：一种情景中七鳃鳗的性比发生变化，另一种情景中性比不变。当两种情景下的种群生物量都稳定之后，改变生态系统的食物供给，使环境容纳量下降；随后，在两种情景下的种群生物量再次稳定之后，将生态系统的食物供给改回初始供给。由此，我们能够绘制出不同情景下生态系统中各种群生物量的变化图：
+
+将结果代入生态系统稳定性评估模型并取 $m=100$，我们得到：性比发生变化情形下七鳃鳗的生态系统稳定性指标 $S_1=3.7175\times 10^{-4}$；性比不变情形下的生态系统稳定性指标 $S_2=6.4414\times 10^{-4}$（均为第 100 年至第 200 年首次改变 $K$ 之后 100 年内的结果）。由于 $S_1$ 小于 $S_2$，我们可以得到问题 3 的结论：当七鳃鳗的性比发生变化时，生态系统能够更快地调整自身的结构与功能，生物量分布更加稳定，即生态系统稳定性更好。计算得到性比调节机制对生态系统稳定性的优化率为 $R=73.3\%$。
+
+\subsubsection{对生态系统影响的深入评估}
+
+为了获得性比调节机制对生态系统影响的更多方面，我们计算了上一节模型中每一年的生态系统总生物量与 Shannon--Wiener 指数，从而获得生态系统 $B$ 与 $D$ 的优化率。保持模型参数不变，分别在具有与不具有性比调节机制的情形下模拟七鳃鳗种群对生态系统的影响。结果如下所示。
+
+由于我们需要研究生态系统的环境容纳量发生改变时性比调节机制所起的作用，为了放大该效应，我们选择第 300 年至第 400 年进行分析。我们计算了该时间段内生态系统生物量的均值与 Shannon--Wiener 指数的均值，通过比较可以发现：具有性比调节机制的生态系统其生物量为 $3.7117\times 10^{5}$，Shannon--Wiener 指数为 1.4588；而不具有性比调节机制的生态系统的这两项指标分别为 $3.5059\times 10^{5}$ 与 1.3775。
+
+至此，我们可以回答问题 1。
+
+\begin{itemize}
+\item 经计算，性比调节机制对生态系统生物量的优化率为 $R=5.87\%$，对 Shannon--Wiener 指数的优化率为 $R=5.90\%$。优化率并不显著。
+\item 从图中可以看出，当环境容纳量发生变化时，具有性比调节机制的生态系统重建平衡所需的时间略短。
+\item 这可能是由于：当尺度放大到生态系统层面时，由于极大量其他物种的相互作用，性比对七鳃鳗种群的影响被其整体的优化效应部分掩盖了。然而，结合问题 3 的结果，它仍然能够起到加速生态系统调节的作用。
+\end{itemize}
+
+\subsubsection{对其他物种的具体影响}
+
+在上一章中，我们探讨了性比调节机制对生态系统整体的宏观影响，本章将着重分析该机制对生态系统中不同物种的影响。我们分析了该机制对鱼类寄生者，以及与七鳃鳗处于同等地位的、被七鳃鳗寄生的物种的影响。保持其他参数不变，对生态系统进行仿真，并绘制出上述物种在具有与不具有性比调节机制情形下的种群密度变化。
+
+我们首先分析寄生者（物种 2）的变化。由于性比机制能够提高七鳃鳗种群的韧性，当生态系统环境改善时，七鳃鳗种群会更快地达到新的平衡点并占据其他生物的资源，从而抑制与之竞争的寄生者。因此，物种 2 恢复并达到平衡时的种群规模将略小于不具有性比调节机制的生态系统。
+
+接下来分析对被七鳃鳗寄生的寄主的影响。我们设定物种 3 相对于物种 4 更具竞争力，因此物种 3 受到七鳃鳗的影响更大。实验之后我们发现，由于七鳃鳗的性比调节机制，物种 3 的种群密度变小，而物种 4 的种群密度反而增加，这表明该机制促进了七鳃鳗种群的繁殖，使物种 3 受到更强的抑制，从而为物种 4 带来了更多的生存空间。
+
+至此，我们可以回答问题 4。
+
+\begin{itemize}
+\item 七鳃鳗种群的性比调节机制在影响自身种群密度变化的同时，也会影响生态系统中的其他生物。
+\item 对于七鳃鳗的竞争者（其他鱼类寄生者）而言，它将使这些竞争者的生存受到抑制，因此不利于这些竞争者的生存。
+\item 对于被七鳃鳗寄生的寄主而言，它将更好地平衡整个生态系统的种群密度规模，有利于协调与缓解不同物种之间的竞争关系。
+\end{itemize}
+
+\section{模型评价与讨论}
+
+\subsection{敏感性分析}
+
+在本文中，我们建立了两个模型：七鳃鳗种群迭代模型与生态系统评估模型，而在敏感性分析中我们重点关注前者。在我们的模型中，有许多参数需要人为给定，其中大部分已通过仿真获得了合适的取值。然而，仍有一些参数在真实情形下可能发生变化。例如，由成体到幼体的转化比 $k$ 与内禀增长率 $b_0$ 可能因环境因素而在小范围内波动，因此我们分别改变 $k$ 与 $b_0$，其他参数保持不变，重新对七鳃鳗种群模型进行仿真，并观察模型计算的结果。
+
+首先，我们将 $k$ 的取值设为 4.5、5 与 5.5，以模拟种群中产卵率与存活率的轻微波动；随后我们将 $b_0$ 调整为 0.04、0.05 与 0.06，以模拟种群内禀增长率的波动，并观察种群中七鳃鳗数量与性比比例的变化。结果表明，当 $k$ 与 $b_0$ 在一定范围内波动时，种群规模与性比并未发生很大变化，趋势基本一致，说明模型的稳定性良好。
+
+事实上，我们还就 $k$ 与 $b_0$ 对多种群模型下总生物量等指标的影响进行了敏感性分析。然而，由于多种群模型中不同物种之间的相互作用十分复杂，在波动较小的情况下，七鳃鳗种群的指标并不会显著影响整个生态系统的总生物量，因此为节省篇幅，多种群模型的敏感性分析图未予列出。总体而言，该模型足够稳定，可以应用于真实情景。
+
+\subsection{优点与不足}
+
+\subsubsection{优点}
+
+\begin{itemize}
+\item 考虑了七鳃鳗的生长习性。我们查阅了许多相关文献，以充分深入地理解七鳃鳗的发育与变态过程。七鳃鳗幼体与成体在体形、生活环境与食物来源方面差异极大，因此我们的模型将七鳃鳗划分为幼体库与成体库，使模型更贴合实际情形。
+\item 考虑了七鳃鳗的生命周期。成体七鳃鳗在产卵之后会直接死亡，这与常见的 Lotka--Volterra 模型不同，因此我们将幼体七鳃鳗与成体七鳃鳗分为两部分分别考虑，并且幼体七鳃鳗来源于成体七鳃鳗、成体七鳃鳗来源于幼体七鳃鳗，从而形成一个循环，使模型更符合现实。
+\item 在模型计算时，我们为每一个幼体赋予生长年数与重量的标签，并分别计算每个幼体的成熟时间。这使模型的计算更为准确，也更具说服力。
+\item 模型的参数指标是通过查阅相关文献与大量实验确定的。我们的模型指标并非人为给定，而是基于相关数据与仿真实验得出的更精确的计算参数，这使模型更加稳定与精确。
+\item 采用多维指标评估生态环境。我们采用生物量、Shannon--Wiener 指数与稳定性指数来综合评价一个生态环境。多维评价能够更全面地反映七鳃鳗种群对整个生态系统的影响。
+\end{itemize}
+
+\subsubsection{不足}
+
+\begin{itemize}
+\item 由于与七鳃鳗性比调节机制相关的文献较少，我们模型中关于性比调节的公式是基于所查阅的相关数据自行给出的，可能与实际情况存在一定偏差。
+\item 在建立多种群生态系统模型时，我们将一些物种概括为统一的物种，例如七鳃鳗的捕食者、七鳃鳗的寄生寄主等。现实情况可能比我们的建模更为复杂，因为一个生态系统中往往存在成千上万个物种。
+\item 我们在计算中固定了生态系统的环境因素，但在现实中这些指标也会随时间变化。不过，我们模型的迭代时间以“年”为单位，因此稳定性是有保证的。
+\end{itemize}
+
+\subsection{结论}
+
+七鳃鳗的性比调节机制在生物学中同样是一个十分复杂的问题。迄今为止它仍无定论，要对其内在规律给出良好的解释，可能还需要更多、更长时间的研究。地球是包容的，生命是奇妙的，每一个物种的存在都必有其意义，而仍有诸多奥秘等待人类去揭开。我们希望我们的模型能够为七鳃鳗物种的进一步研究提供一些帮助，也希望读者能够给我们提出一些改进模型的建议。
+
+\begin{thebibliography}{99}
+
+\bibitem{ref1} JON Mallatt. Zoological Journal of the Linnean Society, 82(3):261--272, 1984.
+
+\bibitem{ref2} Using stable isotopes and c:n ratios to examine the lifehistory strategies and nutritional sources of larval lampreys. Journal of Fish Biology, 2016.
+
+\bibitem{ref3} F. W. H. Beamish and T. E. Medland. Age determination for lampreys. Transactions of the American Fisheries Society, 117(1):63--71, 1988.
+
+\bibitem{ref4} Nicholas S. Johnson, William D. Swink, and Travis O. Brenden. Field study suggests that sex determination in sea lamprey is directly influenced by larval growth rate. Proceedings of the Royal Society B: Biological Sciences, 284(1851):20170262, 2017.
+
+\bibitem{ref5} zhangqin. Some problems with the lotka-volterra model. Master's thesis, Jilin University, 2006.
+
+\bibitem{ref6} Li Ran. Module- and keystone species-based food web stability studies. Master's thesis, North China Electric Power University (Beijing), 2018.
+
+\bibitem{ref7} Michael J. Hansen, Charles P. Madenjian, Jeffrey W. Slade, Todd B. Steeves, Pedro R. Almeida, and Bernardo R. Quintella. Population ecology of the sea lamprey (petromyzon marinus) as an invasive species in the laurentian great lakes and an imperiled species in europe. Reviews in Fish Biology and Fisheries, 2016.
+
+\bibitem{ref8} Richard G. Manzon, John H. Youson, and John A. Holmes. Lamprey Metamorphosis, pages 139--214. Springer Netherlands, Dordrecht, 2015.
+
+\bibitem{ref9} Poul Scheel Larsen and Hans Ulrik Riisg\aa rd. Size-specific growth of filter-feeding marine invertebrates. Journal of Marine Science and Engineering, 2022.
+
+\bibitem{ref10} Margaret F. Docker, F. William, and H. Beamish. Age, growth, and sex ratio among populations of least brook lamprey, lampetra aepyptera, larvae: an argument for environmental sex determination. Environmental Biology of Fishes, 1994.
+
+\bibitem{ref11} Nicholas S Johnson, William D Swink, and Travis O Brenden. Field study suggests that sex determination in sea lamprey is directly influenced by larval growth rate. Proceedings of the Royal Society B: Biological Sciences, 2017.
+
+\bibitem{ref12} Margaret F Docker, F William H Beamish, Tamanna Yasmin, Mara B Bryan, and Arfa Khan. The lamprey gonad. In Lampreys: Biology, Conservation and Control: Volume 2, pages 1--186. Springer, 2019.
+
+\bibitem{ref13} Emmanuel Mzungu Dennis Omayio. Modification of shannon-wiener diversity index towards quantitative estimation of environmental wellness and biodiversity levels under a non-comparative scenario. Journal of Environment and Earth Science, 9(46-57), 2019.
+
+\bibitem{ref14} Kelly F. Robinson, Scott M. Miehls, and Michael J. Siefkes. Understanding sea lamprey abundances in the great lakes prior to broad implementation of sea lamprey control. Journal of Great Lakes Research, 2021.
+
+\end{thebibliography}
+
+\end{document}

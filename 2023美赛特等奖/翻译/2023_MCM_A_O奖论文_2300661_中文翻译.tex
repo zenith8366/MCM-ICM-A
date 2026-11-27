@@ -1,0 +1,563 @@
+\documentclass[11pt,a4paper]{ctexart}
+\usepackage[margin=2.4cm]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage{fancyhdr}
+\usepackage{enumitem}
+\linespread{1.18}
+\setlength{\headheight}{15pt}
+\setlength{\parskip}{0pt}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small Team 2300661}
+\fancyhead[R]{\small \thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+\fancypagestyle{plain}{\fancyhf{}\renewcommand{\headrulewidth}{0pt}}
+
+\ctexset{
+  section/format = \Large\bfseries\raggedright,
+  subsection/format = \large\bfseries\raggedright,
+  subsubsection/format = \normalsize\bfseries\raggedright
+}
+\setcounter{secnumdepth}{3}
+
+\begin{document}
+
+%====================== 摘要页 ======================
+\thispagestyle{empty}
+\begin{center}
+{\small 2023 MCM/ICM\quad 选题 A\quad 队伍控制号 2300661\quad 摘要页（Summary Sheet）}\\[18pt]
+{\LARGE\bfseries 干旱胁迫下植物群落的综合预测模型}\\[8pt]
+{\large （The Comprehensive Prediction Model for Drought-Striken Plant Communities）}\\[10pt]
+\end{center}
+
+\begin{center}
+{\large\bfseries 摘\quad 要}
+\end{center}
+
+\vspace{6pt}
+全球变暖正变得日益严重，这也导致部分地区的干旱加剧。干旱严重影响了当地植物群落的长期存续能力。为了认识干旱地区植物群落的变化规律，我们提出了三个模型：一个考虑干旱与种间相互作用的 Logistic 模型，一个度量生物量与效益变化的新模型，以及一个考虑污染与生境缩减的修正模型。
+
+首先，我们建立了一个考虑干旱与种间相互作用的 Logistic 模型，用以预测中国西北腾格里沙漠中四种植物物种的种群数量变化。通过比较规则干旱周期与不规则干旱周期下植物数量的变化，我们发现，不同植物因其自身特性而对干旱环境具有不同的适应能力。与此同时，我们发现，强降雨之后紧接的快速干旱过程会严重威胁植物的生存。
+
+其次，我们使用生物量构造了一个新模型，用以度量植物群落的效益程度，并从四种植物中随机选取 2 种、3 种和 4 种进行分析。一方面，我们发现，随着物种数量的增加，越来越多的被选组合呈现出正效益，而且效益逐渐增大。另一方面，我们将植物划分为敏感型与耐旱型，发现敏感型植物的生物量更容易受到干旱强度波动的影响，而耐旱型植物的生物量在干旱条件下保持稳定，但在降水充足时因竞争加剧而下降。
+
+第三，我们使用蒙特卡罗（Monte Carlo）方法生成了两种新的降水分布，其干旱频率与干旱程度分别更大和更小，并利用前述模型对四种植物物种进行了分析。我们发现，植物生物量在这两种条件下均保持稳定，但稳定的水平并不相同。
+
+第四，我们通过引入污染程度与生境缩减指数对先前的模型进行了修正，并结合工厂建设的实际情况再次分析了四种植物数量的变化。我们发现，生境丧失的副作用比污染更大，而二者叠加会使植物种群数量随时间推移保持在更低的水平。
+
+第五，我们对四种植物的一些初始参数进行了敏感性分析，以探究这些参数如何影响模型与仿真实验。我们发现，理想条件下单个植物的最大数量对实验的影响相对较大，但仍在可接受的范围内。这体现了我们模型的稳健性。
+
+最后，我们优化了模型的求解方法。我们使用四阶 Runge--Kutta 方法求解模型，得到了更精确的预测结果。我们还利用分析结果，就如何在干旱条件下提高植物群落的存续能力提出了有价值的建议，为环境治理作出了贡献。
+
+\vspace{6pt}
+\noindent\textbf{关键词：}干旱；种间相互作用；生物量；效益；污染；生境缩减
+
+\newpage
+\pagestyle{fancy}
+
+%%====================== 正文 ======================
+\section{引言}
+
+\subsection{背景}
+
+目前，全球变暖对生态环境的影响正变得越来越严重。气候变暖会导致部分地区的干旱加剧与荒漠化扩展。受旱地区不利于维持生物多样性与物种的稳定性，人们的生产与生活也因此受到影响。
+
+以腾格里沙漠为例，它是中国的第四大沙漠。近年来，腾格里沙漠附近的荒漠化现象不容忽视。此外，研究发现，腾格里沙漠的地下水多年来一直受到工厂排放物的污染，严重影响了该区域生态系统的稳定性。我们以此为背景，探究受旱地区植物物种的变化，并为维持植物群落的长期存续能力提出有价值的建议。受旱地区与腾格里沙漠的景象直观地反映了全球变暖的影响。
+
+\subsection{问题重述}
+
+\begin{itemize}
+\item 建立一个数学模型，用以预测不规则干旱周期下植物群落的变化。该模型需要考虑植物物种之间的相互作用。
+\item 探究需要多少种植物物种才能使植物群落获益。描述植物群落效益程度与物种数量之间的变化规律。
+\item 探究不同植物类型如何影响干旱周期下植物数量与植物效益的变化。
+\item 探究不同的干旱频率与干旱程度如何影响植物群落的变化。此时，分析植物物种数量对整个种群变化的影响。
+\item 探究在考虑环境污染变化与生境缩减的干旱周期下，植物丰度与效益的变化。
+\item 就维持植物群落的长期存续能力及其对环境的影响提出建议。
+\end{itemize}
+
+\subsection{我们的工作}
+
+根据上述要求，我们的工作安排如下：我们首先在考虑干旱胁迫与种间相互作用的基础上建立修正的 Logistic 模型，并借助气象数据与文献中的物种数据完成对腾格里沙漠四种植物数量的预测；随后以生物量为度量构造效益模型，讨论物种数量与效益之间的关系、不同植物类型的影响、不同干旱频率与程度的影响，以及污染与生境缩减的影响；在给出维持群落存续能力的建议之后，我们进行敏感性分析，并对模型的求解方法作进一步优化；最后对模型作出评价。我们的整体工作流程如图所示。
+
+\section{假设}
+
+\begin{itemize}
+\item 在没有干旱且没有相互作用时，环境资源充足、条件理想下的物种数量增长服从 Logistic 曲线。
+\item 多个物种之间的相互作用只有两种类型：竞争与互利。不存在其他复杂的相互作用。
+\item 假设干旱程度只与降水有关，而与其他因素无关。
+\item 假设不考虑干旱、污染、生境丧失之外的其它环境因素（如风、光照、温度、动物、微生物等）。
+\item 植物类型划分为敏感型与耐旱型两类，不考虑其他类型。
+\item 该模型不适用于极端天气条件，例如严重干旱与洪涝。
+\end{itemize}
+
+\section{符号说明}
+
+本文所使用的符号及其含义如下。
+
+\begin{itemize}
+\item $x_i$：单一物种 $i$ 的植物数量；
+\item $r_i$：物种 $i$ 的增长率；
+\item $N_i$：物种 $i$ 的最大容量；
+\item $\sigma_{ij}$：$x_j$ 与 $x_i$ 之间的种间关系指数；
+\item $k^{(ij)}_{\sigma}$：种间相互作用指数 $\sigma_{ij}$ 与干旱胁迫 $S$ 的影响梯度；
+\item $S$：干旱胁迫程度；
+\item $S_0$：干旱胁迫的临界程度；
+\item $P$：降水量；
+\item $P_{max}$：最大降水量；
+\item $L_i$：最大增长率；
+\item $k_i$：物种增长率 $r_i$ 与降水量 $P$ 之间的影响梯度；
+\item $\alpha_i$：单个物种的最大植物数量 $N_i$ 与干旱胁迫程度 $S$ 之间的影响梯度；
+\item $N_i^{0}$：初始条件下单个物种的理想最大植物数量；
+\item $B_i$：物种 $i$ 的生物量；
+\item $n$：物种总数；
+\item $k$：被选取的物种数（$0<k\leq n$）；
+\item $T$：总胁迫程度；
+\item $PO$：污染程度；
+\item $\delta$：单一时刻的污染量；
+\item $\mu_i$：物种 $i$ 的净化因子；
+\item $H$：生境缩减的影响；
+\item $A$：生境面积；
+\item $A_0$：初始生境面积。
+\end{itemize}
+
+\section{模型的建立与求解}
+
+\subsection{植物群落变化的预测模型}
+
+针对本问题，我们构造了一个考虑不同物种之间相互作用以及干旱胁迫程度的修正 Logistic 模型。利用该模型，结合来自国家统计局的气象数据以及相关文献中的物种数据，我们预测了中国西北腾格里沙漠周边地区四种植物物种在若干不规则干旱周期内的种群变化。
+
+\subsubsection{修正 Logistic 模型的建立}
+
+在既不考虑物种间相互作用、也不考虑干旱胁迫的情况下，单一物种理想化种群增长的 Logistic 模型如公式 (1) 所示。
+\begin{equation}
+\frac{dx_i}{dt}=r_i x_i\left(1-\frac{x_i}{N_i}\right)
+\end{equation}
+其中 $x_i$ 表示单一物种的植物数量，$r_i$ 表示该物种的增长率，$N_i$ 表示特定环境容量下单一种类的最大植物数量。当考虑种间关系时，需要引入一个修正项，如公式 (2) 所示。
+\begin{equation}
+\frac{dx_i}{dt}=r_i x_i\left(1-\frac{x_i}{N_i}-\sum_{j}\sigma_{ij}\frac{x_j}{N_j}\right)
+\end{equation}
+其中 $\sigma_{ij}$ 表示 $x_j$ 与 $x_i$ 之间的种间关系指数。当 $\sigma_{ij}>0$ 时，种间关系为竞争，物种的增长率将下降甚至变为负值；当 $\sigma_{ij}<0$ 时，种间关系为互利，单一物种的植物数量增长率将变得更大。
+
+物种间的相互作用指数同样受到干旱胁迫程度的影响。已有研究表明，当干旱胁迫较低、水分充足时，物种之间的关系更倾向于竞争；当干旱胁迫较高、水资源稀缺时，物种之间的关系则倾向于互利，从而满足自身的发展需求并提高其在极端环境中的适应能力。物种间的相互作用指数 $\sigma_{ij}$ 与干旱胁迫程度 $S$ 之间的关系如公式 (3) 所示。
+\begin{equation}
+\sigma_{ij}=-k^{(ij)}_{\sigma}\left(S-S_0\right)
+\end{equation}
+其中 $k^{(ij)}_{\sigma}$ 是相互作用指数 $\sigma_{ij}$ 与干旱胁迫 $S$ 之间的影响梯度，$S_0$ 是临界干旱胁迫程度。当干旱胁迫程度低于该临界值时，$\sigma_{ij}>0$；当干旱胁迫程度高于该临界值时，$\sigma_{ij}<0$，物种之间的关系为互利。由此，我们在物种的相互作用指数与干旱胁迫程度之间建立了合理的线性关系。
+
+我们使用降水量 $P$ 来描述干旱胁迫程度 $S$，并将 $S$ 的取值范围限制在 0 到 1 之间，如公式 (4) 所示。
+\begin{equation}
+S(t)=1-\frac{P(t)}{P_{max}}
+\end{equation}
+由此可以发现，降水量 $P$ 与干旱胁迫程度 $S$ 呈负相关。其中 $P_{max}$ 是该地区在一段时间内的最大降水量。
+
+我们发现，降水不仅通过影响干旱胁迫程度来影响物种间的相互作用指数，而且还会影响每个物种的增长率。由于在干旱地区雨水过多时植物会被淹死，因此增长率并不会无限增大，而是逐渐放缓。所以增长率并非简单地与降水量成正比。我们假设增长率 $r_i$ 与降水量 $P$ 之间服从 Logistic 关系，如公式 (5) 所示。
+\begin{equation}
+r_i(t)=\frac{L_i}{1+e^{-k_i\cdot P(t)}}
+\end{equation}
+式中，$L_i$ 表示该物种的最大增长率，$k_i$ 表示该物种增长率与降水量之间的影响梯度。
+
+此外，降水量 $P$ 还会影响单一物种的最大植物数量 $N_i$，我们假设二者之间呈线性正相关，如公式 (6) 所示。
+\begin{equation}
+N_i(t)=\left(1-\alpha_i\left(S(t)-S_0\right)\right)\cdot N_i^{0}
+\end{equation}
+其中 $\alpha_i$ 是单一物种最大植物数量与干旱胁迫程度之间的影响梯度，$N_i^{0}$ 是初始条件下单一物种的理想最大植物数量。
+
+将 $r_i$、$S$、$N_i$、$\sigma_{ij}$ 的表达式代入公式 (2)，我们便可以得到描述单一物种植物数量以及物种间相互作用与降水之间关系的微分方程，从而成功构造出该数学模型。
+
+在公式 (1) 至公式 (6) 构成的模型体系中，公式 (1) 给出了无相互作用、无干旱胁迫时的基准增长规律；公式 (2) 通过引入种间关系指数把多物种耦合进入同一个方程组；公式 (3) 使种间关系随干旱胁迫程度在竞争与互利之间连续切换；公式 (4) 把气象观测中的降水量转化为无量纲的干旱胁迫指标；公式 (5) 刻画了增长率随降水增加而饱和的 Logistic 型响应，避免了降水充足时增长率的无限增大；公式 (6) 则描述了干旱胁迫对群落环境容纳量的压缩作用。四个关系式共同把气象驱动的降水序列映射为多物种协同演化的动力学系统，为后续的数值求解与情景仿真提供了统一的数学框架。
+
+\subsubsection{基于修正模型的种群预测}
+
+结合来自国家统计局的数据与相关文献，我们对中国腾格里沙漠东南部的四种植物物种进行了种群预测。它们分别是珍珠猪毛菜（\textit{Salsola passerina}）、红砂（\textit{Reaumuria soongarica}）、驼绒藜（\textit{Ceratoides latens}）与盐爪爪（\textit{Kalidium foliatum}）。为叙述方便，我们将其依次称为植物 A、植物 B、植物 C 与植物 D。
+
+该地区 2018 年至 2021 年的月平均降水量如图所示。我们将通过修正后的模型对 48 个月内四种植物数量的变化进行预测与分析。
+
+以文献中给出的植物数量为参照，我们分析了此后 48 个月内植物数量的变化，并得到了四种植物每个月的数量。植物 A、B、C、D 的初始数量 $x_i$ 分别为 34、34、29 与 33。
+
+此外，根据文献中所涉及的四种植物对干旱的适应能力差异，我们按比例设定了初始理想最大容量 $N_i^{0}$，其值分别为 200、153、137 与 36。可以看出，植物 D 对干旱的适应能力较差，因此其初始理想最大容量最低。
+
+根据文献中四种植物根长的差异，最大增长率 $L_i$ 可分别估计为每月 5、3.5、5 与 2.5 株。可以发现，根系越长，从土壤中吸收水分的能力越强，生长速度也越快。因此，这一假设是合理的。
+
+通过数据拟合与经验分析，微分方程模型中其他系数的量值可以被合理地估计，其结果为 $\alpha_i=0.6$、$S_0=0.5$、$k^{(ij)}_{\sigma}=0.002$、$k_i=0.01$。这些系数各自承担明确的生态学含义：$\alpha_i$ 决定干旱胁迫每增加一个单位时环境容纳量被压缩的比例，取 0.6 意味着胁迫程度上升时容纳量显著收缩；$S_0=0.5$ 表示干旱胁迫程度达到中等水平时，物种间关系恰好由竞争转为互利；$k^{(ij)}_{\sigma}$ 控制这一转换的陡峭程度，取值较小说明种间关系随干旱强度的变化较为平缓；$k_i$ 控制增长率对降水的响应速度。由于这些量值难以直接观测，我们以拟合误差最小与生态学合理性双重标准加以确定，从而保证后续预测结果的可解释性。
+
+具体而言，四种植物的初始数量分别为 34、34、29 与 33；初始理想最大容量分别为 200、153、137 与 36；最大增长率分别为每月 5、3.5、5 与 2.5 株；而 $\alpha_i=0.6$、$S_0=0.5$、$k^{(ij)}_{\sigma}=0.002$、$k_i=0.01$ 对四种植物取相同的值。上述初始参数的设定构成本文后续全部仿真的共同出发点。
+
+由于时间数据是离散的，我们将微分方程转化为差分方程，并通过 MATLAB 迭代计算干旱周期内四种植物数量的变化。
+
+由计算结果可以看出，随着降水的变化，四种植物物种的数量将在降水丰沛的时期达到峰值，而在降水稀少的时期维持在相对较低的水平。同时可以发现，在种群数量的峰值时期，种间竞争加剧，四种植物的数量出现显著差异。在降水稀缺的时期，四个物种都会稳定在较低水平，而不会因互利作用而灭绝。此外，由于植物 D 的抗旱能力较弱、初始理想最大容量较小，其数量仅在低水平上波动。
+
+将计算结果与降水序列进一步对比还可以看出，在降水快速变化的时期，四种植物的数量变化剧烈，尤其是在第 20 个月前后，植物 A、B 与 C 的数量急剧下降。这说明快速的干旱过程会严重威胁植物的生存，这为今后的沙漠治理提供了一定的参考价值。
+
+从降水数据可以看出，降水每年呈周期性变化。为了模拟极度不规则的干旱周期，我们将第 18 个月的降水改为原始数据的十分之一，然后使用该模型对结果进行预测。
+
+从相应的结果可以看出，由于此时第 18 个月前后的降水并未发生剧烈变化，植物 A、B 与 C 的数量不会迅速下降，而是保持在稳定的水平上，这表明植物对降水条件的剧烈变化非常敏感。
+
+通过对规则干旱周期与不规则干旱周期下四种植物物种数量变化的分析，我们发现所建立的模型具有一定的稳健性。该模型合理且准确，能够在一定程度上反映干旱地区植物数量的变化，为今后指导沙漠种植提供了一定的参考价值。两次仿真的结果还共同表明，决定植物数量能否维持的关键并非降水的绝对水平，而是降水条件变化的速率：当降水序列平滑过渡时，群落能够在互利机制的支撑下保持稳定；当降水在短期内急剧改变时，竞争机制被迅速放大，数量便出现断崖式下降。这一结论对干旱区的植被恢复与人工种植时序安排具有直接意义。
+\subsection{修正模型的进一步分析}
+
+\subsubsection{物种数量与效益之间的关系}
+
+\textbf{（1）建立描述效益的模型}
+
+为了探究物种数量与效益之间的关系，我们需要依据生物量而非仅仅依据不同物种的植物数量来度量效益。生物量是指任意给定时刻单位面积内所有活的有机物质的总量。由于每个物种在质量、体积与生理结构上差异很大，其生物量也各不相同。
+
+同时，我们可以在数学上对效益进行量化。首先，假设共有 $n$ 个物种，而环境中只允许一个物种生长。利用已建立的模型可以得到该环境下每个物种随时间变化的数量曲线。将每个物种的数量乘以相应的生物量，在每个时刻比较这些数据，并用其中最大的数据构造一条曲线，该曲线称为基线，如公式 (7) 所示，其中 $x_i$ 为某一物种的数量，$B_i$ 为该物种的生物量。
+\begin{equation}
+B_0(t)=\max\left\{B_i\cdot x_i(t)\mid i=1,2,3,\cdots,n\right\}
+\end{equation}
+接下来，从 $n$ 个物种中选取 $k$ 个放入该环境。利用模型得到这 $k$ 个物种在该环境中的数量曲线，将数量乘以相应的生物量并求和，得到总生物量的变化曲线。最后，该曲线与基线之差反映了效益程度 $B$，如公式 (8) 所示。
+\begin{equation}
+B(t)=\sum_{i=1}^{k}B_i\cdot x_i(t)-B_0(t)
+\end{equation}
+只有当 $B>0$ 时，整个植物群落才能获得效益；选取不同的 $k$ 值可以进行更细致的分析。
+
+基线的构造实质上是给出了一个参照基准：在同样的环境条件下，若只允许单个物种独占资源，它能达到的最大生物量水平即为该时刻群落可能获得的“单种上限”。因此，当 $k$ 个物种共同生长所形成的总生物量超过这一上限时，说明物种之间的互利作用所带来的增益超过了竞争所造成的损失，群落整体上获得了效益；反之则说明竞争导致的损耗占据了主导地位。这一度量方式把“多样性是否有利”这一定性问题转化为了可计算的定量指标，为后续对不同组合、不同物种数量以及不同气候情景的比较提供了统一的判据。
+
+\textbf{（2）结合实际情况进行效益分析}
+
+基于第一问的数据，结合统计局的相关信息与文献资料，我们对腾格里沙漠的四种植物物种进行了效益分析。由于植物间相互作用方式与适应干旱能力的差异，公式 (3) 中提到的影响梯度 $k^{(ij)}_{\sigma}$ 也各不相同，干旱胁迫的临界程度 $S_0$ 同样存在差异。根据文献中对根冠比的测定，二者的量值可以被合理地估计，并以矩阵形式给出，如公式 (9) 与公式 (10) 所示。与第一问相比，此处的数据更为准确、合理。
+\begin{equation}
+K_{\sigma}=0.1\times
+\begin{bmatrix}
+0 & 0.763 & 1.10 & 4.11\\
+1.31 & 0 & 1.45 & 5.39\\
+0.905 & 0.691 & 0 & 3.72\\
+0.243 & 0.185 & 0.269 & 0
+\end{bmatrix}
+\end{equation}
+\begin{equation}
+S_0=
+\begin{bmatrix}
+0 & 0.523 & 0.533 & 0.624\\
+0.318 & 0 & 0.544 & 0.663\\
+0.374 & 0.404 & 0 & 0.612\\
+0.466 & 0.474 & 0.463 & 0
+\end{bmatrix}
+\end{equation}
+矩阵中，$K^{(ij)}_{\sigma}$、$S^{(ij)}_{0}$ 分别表示植物 $j$ 对植物 $i$ 的影响，其中 $j=1,2,3,4$，$i=1,2,3,4$，数字 1、2、3、4 分别代表植物 A、B、C 与 D。
+
+其他参数的设定与文献中的数据基本一致，与第一问相同。关于生物量 $B$ 的数据补充如下：植物 A 的初始数量为 34，初始理想最大容量为 200，最大增长率为每月 5 株，生物量为 371.49，$\alpha_i$ 取 0.002，$k_i$ 取 0.01；植物 B 的初始数量为 34，初始理想最大容量为 153，最大增长率为每月 3.5 株，生物量为 156.32；植物 C 的初始数量为 29，初始理想最大容量为 137，最大增长率为每月 5 株，生物量为 230.66；植物 D 的初始数量为 33，初始理想最大容量为 36，最大增长率为每月 2.5 株，生物量为 178.71。
+
+此时，我们仍然假设 $\alpha_i$、$k_i$ 相对于四种植物为常数，在后续问题中我们将对其加以改变，以更接近真实情况。
+
+当 $k=2$ 时，从四种植物中选取两种，共有六种结果，分别为 AB、AC、AD、BD、BC 与 CD。利用模型得到每种组合下各植物的生物量变化曲线，并与名为“single”的基线进行比较。对全部时刻的效益值取平均，即可得到每种组合的平均效益。计算结果表明，当 $k=2$ 时，有三种情形下效益为正，另外三种情形下效益为负。按数值大小排列，其整体关系为 $B(\mathrm{AC})>B(\mathrm{AB})>B(\mathrm{AD})>0>B(\mathrm{BD})>B(\mathrm{CD})>B(\mathrm{BC})$。各组合的平均效益（单位：$\times10^{4}$）具体为：AB 为 2.1257，AC 为 2.7259，AD 为 1.2740，BC 为 $-2.8521$，BD 为 $-1.0951$，CD 为 $-2.2441$。
+
+当 $k=3$ 时，从四种植物中选取三种，共有四种结果，分别为 ABC、ABD、ACD 与 BCD。利用模型得到每种组合下各植物的生物量变化曲线，并与名为“single”的基线进行比较。同样对全部时刻的效益值取平均，即可得到每种组合的平均效益。结果表明，当 $k=3$ 时，有三种情形下效益为正，另一种情形下效益为负，整体关系为 $B(\mathrm{ABC})>B(\mathrm{ACD})>B(\mathrm{ABD})>0>B(\mathrm{BCD})$。各组合的平均效益（单位：$\times10^{4}$）具体为：ABC 为 5.1470，ABD 为 3.6501，ACD 为 4.3094，BCD 为 $-0.1416$。
+
+当 $k=n=4$ 时，只有一种结果，即 ABCD。利用模型得到的生物量变化曲线与名为“single”的基线相比较，此时 $B(\mathrm{ABCD})=6.987\times10^{4}$，与 $k=2$ 和 $k=3$ 的情形相比为最大。
+
+通过对不同 $k$ 值的纵向比较可以发现，物种数量越多，效益为正的情形所占比例越大。此外，最大的正效益随物种数量的增加而增大。
+
+这一规律可以从两个层面理解：当物种数量较少时，组合的效益取决于被选物种之间是否存在互补的水分利用方式，因而正负分化明显；当物种数量增加时，群落内部的功能冗余提高，部分物种在水资源紧张时可通过互利关系相互支撑，使总生物量更容易超越单种上限。值得注意的是，全部为耐旱型或耐湿型物种的某些组合仍可能出现负效益，说明多样性的增益并非无条件的，物种组合的功能结构同样重要。就数值而言，最大正效益由 $k=2$ 时的 $2.7259\times10^{4}$ 依次上升到 $k=3$ 时的 $5.1470\times10^{4}$ 与 $k=4$ 时的 $6.987\times10^{4}$，呈单调递增趋势。
+
+\subsubsection{不同物种类型的影响}
+
+我们可以将植物划分为标准型、敏感型与耐旱型。将公式 (6) 中 $\alpha_i$ 前面的系数 $\beta_i$ 作为修正因子相乘，即可得到修正后的公式 (11)。标准型、敏感型与耐旱型的 $\beta_i$ 分别为 1、0.5 与 1.5，表示 $N_i$ 对 $S$ 的敏感程度。
+\begin{equation}
+N_i(t)=\left(1-\beta_i\alpha_i\left(S(t)-S_0\right)\right)\cdot N_i^{0}
+\end{equation}
+将修正后的公式 (11) 代入微分方程模型，即建立了考虑不同植物类型的模型。
+
+\textbf{（1）物种类型与种群规模之间的关系}
+
+由标准型的计算结果可以看出，标准型的稳定性良好，在降水大幅波动时种群仍在一定范围内保持稳定。
+
+由敏感型的计算结果可以看出，敏感型的种群随降水大幅波动，稳定性较差。由耐旱型的计算结果可以看出，耐旱型的种群在降水急剧下降时仍能保持较高水平，但在降水急剧上升的时期会出现异常下降。这是因为降水较高时，耐旱型植物之间的种间竞争会更加激烈，从而导致种群数量下降。
+
+\textbf{（2）物种类型与效益之间的关系}
+
+由敏感型在不同物种数量下的生物量分布可以看出，对于敏感型而言，在达到稳定之后，随着物种数量 $k$ 的增加，部分组合条件下的生物量显著增大，效益也随之增大。
+
+由耐旱型在不同物种数量下的生物量分布可以看出，对于耐旱型而言，在达到稳定之后，随着 $k$ 的增加，尽管存在竞争导致的异常下降，仍有越来越多的情形转为有益。
+
+由效益分析结果可以看出，敏感型的平均效益大于耐旱型的平均效益。随着物种数量 $k$ 的增加，敏感型的效益增长更快。当 $k=2$ 时，敏感型各组合的平均效益（单位：$\times10^{4}$）为：AB 为 0.0000，AC 为 $-1.5088$，AD 为 4.0707，BC 为 0.6203，BD 为 0.0000，CD 为 $-1.1004$；耐旱型各组合的平均效益（单位：$\times10^{4}$）为：AB 为 2.4879，AC 为 3.2105，AD 为 1.3025，BC 为 $-3.6076$，BD 为 $-1.4339$，CD 为 $-2.8891$。当 $k=3$ 时，敏感型各组合的平均效益（单位：$\times10^{4}$）为：ABC 为 0.0000，ABD 为 6.1294，ACD 为 6.6526，BCD 为 2.9947；耐旱型各组合的平均效益（单位：$\times10^{4}$）为：ABC 为 5.9455，ABD 为 4.0524，ACD 为 4.8102，BCD 为 $-0.3003$。
+
+进一步考虑更复杂的情形，即四种植物中一种为耐旱型、其余三种为敏感型，我们给出了 $k=2$、$k=3$ 与 $k=4$ 时的效益分析。结果表明，混合类型的效益与全部为耐旱型时的效益相差不大。具体而言，当 $k=2$ 时，混合型各组合的平均效益（单位：$\times10^{4}$）为：AB 为 2.4735，AC 为 2.9990，AD 为 1.1841，BC 为 $-3.4156$，BD 为 $-1.3137$，CD 为 $-2.8962$；当 $k=3$ 时，混合型各组合的平均效益（单位：$\times10^{4}$）为：ABC 为 5.7179，ABD 为 3.9472，ACD 为 4.5077，BCD 为 $-0.2993$。
+
+\subsubsection{干旱程度与频率的影响}
+
+\textbf{（1）建立具有不同干旱频率与程度的降水分布}
+
+首先绘制原始 48 个月降水分布的频率直方图，然后通过合理的设定提高降水量较少部分的频率，从而构造出新的频率直方图。频率直方图中的每一段代表落入该降水区间的概率。
+
+可以发现，每个降水区间对应一定的概率范围，这些概率范围之和为 1。首先，使用蒙特卡罗方法在 0 到 1 之间随机生成 60 个数，代表 60 个月。其次，每个数将对应一个概率范围，表示该月的降水只能处于该概率范围所对应的降水区间之内。最后，将落入同一降水区间的月份均匀分配，即可得到每个月的降水量。
+
+由此我们得到了干旱频率与程度更大的新降水分布。将新的降水分布数据代入先前的模型，即可首先预测在干旱频率与程度更大的条件下四种植物数量的变化。
+
+此外，我们也使用蒙特卡罗方法构造了干旱频率与程度更小的 60 个月降水分布。
+
+我们将干旱程度与频率更大、更小两种情形与物种数量 $k=2,3,4$ 的情形相比较，并按照 4.2.1 与 4.2.2 中相同的操作，分析了干旱程度与频率对不同物种效益的影响。
+
+随着干旱频率与强度的增加和减少，生物量的变化趋于稳定并保持在较高水平。随着物种数量的增加，生物量变得更加稳定。具体而言，当 $k=2$ 时，干旱更强条件下各组合的平均效益（单位：$\times10^{4}$）为：AB 为 2.1050，AC 为 2.7134，AD 为 1.2109，BC 为 $-2.9592$，BD 为 $-1.1804$，CD 为 $-2.3689$；干旱更弱条件下各组合的平均效益（单位：$\times10^{4}$）为：AB 为 2.3048，AC 为 2.8819，AD 为 1.3063，BC 为 $-3.2511$，BD 为 $-1.2454$，CD 为 $-2.5550$。当 $k=3$ 时，干旱更强条件下各组合的平均效益（单位：$\times10^{4}$）为：ABC 为 5.0631，ABD 为 3.6418，ACD 为 4.2837，BCD 为 $-0.1046$；干旱更弱条件下各组合的平均效益（单位：$\times10^{4}$）为：ABC 为 5.5306，ABD 为 3.6953，ACD 为 4.4305，BCD 为 $-0.2784$。
+
+\subsubsection{污染与生境缩减的影响}
+
+\textbf{（1）建立考虑污染与生境缩减的模型}
+
+当考虑污染时，总胁迫程度 $T$ 由干旱程度 $S$ 与污染程度 $PO$ 共同决定，如公式 (12) 所示，其中 $t$ 为离散的时间点。
+\begin{equation}
+T(t)=S(t)+PO(t)
+\end{equation}
+将原模型中的 $S$ 替换为 $T$，即可得到考虑污染之后的模型。
+
+当前时刻的 $PO$ 取决于此前各时刻的 $PO$ 总量、上一时刻的污染量以及植物的净化程度，如公式 (13) 所示。
+\begin{equation}
+PO(t+1)=PO(t)+\delta(t)-\sum_{i=1}^{n}\mu_i x_i
+\end{equation}
+其中 $\mu_i$ 指植物 $i$ 的净化因子；$\delta$ 是小范围内的随机结果，大于 0 且远小于 1；$\mu_i$ 同样满足这一要求。
+
+我们使用 $H$ 来描述生境缩减的影响。可以看出，生境缩减会影响 $N_i$ 的取值，如公式 (14) 所示。
+\begin{equation}
+N_i(t)=N_i^{0}\cdot H(t)
+\end{equation}
+其中 $H$ 可由生境缩减的比例确定，$A$ 为当前生境面积，$A_0$ 为初始生境面积，如公式 (15) 所示。
+\begin{equation}
+H(t)=\frac{A(t)}{A_0}
+\end{equation}
+
+\textbf{（2）基于真实情况的仿真}
+
+考虑如下真实情形：该地区的工厂自第 25 个月起开始建设。在随后的三个月中，污染 $\delta$ 保持稳定，而生境面积 $A$ 随建设进度而减少。三个月之后，污染不再增加，生境面积也保持稳定。具体设定为：第 1 至第 24 个月，$H=1$，$\delta=0$；第 25 个月，$H=0.9$，$\delta$ 在 $[0.02,0.06]$ 内取值；第 26 个月，$H=0.8$；第 27 个月，$H=0.7$；第 28 至第 48 个月，$H=0.7$，$\delta=0$。
+
+下面给出仅考虑污染、仅考虑生境变化以及同时考虑二者三种情形下四种植物数量的变化。可以发现，与仅考虑污染相比，仅考虑生境缩减的情形在第 25 个月即表现出植物数量的显著下降。当二者同时被考虑时，植物数量在第 25 个月之后急剧下降至较低水平，比其他两种情形更为严重。
+
+\subsubsection{保证群落存续能力的建议}
+
+第一，通过 4.1.1 中不规则干旱周期对植物数量的影响以及 4.2.3 中干旱频率的影响可以发现，在降水充足且长期稳定的条件下，植物的生长状况更好。因此，我们可以在干旱月份实施适当的人工降雨，以保证植物群落的稳定性与多样性。
+
+第二，由 4.2.1 可以发现，适当增加物种数量同样有利于保证植物群落的长期存续能力。此外，4.2.2 表明，敏感型的数量随降水波动较大，而耐旱型在降水充足时期竞争强烈。因此，将两类植物混合种植，可以扬长避短，同样有利于群落的稳定。
+
+最后，减少附近地区的污染排放、改善干旱地区的生存环境、增加植物生境的数量，也将对维持群落的存续能力起到积极作用。
+
+\subsection{敏感性分析}
+
+考虑到模型的某些初始参数在仿真实验过程中并不发生变化，例如 $L_i$、$N_i^{0}$ 与 $k_i$。因此，基于 4.2.2 中的混合类型，我们将植物 A、B、C、D 的上述参数分别调整 $\pm5\%$ 与 $\pm10\%$，并计算 48 个月内四种植物的平均总生物量。为进行精确的定量分析，我们计算了植物 A、B、C、D 的参数变化 $\pm5\%$、$\pm10\%$ 时平均总生物量的变化比例。
+
+具体结果为：对于植物 A，当 $L_i$ 变化 $-10\%$、$-5\%$、$5\%$、$10\%$ 时，平均总生物量的变化比例分别为 $0.164\%$、$0.100\%$、$0.148\%$、$0.366\%$；当 $N_i^{0}$ 作同样变化时，分别为 $1.656\%$、$0.829\%$、$0.829\%$、$1.66\%$；当 $k_i$ 作同样变化时，分别为 $0.071\%$、$0.035\%$、$0.035\%$、$0.070\%$。对于植物 B，当 $L_i$ 变化 $-10\%$、$-5\%$、$5\%$、$10\%$ 时，相应比例分别为 $0.081\%$、$0.044\%$、$0.051\%$、$0.107\%$；当 $N_i^{0}$ 作同样变化时，分别为 $3.38\%$、$1.69\%$、$1.69\%$、$3.38\%$。对于植物 C，当 $L_i$ 作同样变化时，相应比例分别为 $0.094\%$、$0.052\%$、$0.064\%$、$0.144\%$；当 $N_i^{0}$ 作同样变化时，分别为 $4.23\%$、$2.11\%$、$2.11\%$、$4.23\%$。对于植物 D，当 $L_i$ 作同样变化时，相应比例分别为 $0.053\%$、$0.029\%$、$0.033\%$、$0.067\%$；当 $N_i^{0}$ 作同样变化时，分别为 $0.737\%$、$0.369\%$、$0.369\%$、$0.737\%$。
+
+由上述数据可以发现，总生物量随 $N_i^{0}$ 的变化相对明显。然而，三个参数对总生物量的影响都较小，且处于可接受的范围之内，这在一定程度上体现了模型的稳健性。进一步比较可以发现，$N_i^{0}$ 的影响幅度明显大于 $L_i$ 与 $k_i$，其中植物 C 的响应最为敏感，参数扰动 $\pm10\%$ 时总生物量变化约 $4.23\%$；植物 D 的响应最弱，同样扰动下仅约 $0.737\%$。这说明环境容纳量是决定群落长期生物量水平的主导参数，而增长率对降水的响应强度只起次要作用。此外，参数上调与下调所引起的变化幅度基本对称，未见明显的非线性放大现象，进一步支持了模型在参数不确定性下仍能给出稳定预测的判断。
+
+\subsection{模型的优化}
+
+在 4.1.2 中，我们使用一阶差分方程求解四种植物在 48 个月内的数量变化。现在，我们使用四阶 Runge--Kutta 公式对求解模型进行优化。
+
+通过比较优化前后的结果可以发现，优化后得到的种群变化更为平滑，没有出现显著的数量下跌，因此优化后的模型能够更准确地预测种群变化。
+
+\section{模型评价}
+
+\subsection{优点}
+
+\begin{itemize}
+\item 以 Logistic 增长模型为基础，创新性地构造了考虑物种相互作用、干旱程度、污染与生境缩减等多种因素的修正模型。
+\item 使用生物量构造了评价某一植物群落效益程度的合理模型。
+\item 使用蒙特卡罗方法构造了具有不同干旱频率与程度的降水分布。
+\item 使用四阶 Runge--Kutta 方法求解模型，结果更为精确。
+\end{itemize}
+
+\subsection{缺点}
+
+\begin{itemize}
+\item 未对更多植物类型与物种数量作完整的考虑。
+\item 模型对极端气候的稳健性不足。
+\item 某些变量的函数关系可以由线性关系改为更复杂的关系。
+\end{itemize}
+
+\section*{参考文献}
+\begin{enumerate}
+\item Average precipitation statistics of major cities in China, China Statistical Yearbook
+\item Yang Haotian, Li Xinrong, Liu Lichao, Jia Rongliang, Wang Zengru, Li Xiaojun, Li Gang. Biomass allocation of four shrubs in desert grassland [J]. Journal of Desert Research, 2013, 33(5): 1340-1348 (Chinese)
+\item Yu, Xiao, Ruo-Xuan Ji, Yuan Chang, Chao Shen, Hui-Hong Guo, Xin-Li Xia, Wei-Lun Yin, and Chao Liu. "Growth Stability of Four Drought Resistant Plant Species in Different Regions." Ying Yong Sheng Tai Xue Bao 32.12 (2021): 4212-222. Web.
+\item Farooq, M., A. Wahid, N. Kobayashi, D. Fujita, and S. M. A. Basra. "Plant Drought Stress: Effects, Mechanisms and Management." Agronomy for Sustainable Development 29.1 (2009): 185-212. Web.
+\item Descamps, Charlotte, Muriel Quinet, and Anne-Laure Jacquemart. "The Effects of Drought on Plant--pollinator Interactions: What to Expect?" Environmental and Experimental Botany 182 (2021): 104297. Web.
+\item Luo, Ruiping, and Benjamin Gilbert. "Timing of Short-term Drought Structures Plant--herbivore Dynamics." Oikos 2022.1 (2022): N/a. Web.
+\item Patel, Jaykumar, and Avinash Mishra. "Plant Aquaporins Alleviate Drought Tolerance in Plants by Modulating Cellular Biochemistry, Root-architecture, and Photosynthesis." Physiologia Plantarum 172.2 (2021): 1030-044. Web.
+\item Born, Norman, David Behringer, Sascha Liepelt, Sarah Beyer, Michael Schwerdtfeger, Birgit Ziegenhagen, and Martin Koch. "Monitoring Plant Drought Stress Response Using Terahertz Time-Domain Spectroscopy." Plant Physiology (Bethesda) 164.4 (2014): 1571-577. Web.
+\item Liu, Yanrong, Dedai Jiang, Jianping Yan, Kexin Wang, Shiwen Lin, and Wanjun Zhang. "ABA-insensitivity of Alfalfa (Medicago Sativa L.) during Seed Germination Associated with Plant Drought Tolerance." Environmental and Experimental Botany 203 (2022): 105069. Web.
+\item Chen, Huiying, Kunxian Tang, Yuanmin Sun, Luchun Cai, and Hui Song. "Drought-tolerant Plants Screening and Drought-resistant Technology Research for Island Vegetation Restoration." Ying Yong Hai Yang Xue Xue Bao = Journal of Applied Oceanography 35.2 (2016): 223-28. Web.
+\item Zhang, Min, Lin Yang, Ruqian Hao, Xiaoxiong Bai, Ying Wang, and Xuan Yu. "Drought-tolerant Plant Growth-promoting Rhizobacteria Isolated from Jujube (Ziziphus Jujuba) and Their Potential to Enhance Drought Tolerance." Plant and Soil 452.1-2 (2020): 423-40. Web.
+\item https://www.52112.com/pic/30647.html
+\item https://www.zcool.com.cn/work/ZMzcwNDAzNDQ=.html
+\end{enumerate}
+
+\section*{附录}
+
+下面是我们在模型中使用的一些关键代码片段。
+
+\noindent 代码清单 1：四种植物数量变化的预测
+
+\begin{verbatim}
+for j = 1:(NumofMonth-1)
+  ri = 0.5*Li./(1+exp(k*D(j)));
+  ksigma = 0.002*ones(4,4);
+  s0 = 0.5*ones(4,4);
+  sigma = -ksigma.*(s(j)-s0);
+  for counti = 1:4
+    for countj = 1:4
+      if countj == counti
+        sigma(countj,counti) = 1;
+      end
+    end
+  end
+  tmp1 = 1- sigma*(x(j,:)./Ni)';
+  Ni = (1-0.6*(s(j+1)-0.5))*[200 153 137 36];
+  x(j+1,:) = x(j,:) + x(j,:).*ri.*(tmp1');
+end
+\end{verbatim}
+
+\noindent 代码清单 2：生成干旱频率与程度更大的降水数据
+
+\begin{verbatim}
+clear
+% genarate a new kind of climate
+P = xlsread("T and rainfall.xlsx",'sheet2','E2:E49');
+
+h = histogram(P,0:5:120);
+times = h.Values;
+
+f0 = times/sum(times);
+% stem(2.5:5:117.5,f0)
+reference0 = cumsum(f0);
+myrand = rand(60,1);
+myrainfall0 = zeros(60,1);
+for i = 1:60
+  for j = 1:24
+    if myrand(i)<=reference0(j)
+      myrainfall0(i) = unifrnd(5*(j-1),5*j);
+      break
+    end
+  end
+end
+
+plot(myrainfall0)
+
+f1 = f0;
+f1(24) = 0;
+f1(18) = 0.1*f0(18);
+f1(3) = f0(3)+0.9*f0(18)+f0(24);
+reference1 = cumsum(f1);
+myrand = rand(60,1);
+myrainfall1 = zeros(60,1);
+for i = 1:60
+  for j = 1:24
+    if myrand(i)<=reference1(j)
+      myrainfall1(i) = unifrnd(5*(j-1),5*j);
+      break
+    end
+  end
+end
+plot(myrainfall1)
+% save myrainfall1.mat myrainfall1
+
+f2 = f0;
+f2(9:10) = f0(1:2);
+f2(1:2) = f0(9:10);
+reference2 = cumsum(f2)
+myrand = rand(60,1);
+myrainfall2 = zeros(60,1);
+for i = 1:60
+  for j = 1:24
+    if myrand(i)<=reference2(j)
+      myrainfall2(i) = unifrnd(5*(j-1),5*j);
+      break
+    end
+  end
+end
+plot(myrainfall2)
+% save myrainfall2.mat myrainfall2
+\end{verbatim}
+
+\noindent 代码清单 3：使用四阶 Runge--Kutta 方法的优化模型
+
+\begin{verbatim}
+for j = 1:(NumofMonth-1)
+  ri = 0.5*Li./(1+exp(-k*s(j)));
+  sigma = -ksigma.*(s(j)-s0);
+  for counti = 1:4
+    for countj = 1:4
+      if countj == counti
+        sigma(countj,counti) = 1;
+      end
+    end
+  end
+  % Runge-Kutta method
+  f = zeros(4,4);
+  f(1,:) = fi(x,sigma,Ni,ri,j,0);
+  f(2,:) = fi(x,sigma,Ni,ri,j,f(1, :));
+  f(3,:) = fi(x,sigma,Ni,ri,j,f(2, :));
+  f(4,:) = fi(x,sigma,Ni,ri,j,2*f(3, :));
+
+  x(j+1,:) = x(j,:) + 1/6*(f(1,:)+2*f(2,:)+2*f(3,:)+f(4,:));
+  for count = 1:4
+    if x(j+1,count)<0
+      x(j+1,count) = 0;
+    end
+  end
+  Ni = (1-0.6*(s(j+1)-0.5))*[200 153 137 36];
+end
+function dx = fi(x,sigma,Ni,ri,j,f)
+  x(j,:) = x(j,:) + 0.5*f;
+  tmp0 = zeros(1,4);
+  for count = 1:4
+    if Ni(count)<1
+      tmp0(count) = 0;
+    else
+      tmp0(count) = x(j,count)/Ni(count);
+    end
+  end
+  tmp1 = 1- sigma*(x(j,:)./Ni)';
+  dx = x(j,:).*ri.*(tmp1');
+end
+\end{verbatim}
+
+\noindent 代码清单 4：考虑污染与生境缩减的仿真
+
+\begin{verbatim}
+for j = 1:(NumofMonth-1)
+  ri = 0.5*Li./(1+exp(-k*T(j)));
+  sigma = -ksigma.*(T(j)-s0);
+  PO = PO+delta(j)-mu*sum(x(j,:));
+  if PO<0
+    PO = 0;
+  end
+  T(j) = s(j)+PO;
+  for counti = 1:4
+    for countj = 1:4
+      if countj == counti
+        sigma(countj,counti) = 1;
+      end
+    end
+  end
+  f = zeros(4,4);
+  f(1,:) = fi(x,sigma,Ni,ri,j,0);
+  f(2,:) = fi(x,sigma,Ni,ri,j,f(1, :));
+  f(3,:) = fi(x,sigma,Ni,ri,j,f(2, :));
+  f(4,:) = fi(x,sigma,Ni,ri,j,2*f(3, :));
+
+  x(j+1,:) = x(j,:) + 1/6*(f(1,:)+2*f(2,:)+2*f(3,:)+f(4,:));
+  for count = 1:4
+    if x(j+1,count)<0
+      x(j+1,count) = 0;
+    end
+  end
+  Ni = H(j)*(1-0.6*(T(j)-0.5))*[200 153 137 36];
+
+end
+function dx = fi(x,sigma,Ni,ri,j,f)
+  x(j,:) = x(j,:) + 0.5*f;
+
+  tmp0 = zeros(1,4);
+  for count = 1:4
+    if Ni(count)<1
+      tmp0(count) = 0;
+    else
+      tmp0(count) = x(j,count)/Ni(count);
+    end
+  end
+
+  tmp1 = 1- sigma*(x(j,:)./Ni)';
+  dx = x(j,:).*ri.*(tmp1');
+end
+\end{verbatim}
+
+\end{document}

@@ -1,0 +1,543 @@
+\documentclass[11pt,a4paper]{ctexart}
+\usepackage[margin=2.4cm]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage{fancyhdr}
+\usepackage{enumitem}
+\linespread{1.18}
+\setlength{\headheight}{15pt}
+\setlength{\parskip}{0pt}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small Team 2321860}
+\fancyhead[R]{\small \thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+\fancypagestyle{plain}{\fancyhf{}\renewcommand{\headrulewidth}{0pt}}
+
+\ctexset{
+  section/format = \Large\bfseries\raggedright,
+  subsection/format = \large\bfseries\raggedright,
+  subsubsection/format = \normalsize\bfseries\raggedright
+}
+\setcounter{secnumdepth}{3}
+
+\begin{document}
+
+%====================== 摘要页 ======================
+\thispagestyle{empty}
+\begin{center}
+{\small 2023 MCM/ICM\quad 选题 A\quad 队伍控制号 2321860\quad 摘要页（Summary Sheet）}\\[18pt]
+{\LARGE\bfseries 植物群落的耐旱性}\\[8pt]
+{\large （Drought Tolerance of a Plant Community）}\\[10pt]
+\end{center}
+
+\begin{center}
+{\large\bfseries 摘\quad 要}
+\end{center}
+
+\vspace{6pt}
+干旱条件对植物生长具有显著影响，而不同物种对干旱的响应方式各不相同。群落内部的种群相互作用会影响干旱条件下群落的演化进程。为了研究多物种相互作用下植物群落对干旱的响应，我们选取种群密度、生物量、净初级生产力（net primary production, NPP）与土壤含水量作为四项评价指标，并综合考察了降水、蒸发、种间相互作用、污染以及生境缩减对植物群落的影响。
+
+在传统 Logistic 模型的基础上，我们修正了其中的生长速率项、最大环境容纳量与水分利用效率，并加入了一个种间相互作用项。具体而言：我们构建了土壤含水量模型，并将其应用于上述三个项（其中考虑了干旱胁迫的阈值响应）；通过分析两种植物之间的竞争关系构建了种间相互作用模型，并将其推广至群落中的多个种群；将种间相互作用项加入种群密度模型并对其加以修正。在建立种群密度模型之后，我们利用 Michaelis--Menten 方程由种群密度构建了生物量模型，进而计算群落单位面积的净初级生产力（NPP）。我们的拟合结果与真实值接近，这证明了模型的合理性。
+
+为探究各种不规则天气周期对植物群落的影响，我们模拟了三种不同的降水模式，并利用我们的模型对上述四项指标进行预测。结果发现，适度而稳定的湿润条件有利于植物的生长，而耐旱性强的植物在干燥环境中适应得更好。
+
+为探究物种丰富度与不同物种类型对群落的长期影响，我们从不同的组别组合中选取物种（按耐旱性分组），并计算了每一物种数情形下的平均总 NPP。我们发现，当物种数至少为四种时，植物群落对不规则天气周期表现出更强的抵抗力，但在干旱程度更高时这一影响变小。此外，耐旱性较弱的植物在群落中贡献的 NPP 更多。
+
+为探究污染与生境缩减对植物群落的影响，我们在种群密度模型中加入了新的因子，修正模型以预测该地区自然降水条件下植物群落总 NPP 的变化。
+
+最后，基于上述结论，我们提出了植物群落保护方面的建议，并讨论了这些措施对更广泛环境的影响。
+
+\vspace{6pt}
+\noindent\textbf{关键词：}干旱胁迫；种间关系；生物多样性；种群密度；生物量；土壤含水量
+
+\newpage
+\pagestyle{fancy}
+
+%%====================== 正文 ======================
+\section{引言}
+
+\subsection{问题背景}
+
+不同种类的植物对胁迫的反应方式不同。干旱是许多地区的植物必须适应的严酷条件。已有研究表明，生物多样性在植物群落经历连续世代干旱周期时的适应能力方面起着关键作用。具体而言，在仅含单一植物物种的群落中，其后代对干旱的适应程度不如含四个或更多物种的群落中的植物。
+
+为了制定确保植物群落长期存续的方案，我们需要研究生物多样性对植物群落干旱适应性的影响。例如，找出植物群落能够从这种局域生物多样性中获益所需的最少物种数，并预测不同程度的干旱对植物适应性的影响。
+
+\subsection{问题重述}
+
+为了更好地理解干旱适应性与植物群落物种数之间的关系，我们需要建立一个数学模型。该模型需在考虑植物群落所受多种环境作用的前提下，预测植物群落在经历不规则天气周期时如何变化。我们的模型应解决以下问题：
+
+\begin{enumerate}
+\item 问题 1：预测群落需要多少个不同的植物物种才能获益，以及物种数增加时会发生什么。
+\item 问题 2：解释群落中物种的类型如何影响你的结果。
+\item 问题 3：预测未来天气周期中干旱发生频率更高、变化幅度更大所造成的影响。若干旱发生频率降低，物种数对总体种群是否具有相同的影响？
+\item 问题 4：考虑污染、生境缩减等其他因素对结论的影响。
+\item 问题 5：根据模型，应当采取哪些措施来确保植物群落的长期存续，以及对更大范围的环境有何影响？
+\end{enumerate}
+
+\subsection{文献综述}
+
+\subsubsection{生物多样性与生态系统稳定性}
+
+关于多样性与稳定性的研究大致经历了三个大的阶段。20 世纪 50 至 60 年代，以 Elton（1958）与 MacArthur（1955）为代表，认为演替过程中生物多样性的增加会带来生态系统稳定性的提高\cite{ref9}。随着研究的推进，这一观点受到挑战。20 世纪 70 年代，Gardner（1970）、May（1974）等人\cite{ref6}认为，增加物种数从而增强物种之间接触与相互作用的强度，反而会降低其稳定性。
+
+晚近的新的实验证据则表明，多样性增加会增强生态系统的稳定性；Tilman 发现，高多样性群落对大规模干旱的抵抗力更强，并且恢复得更快。
+
+\subsubsection{物种作用的假说}
+
+针对生物多样性与生态系统功能之间关系的复杂性，生态学家提出了若干假说。这些假说大体可以归为三类：
+
+\begin{enumerate}
+\item 第一类强调物种对生态系统功能的重要性，包括铆钉假说（Riveting Hypothesis，Ehrlich，1981）与单调/峰型模型假说（Monotonic/Hump Model Hypothesis，Huston \& DeAngelis，1994）；
+\item 第二类基于冗余物种假说（Redundant Species Hypothesis），包括冗余物种假说（Walker，1992；Lawton \& Brown，1993）、零假说（Null Hypothesis）与弱相互作用假说（Weak Interaction Hypothesis，Paine，1992；Wootton，1997）；
+\item 第三类强调物种的不同作用以及关键种对生态系统功能的作用，包括补偿/关键种假说（Compensatory/Keystone Species Hypothesis，Lauenroth et al.，1978；Sala et al.，1981）、非线性假说（Non-linear Hypothesis，Schulze \& Mooney，1993）与不确定性假说（Uncertainty Hypothesis，Schindler，1990；Frost et al.，1994）。补偿/关键种假说认为，物种丰富度对生态系统功能过程的影响存在一个阈值：当多样性低于该阈值时，生态系统功能随多样性的下降而降低；而当多样性高于该阈值时，物种丰富度的变化对生态系统功能几乎没有影响。
+\end{enumerate}
+
+\subsubsection{生物多样性的机制}
+
+就生物学效应而言，目前已提出的多样性机制主要有两类。
+
+一类认为每个物种都对生态系统功能作出“独特贡献”。这类机制包括生态位互补假说（Niche Complementarity Hypothesis）、物种间正相互作用假说（Positive Interactions between Species Hypothesis）与“保险”假说（Insurance Hypothesis）。
+
+生态位互补假说认为，同一群落中物种之间的生态位存在差异，物种可以通过生态位相互补充，从而使物种数较多的群落中有机体占据更多的“功能空间”。物种间正相互作用机制假说认为，生态系统中的某些物种彼此之间存在正相互作用，某些物种可能从其他物种处获益（Bertness \& Leonard，1997）。保险假说认为，物种之间生态位的差异使得生态系统在遭遇剧烈环境变化时，风险可以在物种之间“分摊”。
+
+另一类则认为生态系统中确实存在一定数量的冗余物种，其主要理论是冗余假说\cite{ref4}。冗余物种是指那些可以从生态系统中移除而不影响其整体功能的物种（Lawton \& Brown，1993）。
+
+\subsection{本文工作}
+
+本文的工作框架可分为三个层次：“模型构建”“评价标准”与“模型应用”，三者依次衔接，共同构成研究的技术路线。
+
+第一层是植物群落干旱响应模型的构建，它由以下五个部分依次递进地组成：
+
+\begin{enumerate}
+\item 土壤含水量模型：由降水、蒸发与植物蒸腾共同决定单位面积土壤含水量的变化；
+\item 种间相互作用模型：由两种植物之间的水分竞争关系出发，刻画不同种群之间的相互抑制；
+\item 种群密度模型：在 Logistic 模型的基础上引入干旱胁迫修正与种间相互作用项；
+\item 生物量模型：由种群密度出发，借助 Michaelis--Menten 关系给出单位面积生物量；
+\item 净初级生产力模型：由种群密度、单株净光合速率与生物量计算群落单位面积的总 NPP。
+\end{enumerate}
+
+第二层是评价标准（Assessment Criterions）。我们选取四项指标衡量群落状态：种群密度、生物量、土壤含水量与总 NPP。
+
+第三层是模型应用（Model Application），包括在三种不规则气候周期下的预测，以及长期尺度上的分析。长期分析又细分为四条线索：植物模型、干旱频率、植物物种与其他因素。其中“植物模型”按耐旱性的高低（高、低）以及群落的丰富度与物种类型加以区分；“其他因素”则包括污染（Pollution）与生境缩减（Habitat Reduction）。
+
+\section{术语表}
+
+\begin{itemize}
+\item \textbf{生物多样性（Biodiversity）}：生物多样性是地球上生命的多样性与变异性。变异程度可从三个层次考察：遗传变异、物种多样性与生态系统多样性。对生物多样性构成威胁的因素很多，包括生境破坏、气候变化、入侵物种、污染、人类人口过剩与过度捕捞\cite{ref2}。
+\item \textbf{干旱胁迫（Drought stress）}：指由于干旱导致水分缺乏，从而使植物生长受到显著抑制的现象。
+\item \textbf{土壤含水量（Soil water content）}：含水量（亦称水分含量）是物质中所含水分的数量。它是土壤中水分所占体积与土壤总体积之比，定义为 $\theta=\dfrac{V_w}{V_{wet}}$，其中 $V_w$ 为水的体积，$V_{wet}$ 为土壤的总体积。
+\item \textbf{群落（Community）}：群落是在同一时间聚集于同一区域或同一环境中的各种生物种群的集合。生物群落的基本特征包括物种的多样性、群落的生长型与结构、优势种（在群落特征中起决定作用的物种）以及营养结构等。
+\item \textbf{种群（Population）}：种群是指在一定自然区域内同时生活的同种个体的总和。
+\item \textbf{种群密度（Population density）}：种群密度是单位面积或单位体积内种群中的个体数。
+\item \textbf{种间关系（Interspecies relationship）}：指不同物种种群之间的相互作用，可分为三类：中性作用、正相互作用（偏好共存与互利）以及负相互作用（竞争、捕食、寄生）。
+\item \textbf{物种丰富度（Species richness）}：群落中物种的数目。
+\item \textbf{净初级生产力（Net Primary Production, NPP）}：初级生产过程中由光合作用所固定的能量，扣除呼吸作用消耗的能量后，剩余可用于植物生长与繁殖的能量。
+\item \textbf{水分利用效率（Water use efficiency）}：植物每消耗单位质量的水所生产的干物质量，反映植物生产过程中能量转换的效率。
+\end{itemize}
+\section{模型假设与论证}
+
+\begin{enumerate}
+\item \textbf{土壤水分的唯一来源是降水，唯一的消耗是土壤蒸发与植物的水分利用。}
+
+地下水等水源与大气降水相比更为稳定。我们的研究区域属于亚热带季风气候区，降水变率较大，因此可以忽略其他土壤水分补给方式的影响，将大气降水视为土壤水分的全部来源。
+
+在植物群落中，植物占总生物量的大部分，动物一般并不直接从土壤中获取水分，因此只考虑植物的消耗与土壤的蒸发。同时，土壤水分的蒸发速率近似为常数。
+
+\item \textbf{同一植物物种在长时间尺度上的净光合速率与水分利用效率视为常数。}
+
+在较大的时间尺度上，我们可以忽略植物生长与繁殖的不同阶段，将与生长有关的量视为常数，并使用所研究物种的平均净光合速率与水分利用效率来求解模型。
+
+\item \textbf{在考虑环境因素时，只考虑土壤含水量、污染与生境缩减对植物生长的影响，不考虑与之相关的其他胁迫。}
+
+频繁的环境波动是不可避免的，光照、温度、CO$_2$ 浓度以及许多其他环境因素的变化都会导致植物生长状态的改变；但在各种胁迫条件中，干旱是最严重的威胁\cite{ref8}，而且在更干燥的气候条件下，水分往往是植物生长的决定性因素。
+
+\item \textbf{只有当土壤含水量低于某一阈值时，才对植物生长产生影响，并表现为生长速率与最大种群密度的降低。}
+
+植物对干旱与缺水存在一个“适应”过程，干旱与缺水并不总是导致更差的生长表现\cite{ref3}。
+
+\item \textbf{群落中的每个物种都影响其他物种，只是影响程度不同。}
+
+在生态系统中，每种生物都扮演特定的角色，各种生物之间存在或多或少的竞争关系或互利共生关系。
+\end{enumerate}
+
+\section{符号说明}
+
+本文所用符号如下：
+\begin{itemize}
+\item $A$：单位面积土壤含水量，单位 mm/m$^2$；
+\item $V_s$：土壤蒸发速率，单位 mm/(m$^2\cdot$s)；
+\item $V_l$：净光合速率（NPP），单位 $\mu$mol/(m$^2\cdot$s)；
+\item $WUE$：水分利用效率，单位 $\mu$molCO$_2$/mmolH$_2$O；
+\item $P$：种群密度，单位 plants/m$^2$；
+\item $P_m$：最大种群密度，单位 plants/m$^2$；
+\item $S$：单株平均总叶面积，单位 m$^2$；
+\item $V_p$：降水速率，单位 mm/(m$^2\cdot$s)；
+\item $\theta$：土壤含水量，单位 \%;
+\item $\gamma$：干旱胁迫阈值，单位 \%;
+\item $r$：生长速率，单位 plants/(m$^2\cdot$month)；
+\item $a_{ij}$：种间相互作用因子，无量纲；
+\item $F$：单株生物量，单位 kg；
+\item $Y_m$：单位面积最大生物量，单位 kg/m$^2$；
+\item $N$：单株平均生物量，单位 kg。
+\end{itemize}
+
+\section{分析与建模}
+
+\subsection{分析：总体策略}
+
+为了构建一个综合气候变化效应与植物种间关系的群落生长评价模型，我们需要建立若干函数，用以描述：土壤含水量的变化及其对植物生长的影响；环境对群落的作用以及群落对环境的反馈；不同种群之间的相互作用；种群中个体的生物量与其种群密度之间的关系。特别地，当土壤含水量降至某一阈值以下时，将触发植物的干旱胁迫。群落对环境的反馈则体现在土壤含水量的变化上。
+
+降水速率、水分蒸发速率与水分利用效率共同决定土壤含水量；土壤含水量作为环境影响（Environment Influence）作用于生长速率与环境容量，进而决定种群密度；种群密度经植物（Plants）与蒸腾—光合相互作用（E-P Interaction）决定生物量；与此同时，种间相互作用也参与调节种群密度。上述机制构成植物群落发育的完整链条。
+
+为了评价植物群落的生长状态，我们考虑以下指标：各种群的种群密度及其比例、群落总生物量、单位面积净初级生产力以及土壤含水量。种群的密度与比例反映群落种群的增长情况，群落总生物量与净初级生产力反映群落的健康状况，而土壤含水量反映植物对群落生态环境的响应。
+
+\subsection{植物群落干旱响应模型的构建}
+
+\subsubsection{土壤含水量模型}
+
+考虑到单位面积土壤含水量受土壤蒸发、植物用水与降水的影响，我们构建如下模型：
+\begin{equation}
+A(t)=A(t-1)-V_s\cdot\Delta t-\left[\sum_{i=1}^{n}\frac{V_l^{i}S_i}{WUE_i}\cdot P_i(t)\right]\Delta t+V_P\Delta t
+\end{equation}
+其中 $A(t)$ 为单位面积土壤含水量，$V_s$ 为土壤蒸发速率，即单位面积单位时间内蒸发的水量，$V_l$ 为净光合速率（NPP），$S_i$ 为种群 $i$ 的平均叶面积，$WUE_i$ 为种群 $i$ 的水分利用效率，$P_i(t)$ 为种群密度，$V_p$ 为降水速率。方括号中的量即当前植物群落的蒸腾速率。土壤含水量随时间变化的三个主要影响因素为：植物的蒸腾作用、土壤的挥发作用以及降水。
+
+当遭遇干旱时，植物会通过减少蒸腾来提高其水分利用效率，因此 $WUE$ 会随干旱程度的加深而增大。为此，我们对 $WUE$ 作如下修正：
+\begin{equation}
+WUE^{*}=WUE\cdot e^{mD(t)}
+\end{equation}
+其中 $WUE$ 为水分供给充足时（不考虑干旱胁迫时）的水分利用效率，$m$ 为干旱响应系数。
+
+土壤含水量的计算公式为：
+\begin{equation}
+\theta(t)=\frac{A^{*}(t)\cdot\rho_{water}}{1000\cdot\rho_{soil}+A^{*}(t)}
+\end{equation}
+其中 $\theta(t)$ 为土壤含水量，$\rho_{water}$ 为水的密度，$\rho_{soil}$ 为土壤密度。
+
+\subsubsection{种间相互作用模型}
+
+在我们所研究的植物群落中，水分是植物生长的限制因子，植物之间存在对水分的竞争。我们以植物 A 与植物 B 之间的竞争为例，对不同植物种群之间的相互作用进行建模。
+
+假设两种植物在适宜条件下均服从 Logistic 生长，即
+\begin{equation}
+\frac{dN}{dt}=rN\left(1-\frac{N}{K}\right)
+\end{equation}
+其中 $K$ 为环境容纳量，$N$ 为植物的生物量。
+
+在共享的资源空间中，植物 A 的生长消耗了一部分水资源，导致其根系土层中水量的减少，从而抑制植物 B 的生长，反之亦然。设 $\lambda_1$、$\lambda_2$ 分别为两种植物的水分利用系数，且 $\lambda_1+\lambda_2=1$。
+
+假设植物的生长速率与土壤含水量成正比，并与生物量成正比，则 A 对水分的有效利用为
+\begin{equation}
+L_1(N_1)=\lambda_1\frac{V}{V_2}N_1
+\end{equation}
+由此对 B 产生的抑制作用可表示为 $\alpha L_1(N_1)N_2$。
+
+类似地，B 对水分的有效利用为
+\begin{equation}
+L_2(N_2)=\lambda_2\frac{V}{V_1}N_2
+\end{equation}
+由此对 A 产生的抑制作用可表示为 $\beta L_2(N_2)N_1$。
+
+其中 $V_1$、$V_2$ 分别表示 A 与 B 各自的资源代谢库，$V$ 表示两种资源重叠时重叠库的大小\cite{ref1}。
+
+于是，竞争中 A 的生长方程变为：
+\begin{equation}
+\frac{dN_1}{dt}=r_1N_1\left(1-\frac{N_1}{K_1}\right)-\beta\lambda_2\frac{V}{V_1}N_2N_1
+\end{equation}
+竞争中 B 的生长方程变为：
+\begin{equation}
+\frac{dN_2}{dt}=r_2N_2\left(1-\frac{N_2}{K_2}\right)-\alpha\lambda_1\frac{V}{V_2}N_1N_2
+\end{equation}
+其中 $\alpha$、$\beta$ 为比例因子。
+
+令 $P_1=\beta\lambda_2\dfrac{V}{V_1}$，$P_2=\alpha\lambda_1\dfrac{V}{V_2}$，则上述方程变为：
+\begin{equation}
+\begin{cases}
+\dfrac{dN_1}{dt}=N_1r_1\left(1-\dfrac{N_1}{K_1}\right)-N_1P_1N_2\\[0.6em]
+\dfrac{dN_2}{dt}=N_2r_2\left(1-\dfrac{N_2}{K_2}\right)-N_2P_2N_1
+\end{cases}
+\end{equation}
+该模型可以推广到 $n$ 个不同种群之间的相互作用。
+
+\subsubsection{种群密度模型}
+
+基于 Logistic 增长模型，我们有：
+\begin{equation}
+\begin{cases}
+\dfrac{dx}{dt}=rx\left(1-\dfrac{x}{x_m}\right)\\[0.6em]
+x(0)=x_0
+\end{cases}
+\end{equation}
+其中 $x$ 为生物个体数，$r$ 为生长速率，其取值受土壤含水量影响。
+
+定义种群 $i$ 的耐旱性函数为：
+\begin{equation}
+D(t)=\max\left(0,\frac{\gamma_i-\theta(t)}{\gamma_i}\right),\qquad \theta(t)<\gamma_i
+\end{equation}
+其中 $\gamma_i$ 为种群 $i$ 发生干旱胁迫的阈值，即当植物处于干旱胁迫之下时的临界值。
+
+修正后的最大种群密度为：
+\begin{equation}
+P_{im}^{*}=P_{im}\left[1-D(t)\right]
+\end{equation}
+并将 $r$ 修正为：
+\begin{equation}
+r^{*}=
+\begin{cases}
+r\left[1-D(t)\right], & \left(1-\dfrac{P_i(t)}{P_{im}^{*}}\right)>0\\[0.9em]
+r\cdot D(t), & \left(1-\dfrac{P_i(t)}{P_{im}^{*}}\right)<0
+\end{cases}
+\end{equation}
+于是 Logistic 模型被修正为：
+\begin{equation}
+\frac{dP_i(t)}{dt}=r^{*}P_i(t)\left[1-\frac{P_i(t)}{P_{im}^{*}}\right]
+\end{equation}
+对于含 $n$ 个种群的群落，通过加入种间相互作用因子（即引入种间相互作用模型）来考虑不同种群之间的相互作用。完整的种群密度可描述为：
+\begin{equation}
+\frac{dP_i(t)}{dt}=r^{*}\cdot P_i(t)\left(1-\frac{P_i(t)}{P_{im}^{*}}\right)+\left[\sum_{j=1,\,j\neq i}^{n}a_{ij}P_j(t)\right]\cdot P_i(t)
+\end{equation}
+采用差分方法，可将其写成矩阵形式：
+\begin{equation}
+\vec{P}(t+1)=\Delta t
+\begin{bmatrix}
+r_1^{*}P_1(t)\left(1-\dfrac{P_1(t)}{P_{1m}^{*}}\right)\\[0.5em]
+r_2^{*}P_2(t)\left(1-\dfrac{P_2(t)}{P_{2m}^{*}}\right)\\[0.5em]
+\vdots\\[0.5em]
+r_n^{*}P_n(t)\left(1-\dfrac{P_n(t)}{P_{nm}^{*}}\right)
+\end{bmatrix}
++\Delta t\cdot\vec{M}(t)\vec{P}(t)
+\end{equation}
+其中 $\vec{P}(t)=[P_1(t),P_2(t),\dots,P_n(t)]$，$\vec{M}(t)=[m_{ij}]$，当 $i=j$ 时 $m_{ij}=\dfrac{P_i(t)}{\Delta t}$，当 $i\neq j$ 时 $m_{ij}=a_{ij}P_j(t)$。矩阵中由 $a_{ij}$ 构成的非对角部分即刻画种间竞争（Interspecies Competition）的作用。
+
+\subsubsection{生物量模型}
+
+Weiner 等人利用酶促反应与植物生长过程之间的相似性构建了一个模型\cite{ref10}。在该模型中，植物生物量的积累被视作一个化学反应：植物借助密度（作为催化剂）摄取环境中存在的无机养分，并通过光合作用将其转化为储存的化学能。该表达式的自变量为密度，因变量为种群生物量或个体生物量\cite{ref8}。也就是说，借助化学中的 Michaelis--Menten 方程，单位面积生物量与密度之间的关系可表示为：
+\begin{equation}
+F(P)=Y_m\left(\frac{P}{P+k}\right)
+\end{equation}
+其中 $F(P)$ 为单位面积生物量，$Y_m$ 为单位面积最大生物量，$P$ 为种群密度，$k$ 为达到最大生物量一半时的密度，该值随干旱胁迫强度的增大而增大：
+\begin{equation}
+k=k_n\left[1+\tan\frac{\pi}{2}D(t)\right]
+\end{equation}
+其中 $D(t)$ 为前述定义的耐旱性函数，$k_n$ 为适宜条件下的 $k$ 值。
+
+可以看出，生物量与种群密度并不成正比，这体现了自疏过程，即在种群郁闭、水肥供应不足、营养条件不良的条件下，作物通过叶片衰老脱落、分枝减少乃至部分植株死亡而发生的自然稀疏现象。它既是作物自我调节的过程，也是对不利生长环境的适应。
+
+\subsubsection{NPP 模型}
+
+由上述模型得到种群密度与生物量之后，我们可以按下式计算净初级生产力（NPP）：
+\begin{equation}
+V_l=\sum\frac{P_iV_{li}F_{0i}}{F_i}
+\end{equation}
+其中 $V_l$ 为群落单位面积的总 NPP，$P_i$ 为种群密度，$V_{li}$ 为单株植物的净光合速率（等于 NPP），$F_{0i}$ 为单株平均生物量，$F_i$ 为由生物量模型得到的生物量。
+
+\subsection{模型求解与结果}
+
+\subsubsection{数据}
+
+我们选取位于美国佛罗里达州中部的 Ocala National Forest（奥卡拉国家森林）作为研究地点。该保护区面积 607 平方英里，位于 Ocala 以东 3 英里、Gainesville 东南方向，园内分布的代表性树种为长叶松（\textit{Pinus palustris}）。
+
+选择该地的理由如下：
+
+\begin{enumerate}
+\item 按耐旱程度，植物可分为四类：高度耐旱植物、中度耐旱植物、低度耐旱植物与不耐旱植物\cite{ref7}。该园区同时包含全部四类耐旱植物，便于我们研究不同的种群。
+\item 该园区虽地处亚热带季风气候区，却经常遭遇干燥天气，便于我们研究气候的影响。
+\end{enumerate}
+
+我们从 Ocala National Forest 官方网站获取了该森林公园内八种植物（已分为以下类别）的数据：
+
+\begin{itemize}
+\item 高度耐旱植物（Highly drought tolerant plants, HDTP）：\textit{Pinus palustris}、\textit{Agave}；
+\item 中度耐旱植物（Moderately drought tolerant plants, MDTP）：\textit{Quercus fabri}、\textit{Acer macrophyllum}；
+\item 低度耐旱植物（Low drought tolerant plants, LDTP）：\textit{Populus nigra}、\textit{Acer rubrum}；
+\item 不耐旱植物（Drought intolerant plants, DIP）：\textit{Taxodium distichum}、\textit{Populus alba}。
+\end{itemize}
+
+八种植物物种的参数如下（依次给出净光合速率 NPP、水分利用效率 WUE、平均叶面积 ALS、种群密度 PD、TV 以及单株生物量）：
+
+\begin{itemize}
+\item \textit{Pinus palustris}：NPP 为 4，WUE 为 6，ALS 为 17.5，PD 为 0.695，TV 为 30\%--40\%，生物量为 9；
+\item \textit{Agave}：NPP 为 5.8，WUE 为 2.09，ALS 为 7，PD 为 0.415，TV 为 20\%--30\%，生物量为 5；
+\item \textit{Quercus fabri}：NPP 为 5.5，WUE 为 3.3，ALS 为 10，PD 为 0.48，TV 为 40\%--50\%，生物量为 23；
+\item \textit{Acer macrophyllum}：NPP 为 10，WUE 为 3，ALS 为 25，PD 为 0.097，TV 为 35.4\%，生物量为 13；
+\item \textit{Populus nigra}：NPP 为 8.2，WUE 为 5.1，ALS 为 15，PD 为 0.335，TV 为 50.2\%，生物量为 35；
+\item \textit{Acer rubrum}：NPP 为 5.5，WUE 为 5，ALS 为 10，PD 为 0.732，TV 为 55.8\%，生物量为 40；
+\item \textit{Taxodium distichum}：NPP 为 12，WUE 为 8.1，ALS 为 26，PD 为 0.21，TV 为 64.3\%，生物量为 60；
+\item \textit{Populus alba}：NPP 为 5.3，WUE 为 5.5，ALS 为 14，PD 为 0.6，TV 为 72.9\%，生物量为 200。
+\end{itemize}
+
+该地区降水的逐月变化数据取自附近的观测站 Orlando International Airport。数据覆盖 2014 年 8 月至 2022 年 8 月，以半年为间隔标示（2014-08、2015-02、2015-08、2016-02、2016-08、2017-02、2017-08、2018-02、2018-08、2019-02、2019-08、2020-02、2020-08、2021-02、2021-08、2022-02、2022-08），纵轴为降水量（mm），取值范围为 0 至 600 mm，横轴为日期。
+
+\subsubsection{结果与模型验证}
+
+我们利用 2014 年至 2021 年间的降水与种群密度数据，按月对植物群落干旱响应模型进行拟合。
+
+随后对各种群 2022 年的种群密度作出预测，并与实际值进行比较。图中横轴为月份（0 至 12），纵轴为种群密度（plants/m$^2$），取值范围为 0.02 至 0.07，八条曲线分别对应 \textit{Pinus palustris}、\textit{Agave}、\textit{Quercus fabri}、\textit{Acer macrophyllum}、\textit{Populus nigra}、\textit{Acer rubrum}、\textit{Taxodium distichum} 与 \textit{Populus alba}。
+
+预测结果与实际值的对比如下：\textit{Pinus palustris} 的均值为 0.033，标准差为 0.33\%；\textit{Agave} 的均值为 0.026，标准差为 0.25\%；\textit{Quercus fabri} 的均值为 0.041，标准差为 0.41\%；\textit{Acer macrophyllum} 的均值为 0.049，标准差为 0.49\%；\textit{Populus nigra} 的均值为 0.053，标准差为 0.53\%；\textit{Acer rubrum} 的均值为 0.058，标准差为 0.58\%；\textit{Taxodium distichum} 的均值为 0.063，标准差为 0.62\%；\textit{Populus alba} 的均值为 0.047，标准差为 0.46\%。
+
+可以看出，预测值与真实数据接近，这验证了我们模型的合理性。
+\section{多种不规则天气周期下的预测}
+
+我们模拟了以下几种随机降雨模式：
+
+\begin{itemize}
+\item 模式 a（Mode a）：干旱响应型，即在降水充足的情况下突然出现干旱；
+\item 模式 b（Mode b）：干旱恢复型，即在干燥情况下突然出现降水；
+\item 模式 c（Mode c）：完全随机型。
+\end{itemize}
+
+三种模式的降水量取值范围约为 50 至 350 mm，横轴为时间（0 至 30 个时段），纵轴为降水量（mm）。
+
+利用上述模型，我们在考虑种间相互作用影响的情况下，对一年期内的种群密度、群落单位面积总生物量及各物种所占比例、群落单位面积总 NPP 以及土壤含水量进行了预测，以全面刻画不规则气候对群落的影响。
+
+\subsection{种群密度}
+
+我们预测了 \textit{Pinus palustris} 与 \textit{Populus alba}（即最耐旱与最不耐旱的物种）在不同降水模式下一年的种群密度。初始种群密度均设为相同的数值 0.1 plants/m$^2$。图中横轴为时间（0 至 400），纵轴为种群密度（0.00 至 0.16）。
+
+在模式 a 与模式 c 中，两个物种的种群密度均呈现增长；其中在模式 a 下当水分供给更多时，\textit{Populus} 的适应略好一些，而在模式 c 下降雨适中时，两个物种表现出相近的增长。
+
+在模式 b 中，当土壤中残余水分相对充足时，两个种群的密度起初经历相近的增长。然而随着时间推移，水分对 \textit{Populus alba} 而言变得不足，导致其数量迅速下降。
+
+\subsection{总生物量与比例}
+
+基于预测得到的种群密度，我们利用生物量模型计算了 \textit{Pinus palustris}、\textit{Quercus fabri}、\textit{Populus nigra} 与 \textit{Taxodium distichum} 四个物种的单位面积生物量，并计算了植物群落的总生物量以及各种群生物量所占的百分比。
+
+在模式 a 下，单位面积总生物量为 89.69 kg/m$^2$，四个物种所占比例依次为 35.3\%、31.9\%、17\% 与 15.8\%；在模式 b 下，单位面积总生物量为 64.05 kg/m$^2$，四个物种所占比例依次为 22\%、19.9\%、26.6\% 与 31.5\%；在模式 c 下，单位面积总生物量为 148.94 kg/m$^2$，四个物种所占比例依次为 32.2\%、29.1\%、15.2\% 与 23.6\%（比例顺序均按 \textit{Pinus}、\textit{Quercus}、\textit{Populus nigra}、\textit{Taxodium distichum} 排列）。
+
+可以看出，当降雨量相对适中且更为平稳时（模式 c），单位面积总生物量最高。而在经历不规则天气周期时，降雨频率更高比干旱频率更高更有利于植物群落。
+
+此外，各物种所占比例在不同降雨模式下并不相同。在模式 a 下，\textit{Taxodium distichum}（DIP）所占比例最大；而在模式 b 下，\textit{Pinus palustris}（HDTP）所占比例最大。这表明 HDTP 对较高频率的干旱适应更好，而 DIP 对较高频率的降雨适应更好。
+
+\subsection{总 NPP 与比例}
+
+利用 NPP 模型，我们预测了总 NPP 及其构成。
+
+在模式 a 下，总 NPP 为 28.58 mmol/(m$^2\cdot$s)，四个物种所占比例依次为 34\%、29.3\%、17.1\% 与 19.7\%；在模式 b 下，总 NPP 为 24.59 mmol/(m$^2\cdot$s)，四个物种所占比例依次为 25\%、22.8\%、21.4\% 与 30.8\%；在模式 c 下，总 NPP 为 34.18 mmol/(m$^2\cdot$s)，四个物种所占比例依次为 37.5\%、30.3\%、18.7\% 与 13.5\%（比例顺序同样按 \textit{Pinus}、\textit{Quercus}、\textit{Populus nigra}、\textit{Taxodium distichum} 排列）。
+
+其规律与生物量的规律相似。
+
+\subsection{土壤含水量}
+
+为了反映植物群落中植物的环境调节功能，我们计算了五年期内土壤含水量的变化，以反映土壤的蓄水能力。图中横轴为时间 $t$（200 至 1000），纵轴为土壤含水量（0.0 至 1.0），三条曲线分别对应模式 a、模式 b 与模式 c。
+
+土壤含水量的变化与降雨的规律相一致。
+
+\section{应用：长期尺度上的分析}
+
+为了研究长时间尺度上环境对群落演替的影响，我们考虑了群落物种丰富度与物种类型、干旱事件发生频率、污染与生境缩减对群落的作用。同时，我们分析了各次干旱频率变化对物种丰富度这一因素的效应。
+
+由于群落总 NPP 反映植物群落的生产能力，我们将其作为群落健康状况的指标。
+
+\subsection{物种丰富度与干旱频率的影响}
+
+物种丰富度与群落结构显著影响群落对扰动的抵抗力，而干旱事件在频率与程度上的差异会影响群落对这一生物因素的敏感性。为探究不同天气模式下物种数对群落的影响，我们首先模拟了两种天气模式，一种干旱频率较高，另一种较低。
+
+随后，我们按耐旱性将该植物群落的物种分为四类，在相同物种数下从不同的组别组合中选取物种，并计算每一物种数下的平均总 NPP。图中横轴为物种数（1 至 8），纵轴为平均 NPP（0 至 60），分别给出较高干旱频率下的平均 NPP 及其低于均值的部分、较低干旱频率下的平均 NPP 及其低于均值的部分。
+
+可以看出，当物种数超过四个时，植物群落对不规则天气周期具有相对较强的抵抗力。
+
+通过比较两种天气模式下的图形，我们还发现：在发生更频繁、持续时间更长的干旱事件时，总 NPP 更低，且物种丰富度的影响在斜率上体现得略不显著。这大概是因为随干旱事件频率增加，每种植物的 NPP 都有所下降，因此总 NPP 的增长变得不那么明显。
+
+\subsection{植物物种类型的影响}
+
+除物种丰富度的影响之外，物种的类型也会影响植物群落的 NPP。基于上述结果，我们模拟了在分别含 4、5、6 个物种的植物群落中引入一个新物种时会发生什么。
+
+为分析新增物种的意义，我们计算了单位面积总 NPP 相对于原群落平均 NPP 的比例增量。在 4 物种情形下，四类物种的增量依次为 $-0.0758$、$-0.0643$、$0.0906$ 与 $0.0497$；在 5 物种情形下依次为 $-0.0693$、$-0.0594$、$0.0797$ 与 $0.0438$；在 6 物种情形下依次为 $-0.0619$、$-0.0457$、$0.0665$ 与 $0.0410$（均按 HDTP、MDTP、LDTP、DIP 的顺序排列）。图中纵轴为 NPP 的比例增量，取值范围为 $-0.10$ 至 $0.10$。
+
+其中 HDTP 指高度耐旱植物，MDTP 指中度耐旱植物，LDTP 指低度耐旱植物，DIP 指不耐旱植物。
+
+\subsection{污染与生境缩减的影响}
+
+污染会对植物的生长产生不利影响，表现为对种群密度增长的抑制。为反映污染的作用，我们在模型中加入污染抑制项，将其修正为：
+\begin{equation}
+\frac{dP_i(t)}{dt}=r^{*}\cdot P_i(t)\left(1-\frac{P_i(t)}{P_{im}^{*}}\right)+\left[\sum_{j=1,\,j\neq i}^{n}a_{ij}P_j(t)\right]\cdot P_i(t)-\rho P_i(t)
+\end{equation}
+其中最后一项为修正项，$\rho$ 为污染抑制系数，其大小反映污染的严重程度。我们将该模型应用于 \textit{Pinus palustris} 与 \textit{Quercus fabri}。图中横轴为污染因子（0.0 至 1.0），纵轴为稳态时的种群密度。可以看出，污染抑制植物的生长，在极端情况下甚至会导致某一植物种群的灭绝。
+
+植物生存空间的缩减会直接降低种群的环境容纳量。因此针对生境缩减，我们修正模型中的环境容纳量，即将 $P_{im}^{*}$ 改为 $\psi P_{im}^{*}$，其中 $\psi$ 为生境系数，$0\leq\psi\leq1$。生境越大，其取值越大。上述两个物种的结果如图所示（纵轴为 \textit{Quercus} 的稳态种群密度，横轴为 \textit{Pinus} 的稳态种群密度，曲线对应不同的 $\psi$ 值）。
+
+可以看出，两个物种的种群密度都随 $\psi$ 的增大而增长，表明生境丧失会对植物群落产生显著的负面影响。
+
+\section{建议与对更大环境的影响}
+
+对于物种数较少的群落系统，为了保护生物群落、改善生态环境，我们建议向群落中人工引入适量的其他植物物种，以充分利用局域物种多样性对生态环境的调节作用。
+
+根据我们对植物物种影响的分析，引入耐旱性较弱的物种对群落总 NPP 的贡献更大，因为不耐旱的植物往往具有更大的生物量与叶面积，从而更有利于光合作用。
+
+这种提高的抗旱能力有助于群落在更长的时间跨度上的长期演化。植物多样性可以改善土壤含水量，而土壤含水量的提高有助于那些抗旱能力较弱但生产力较高的植物物种在群落中存活，从而促进群落演化。
+
+更为稳定的植物群落对气候调节具有重要作用。通过蒸腾作用，水分被输送到大气中，增加了空气湿度，从而提高降水量。此外，植物群落通过吸收二氧化碳，可以缓解温室效应，从而减缓全球变暖。
+
+\section{敏感性分析}
+
+生长速率是我们模型中的一个重要参数。为探究生长速率变化对种群密度的影响，我们在 $-5\%$ 至 $5\%$ 的偏差范围内改变八个种群的生长速率，得到相应的种群密度。图中横轴为偏差（\%），纵轴为种群密度，八条曲线分别对应八个种群。
+
+另一方面，图中给出物种与偏差之间的关系：横轴为物种编号（1 至 9），纵轴为偏差量（0.120 至 0.150），并分别标示 95\% 与 105\% 两种情形。
+
+观察左侧的图形可以看出，随着 $r$ 的增大，各物种在稳态下的种群密度也随之增大。右侧的图形展示了偏差与物种多样性之间的关系。物种 1 至 8 依次为 \textit{Pinus palustris}、\textit{Agave}、\textit{Quercus fabri}、\textit{Acer macrophyllum}、\textit{Populus nigra}、\textit{Acer rubrum}、\textit{Taxodium distichum} 与 \textit{Populus alba}。
+
+\section{模型评价与进一步讨论}
+
+\subsection{优点}
+
+\begin{enumerate}
+\item 在构建种群密度模型时，创新性地考虑了干旱胁迫，并对生长速率与最大环境容纳量作了修正。此外，干旱胁迫仅在土壤含水量降至某一阈值以下时才被触发，这与实际情况相符。
+\item 我们由简单的两植物模型推导出种间竞争对生长速率的影响，并将其推广至整个群落，在群落干旱响应模型中加入了种间相互作用项，并拟合出相互作用系数矩阵以显示物种之间的相互关系。
+\item 在群落状况的评价中，考虑了种群密度、生物量、净初级生产力与土壤含水量四项指标，以综合反映群落的稳定性与健康状况。
+\item 在计算生物量时考虑了自疏效应，并将单位面积总生物量与种群密度结合起来评估种群的状态。
+\end{enumerate}
+
+\subsection{缺点}
+
+\begin{enumerate}
+\item 我们仅用线性函数对生长速率与最大种群密度作修正，因此只能进行定性分析。
+\item 我们未考虑干旱对温度、光照等其他环境因素的影响，只考虑了其对土壤含水量的影响。
+\item 在讨论污染与生境缩减的影响时，未对污染因子与生境因子的来源进行量化，仅按程度选取数值，从而难以开展定量分析。
+\end{enumerate}
+
+\subsection{未来工作}
+
+\begin{enumerate}
+\item 获取其他植物群落的数据，并利用我们的模型促进不规则气候模式下植物群落的保护。
+\item 在全球变暖的背景下，综合考虑气候变化对全球降水、温度与光照的影响。考虑温度变化对土壤蒸发的影响以及光照变化对植物净光合作用的影响，以进一步修正我们的模型。
+\item 量化污染指标，并修正污染项以定量描述污染对植物生长的影响，同时寻找耐污染的种群。植物群落对污染的反作用也可加以研究，从而为污染防治提供新的思路。
+\end{enumerate}
+
+\section{结论}
+
+我们的植物群落干旱响应模型考虑了干旱频率与种间相互作用对植物群落的影响。主要结论如下：
+
+\begin{enumerate}
+\item 在三种不同的降水模式下，干旱响应模式（模式 a）表明不耐旱的 \textit{Taxodium distichum} 对环境的适应性更强；而在干旱恢复模式（模式 b）下，\textit{Pinus palustris} 为优势种。在随机模式（模式 c）下，植物的生长状态没有显著差异。
+\item 适度的湿润有利于群落发展，因为模式 c 下群落的总生物量与总 NPP 最高。
+\item 当物种数大于 4 时，群落对不规则气候的抵抗力更强，这体现在单位面积总 NPP 上。当干旱频率更高时，群落多样性的作用不那么显著。
+\item 当物种丰富度大于 4 时，向群落中加入耐旱性较弱的植物比加入耐旱植物更能提高群落生产力。
+\item 污染与生境丧失会抑制植物群落中的种群密度，甚至可能导致某些物种灭绝。
+\end{enumerate}
+
+\begin{thebibliography}{99}
+
+\bibitem{ref1} Zhang Caiqin and Yang Zhi. Simulation of different plant growth dynamics in inner mongolia typical steppe during the growing season. Acta ecologica sinica, 27(9):3618--3629, 2007.
+
+\bibitem{ref2} Jim Chen. Across the apocalypse on horseback: imperfect legal responses to biodiversity loss. Wash. UJL \& Pol'y, 17:13, 2005.
+
+\bibitem{ref3} Zhao Hong, WANG Runyuan, Shang Yan, WANG Heling, Zhang Kai, ZHAO Funian, Qi Yue, and Chen Fei. Research progress and prospect on the response of grain crops to high temperature and drought stress and its threshold. Arid weather, 34(1):1--12, 2016.
+
+\bibitem{ref4} Wang Jiang. Effects of drought stress on the relationship between biodiversity and ecosystem function, 2006.
+
+\bibitem{ref5} Robert MacArthur. Fluctuations of animal populations and a measure of community stability. ecology, 36(3):533--536, 1955.
+
+\bibitem{ref6} Robert M May. Will a large complex system be stable? Nature, 238:413--414, 1972.
+
+\bibitem{ref7} Chaves MM, Maroco JP, and Pereira JS. Understanding plant responses to drought - from genes to the whole plant. Funct Plant Biol, 30(3):239--264, Mar 2003.
+
+\bibitem{ref8} Zhu Saiyong. Mathematical model construction and mechanism investigation of drought reducing optimum density of dryland wheat. 2021.
+
+\bibitem{ref9} David Tilman and David Wedin. Dynamics of nitrogen competition between successional grasses. Ecology, 72(3):1038--1049, 1991.
+
+\bibitem{ref10} Jacob Weiner and Robert P Freckleton. Constant final yield. Annual Review of Ecology, Evolution, and Systematics, 41:173--192, 2010.
+
+\end{thebibliography}
+
+\end{document}
